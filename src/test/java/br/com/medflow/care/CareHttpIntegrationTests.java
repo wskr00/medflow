@@ -22,6 +22,7 @@ import br.com.medflow.reception.application.ReceptionService;
 import br.com.medflow.scheduling.FixedSchedulingClockConfiguration;
 import br.com.medflow.scheduling.application.AppointmentService;
 import br.com.medflow.scheduling.application.SchedulingConfigurationService;
+import java.sql.Timestamp;
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -39,6 +40,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -66,6 +68,7 @@ class CareHttpIntegrationTests {
   @Autowired private ReceptionService reception;
   @Autowired private CareService care;
   @Autowired private AtendimentoRepository careRepository;
+  @Autowired private JdbcTemplate jdbc;
 
   @Test
   void doctorFlowPaginatesAgendaAndQueueThenPersistsFinalizedClinicalRecord() throws Exception {
@@ -150,6 +153,150 @@ class CareHttpIntegrationTests {
         .andExpect(jsonPath("$.items[0].id").value(first.id().toString()))
         .andExpect(jsonPath("$.items[0].registroClinico").doesNotExist())
         .andExpect(jsonPath("$.items[0].queixaPrincipal").doesNotExist());
+  }
+
+  @Test
+  void doctorQueueUsesAllTieBreakersAndKeepsGlobalOrderAcrossPages() throws Exception {
+    Fixture fixture = fixture("http-queue-order");
+    List<UUID> roomIds = new java.util.ArrayList<>();
+    roomIds.add(fixture.roomId());
+    for (int index = 1; index < 4; index++) {
+      roomIds.add(clinic.criarConsultorio(
+          fixture.unitId(), "Sala queue HTTP " + index + "-" + IDS.incrementAndGet(), true).id());
+    }
+    List<UUID> patientIds = new java.util.ArrayList<>();
+    patientIds.add(fixture.patient().pacienteId());
+    for (int index = 1; index < 4; index++) {
+      patientIds.add(provisioning.provisionar(
+          "patient-queue-http-" + IDS.incrementAndGet(), "Paciente queue HTTP " + index).id());
+    }
+    UUID earlierStart = UUID.fromString("20000000-0000-0000-0000-000000000001");
+    UUID earlierCheckIn = UUID.fromString("20000000-0000-0000-0000-000000000004");
+    UUID lowerIdTie = UUID.fromString("20000000-0000-0000-0000-000000000002");
+    UUID higherIdTie = UUID.fromString("20000000-0000-0000-0000-000000000003");
+    insertAppointment(earlierStart, fixture, patientIds.get(0), fixture.doctor().medicoId(),
+        roomIds.get(0), offset(9).toInstant(), offset(8).plusMinutes(50).toInstant(), "EM_ESPERA");
+    insertAppointment(earlierCheckIn, fixture, patientIds.get(1), fixture.doctor().medicoId(),
+        roomIds.get(1), offset(10).toInstant(), offset(8).toInstant(), "EM_ESPERA");
+    insertAppointment(lowerIdTie, fixture, patientIds.get(2), fixture.doctor().medicoId(),
+        roomIds.get(2), offset(10).toInstant(), offset(8).plusMinutes(5).toInstant(), "EM_ESPERA");
+    insertAppointment(higherIdTie, fixture, patientIds.get(3), fixture.doctor().medicoId(),
+        roomIds.get(3), offset(10).toInstant(), offset(8).plusMinutes(5).toInstant(), "EM_ESPERA");
+    var doctor = principal(fixture.doctor().subject(), "DOCTOR");
+
+    mvc.perform(get("/api/medico/fila?page=0&size=2").with(doctor))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.page").value(0))
+        .andExpect(jsonPath("$.size").value(2))
+        .andExpect(jsonPath("$.totalElements").value(4))
+        .andExpect(jsonPath("$.items[0].id").value(earlierStart.toString()))
+        .andExpect(jsonPath("$.items[1].id").value(earlierCheckIn.toString()));
+    mvc.perform(get("/api/medico/fila?page=1&size=2").with(doctor))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.page").value(1))
+        .andExpect(jsonPath("$.size").value(2))
+        .andExpect(jsonPath("$.totalElements").value(4))
+        .andExpect(jsonPath("$.items[0].id").value(lowerIdTie.toString()))
+        .andExpect(jsonPath("$.items[1].id").value(higherIdTie.toString()));
+  }
+
+  @Test
+  void patientHistoryKeepsDescendingGlobalOrderAndNeverExposesClinicalText() throws Exception {
+    Fixture fixture = fixture("http-patient-history-pages");
+    UUID newest = UUID.fromString("30000000-0000-0000-0000-000000000001");
+    UUID lowerIdTie = UUID.fromString("30000000-0000-0000-0000-000000000002");
+    UUID higherIdTie = UUID.fromString("30000000-0000-0000-0000-000000000003");
+    UUID oldest = UUID.fromString("30000000-0000-0000-0000-000000000004");
+    insertFinalized(newest, UUID.fromString("31000000-0000-0000-0000-000000000001"),
+        fixture, fixture.patient().pacienteId(), fixture.doctor().medicoId(), fixture.roomId(),
+        offset(12).toInstant(), "segredo-newest");
+    insertFinalized(lowerIdTie, UUID.fromString("31000000-0000-0000-0000-000000000002"),
+        fixture, fixture.patient().pacienteId(), fixture.doctor().medicoId(), fixture.roomId(),
+        offset(11).toInstant(), "segredo-lower-id");
+    insertFinalized(higherIdTie, UUID.fromString("31000000-0000-0000-0000-000000000003"),
+        fixture, fixture.patient().pacienteId(), fixture.doctor().medicoId(), fixture.roomId(),
+        offset(11).toInstant(), "segredo-higher-id");
+    insertFinalized(oldest, UUID.fromString("31000000-0000-0000-0000-000000000004"),
+        fixture, fixture.patient().pacienteId(), fixture.doctor().medicoId(), fixture.roomId(),
+        offset(10).toInstant(), "segredo-oldest");
+    var patient = principal(fixture.patient().subject(), "PATIENT");
+
+    mvc.perform(get("/api/me/historico?page=0&size=2").with(patient))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.page").value(0))
+        .andExpect(jsonPath("$.size").value(2))
+        .andExpect(jsonPath("$.totalElements").value(4))
+        .andExpect(jsonPath("$.items[0].id").value(newest.toString()))
+        .andExpect(jsonPath("$.items[1].id").value(lowerIdTie.toString()))
+        .andExpect(jsonPath("$.items[0].registroClinico").doesNotExist())
+        .andExpect(jsonPath("$.items[1].queixaPrincipal").doesNotExist())
+        .andExpect(content().string(not(containsString("segredo-"))));
+    mvc.perform(get("/api/me/historico?page=1&size=2").with(patient))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.page").value(1))
+        .andExpect(jsonPath("$.size").value(2))
+        .andExpect(jsonPath("$.totalElements").value(4))
+        .andExpect(jsonPath("$.items[0].id").value(higherIdTie.toString()))
+        .andExpect(jsonPath("$.items[1].id").value(oldest.toString()))
+        .andExpect(jsonPath("$.items[0].registroClinico").doesNotExist())
+        .andExpect(jsonPath("$.items[1].observacoes").doesNotExist())
+        .andExpect(content().string(not(containsString("segredo-"))));
+  }
+
+  @Test
+  void doctorHistoryPaginatesOwnFinalizedRecordsInDescendingGlobalOrder() throws Exception {
+    Fixture own = fixture("http-doctor-history-pages");
+    Fixture other = fixture("http-doctor-history-other");
+    UUID newest = UUID.fromString("40000000-0000-0000-0000-000000000001");
+    UUID lowerIdTie = UUID.fromString("40000000-0000-0000-0000-000000000002");
+    UUID higherIdTie = UUID.fromString("40000000-0000-0000-0000-000000000003");
+    UUID oldest = UUID.fromString("40000000-0000-0000-0000-000000000004");
+    insertFinalized(newest, UUID.fromString("41000000-0000-0000-0000-000000000001"), own,
+        own.patient().pacienteId(), own.doctor().medicoId(), own.roomId(),
+        offset(12).toInstant(), "own-newest");
+    insertFinalized(lowerIdTie, UUID.fromString("41000000-0000-0000-0000-000000000002"), own,
+        own.patient().pacienteId(), own.doctor().medicoId(), own.roomId(),
+        offset(11).toInstant(), "own-lower-id");
+    insertFinalized(higherIdTie, UUID.fromString("41000000-0000-0000-0000-000000000003"), own,
+        own.patient().pacienteId(), own.doctor().medicoId(), own.roomId(),
+        offset(11).toInstant(), "own-higher-id");
+    insertFinalized(oldest, UUID.fromString("41000000-0000-0000-0000-000000000004"), own,
+        own.patient().pacienteId(), own.doctor().medicoId(), own.roomId(),
+        offset(10).toInstant(), "own-oldest");
+    insertFinalized(UUID.fromString("42000000-0000-0000-0000-000000000001"),
+        UUID.fromString("42100000-0000-0000-0000-000000000001"), other,
+        own.patient().pacienteId(), other.doctor().medicoId(), other.roomId(),
+        offset(13).toInstant(), "other-doctor-secret");
+    UUID unfinished = UUID.fromString("43000000-0000-0000-0000-000000000001");
+    insertAppointment(unfinished, own, own.patient().pacienteId(), own.doctor().medicoId(),
+        own.roomId(), offset(13).toInstant(), offset(9).toInstant(), "EM_ATENDIMENTO");
+    insertCare(UUID.fromString("43100000-0000-0000-0000-000000000001"), unfinished,
+        offset(9).toInstant(), null, "unfinished-secret");
+    var doctor = principal(own.doctor().subject(), "DOCTOR");
+    String path = "/api/medico/pacientes/" + own.patient().pacienteId() + "/historico";
+
+    mvc.perform(get(path + "?page=0&size=2").with(doctor))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.page").value(0))
+        .andExpect(jsonPath("$.size").value(2))
+        .andExpect(jsonPath("$.totalElements").value(4))
+        .andExpect(jsonPath("$.items[0].agendamentoId").value(newest.toString()))
+        .andExpect(jsonPath("$.items[0].registroClinico.queixaPrincipal").value("own-newest"))
+        .andExpect(jsonPath("$.items[1].agendamentoId").value(lowerIdTie.toString()))
+        .andExpect(jsonPath("$.items[1].registroClinico.queixaPrincipal").value("own-lower-id"))
+        .andExpect(content().string(not(containsString("other-doctor-secret"))))
+        .andExpect(content().string(not(containsString("unfinished-secret"))));
+    mvc.perform(get(path + "?page=1&size=2").with(doctor))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.page").value(1))
+        .andExpect(jsonPath("$.size").value(2))
+        .andExpect(jsonPath("$.totalElements").value(4))
+        .andExpect(jsonPath("$.items[0].agendamentoId").value(higherIdTie.toString()))
+        .andExpect(jsonPath("$.items[0].registroClinico.queixaPrincipal").value("own-higher-id"))
+        .andExpect(jsonPath("$.items[1].agendamentoId").value(oldest.toString()))
+        .andExpect(jsonPath("$.items[1].registroClinico.queixaPrincipal").value("own-oldest"))
+        .andExpect(content().string(not(containsString("other-doctor-secret"))))
+        .andExpect(content().string(not(containsString("unfinished-secret"))));
   }
 
   @Test
@@ -302,7 +449,8 @@ class CareHttpIntegrationTests {
         singleton.id(), singleton.timeZone());
     var receptionist = new AuthenticatedActor("reception-" + suffix, Set.of("RECEPTIONIST"),
         null, null, singleton.id(), singleton.timeZone());
-    return new Fixture(rule.id(), patient, doctor, receptionist);
+    return new Fixture(rule.id(), specialty.id(), unit.id(), room.id(),
+        patient, doctor, receptionist);
   }
 
   private AppointmentService.AppointmentView waiting(Fixture fixture, int hour) {
@@ -330,6 +478,40 @@ class CareHttpIntegrationTests {
     return TODAY.atTime(hour, 0).atZone(BELEM).toOffsetDateTime();
   }
 
-  private record Fixture(UUID ruleId, AuthenticatedActor patient,
+  private void insertFinalized(UUID appointmentId, UUID careId, Fixture fixture,
+      UUID patientId, UUID doctorId, UUID roomId, Instant start, String clinicalMarker) {
+    insertAppointment(appointmentId, fixture, patientId, doctorId, roomId, start,
+        start.minusSeconds(600), "FINALIZADA");
+    insertCare(careId, appointmentId, start.minusSeconds(300), start.plusSeconds(1800),
+        clinicalMarker);
+  }
+
+  private void insertAppointment(UUID id, Fixture fixture, UUID patientId, UUID doctorId,
+      UUID roomId, Instant start, Instant checkIn, String statusValue) {
+    jdbc.update("""
+        insert into agendamento
+          (id, clinica_id, paciente_id, medico_id, especialidade_id, consultorio_id,
+           inicio, fim, status, check_in_em, version)
+        values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+        """, id, clinic.clinica().id(), patientId, doctorId, fixture.specialtyId(), roomId,
+        Timestamp.from(start), Timestamp.from(start.plusSeconds(1800)), statusValue,
+        Timestamp.from(checkIn));
+  }
+
+  private void insertCare(UUID id, UUID appointmentId, Instant startedAt,
+      Instant finishedAt, String clinicalMarker) {
+    jdbc.update("""
+        insert into atendimento
+          (id, agendamento_id, iniciado_em, finalizado_em, queixa_principal,
+           resumo_anamnese, conduta, observacoes, version)
+        values (?, ?, ?, ?, ?, ?, ?, ?, 0)
+        """, id, appointmentId, Timestamp.from(startedAt),
+        finishedAt == null ? null : Timestamp.from(finishedAt), clinicalMarker,
+        "resumo-" + clinicalMarker, "conduta-" + clinicalMarker,
+        "observacoes-" + clinicalMarker);
+  }
+
+  private record Fixture(UUID ruleId, UUID specialtyId, UUID unitId, UUID roomId,
+      AuthenticatedActor patient,
       AuthenticatedActor doctor, AuthenticatedActor receptionist) { }
 }
