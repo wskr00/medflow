@@ -1,8 +1,7 @@
-import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { httpResource } from "@angular/common/http";
+import { Injectable } from "@angular/core";
 
-import { authConfig } from './auth-config';
+import { authConfig } from "./auth-config";
 
 export interface MedflowIdentity {
   subject: string;
@@ -13,11 +12,10 @@ export interface MedflowIdentity {
   timeZone: string;
 }
 
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class IdentityService {
-  private readonly http = inject(HttpClient);
-
-  load(): Observable<MedflowIdentity> {
-    return this.http.get<MedflowIdentity>(`${authConfig.apiBaseUrl}/me`);
-  }
+  /** Fonte reativa da identidade autorizada pelo backend. */
+  readonly identity = httpResource<MedflowIdentity>(
+    () => `${authConfig.apiBaseUrl}/me`,
+  );
 }

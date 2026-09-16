@@ -10,7 +10,48 @@
     "experimentalDecorators": true,
     "importHelpers": true,
     "target": "es2025",
-    "module": "esnext"
+    "module": "esnext",
+    "paths": {
+      "@spartan-ng/helm/button": [
+        "./src/main/webapp/shared/ui/helm/button/src/index.ts"
+      ],
+      "@spartan-ng/helm/utils": [
+        "./src/main/webapp/shared/ui/helm/utils/src/index.ts"
+      ],
+      "@spartan-ng/helm/alert": [
+        "./src/main/webapp/shared/ui/helm/alert/src/index.ts"
+      ],
+      "@spartan-ng/helm/badge": [
+        "./src/main/webapp/shared/ui/helm/badge/src/index.ts"
+      ],
+      "@spartan-ng/helm/card": [
+        "./src/main/webapp/shared/ui/helm/card/src/index.ts"
+      ],
+      "@spartan-ng/helm/empty": [
+        "./src/main/webapp/shared/ui/helm/empty/src/index.ts"
+      ],
+      "@spartan-ng/helm/field": [
+        "./src/main/webapp/shared/ui/helm/field/src/index.ts"
+      ],
+      "@spartan-ng/helm/label": [
+        "./src/main/webapp/shared/ui/helm/label/src/index.ts"
+      ],
+      "@spartan-ng/helm/separator": [
+        "./src/main/webapp/shared/ui/helm/separator/src/index.ts"
+      ],
+      "@spartan-ng/helm/input": [
+        "./src/main/webapp/shared/ui/helm/input/src/index.ts"
+      ],
+      "@spartan-ng/helm/textarea": [
+        "./src/main/webapp/shared/ui/helm/textarea/src/index.ts"
+      ],
+      "@spartan-ng/helm/sheet": [
+        "./src/main/webapp/shared/ui/helm/sheet/src/index.ts"
+      ],
+      "@spartan-ng/helm/skeleton": [
+        "./src/main/webapp/shared/ui/helm/skeleton/src/index.ts"
+      ]
+    }
   },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,
