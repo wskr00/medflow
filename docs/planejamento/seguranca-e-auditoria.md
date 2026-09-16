@@ -67,3 +67,5 @@ Testar outro paciente/médico, acesso direto por ID, contexto errado, conta mult
 Compose `start-dev` e credenciais sintéticas são locais. Não há declaração de prontidão para produção, conformidade legal integral ou revogação instantânea de JWT já emitido. Validade e renovação do access token serão configuradas e documentadas em #9; a política de demonstração é access token de 5 minutos, com renovação enquanto a sessão for válida.
 
 Referências técnicas: [adaptador oficial Keycloak](https://www.keycloak.org/securing-apps/javascript-adapter) para SPA/PKCE/memória; [Spring Security Resource Server JWT](https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/jwt.html) para validação de JWT e audiência. As permissões de negócio são decisões do MedFlow, não prescrições dessas fontes.
+
+Paciente e Recepção consultam apenas os catálogos mínimos ativos de unidade, especialidade e médico. Solicitar inativos, DTO administrativo, clínica, consultório, regra ou bloqueio é negado. Médico não recebe busca geral de catálogo; mutações de configuração permanecem exclusivas de Administração.

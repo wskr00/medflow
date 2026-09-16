@@ -58,6 +58,29 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error(500, id, List.of()));
     }
 
+    @ExceptionHandler(BusinessConflictException.class)
+    public ResponseEntity<ApiError> handleConflict(BusinessConflictException exception,
+            HttpServletRequest request) {
+        String id = RequestIdFilter.requestId(request);
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ApiError(
+            HttpStatus.CONFLICT.value(), exception.code(), exception.getMessage(), id, List.of()));
+    }
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ApiError> handleNotFound(ResourceNotFoundException exception,
+            HttpServletRequest request) {
+        String id = RequestIdFilter.requestId(request);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiError(
+            HttpStatus.NOT_FOUND.value(), "RECURSO_NAO_ENCONTRADO", "Recurso não encontrado.", id, List.of()));
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiError> handleInvalidArgument(IllegalArgumentException exception,
+            HttpServletRequest request) {
+        String id = RequestIdFilter.requestId(request);
+        return ResponseEntity.badRequest().body(error(HttpStatus.BAD_REQUEST.value(), id, List.of()));
+    }
+
     private ApiError error(int status, String id, List<ApiError.FieldError> fields) {
         String code = switch (status) {
             case 400 -> "ENTRADA_INVALIDA";

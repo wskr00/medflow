@@ -1,8 +1,10 @@
 package br.com.medflow.security;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import br.com.medflow.clinic.application.IdentityProjectionService;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -18,9 +20,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class IdentityController {
 
   private final String timeZone;
+  private final IdentityProjectionService identities;
 
-  public IdentityController(@Value("${medflow.security.time-zone:America/Belem}") String timeZone) {
+  public IdentityController(@Value("${medflow.security.time-zone:America/Belem}") String timeZone,
+      IdentityProjectionService identities) {
     this.timeZone = timeZone;
+    this.identities = identities;
   }
 
   @GetMapping("/me")
@@ -32,13 +37,14 @@ public class IdentityController {
         .map(authority -> authority.substring("ROLE_".length()))
         .sorted(Comparator.naturalOrder())
         .toList();
+    var projection = identities.lookup(jwt.getSubject(), Set.copyOf(roles));
     return ResponseEntity.ok(new IdentityResponse(
         jwt.getSubject(),
         roles,
-        null,
-        null,
-        null,
-        timeZone));
+        projection.pacienteId(),
+        projection.medicoId(),
+        projection.clinicaId(),
+        projection.timeZone() == null ? timeZone : projection.timeZone()));
   }
 
   @JsonInclude(JsonInclude.Include.ALWAYS)

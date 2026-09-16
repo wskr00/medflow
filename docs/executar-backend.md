@@ -43,6 +43,20 @@ export SPRING_DOCKER_COMPOSE_ENABLED=false
 ./gradlew bootRun
 ```
 
+Após o backend aplicar o schema, o vínculo sintético local com os subjects fixos do
+realm pode ser provisionado explicitamente uma vez (o script é idempotente):
+
+```bash
+PGPASSWORD="$MEDFLOW_DB_PASSWORD" psql -h localhost -p 55427 -U medflow -d medflow \
+  -f scripts/provisionar-vinculos-sinteticos.sql
+```
+
+Os subjects são paciente `20000000-0000-0000-0000-000000000001` e médico
+`20000000-0000-0000-0000-000000000003`; não são email, username ou credenciais e não
+são expostos pelo CRUD administrativo. Os IDs locais correspondentes começam em
+`30000000-...`. O script não é migration Flyway e, portanto, não altera a sequência nem
+deixa uma migration aplicada ausente quando o banco for iniciado em outro profile.
+
 Desabilitar a integração automática com Compose nesse procedimento evita que
 ela inicie outros serviços ou substitua a conexão JDBC explícita por service
 connections. O Compose compartilhado e o realm pertencem ao procedimento da
