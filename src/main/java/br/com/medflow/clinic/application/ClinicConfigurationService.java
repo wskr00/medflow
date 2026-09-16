@@ -15,6 +15,8 @@ import br.com.medflow.common.http.ResourceNotFoundException;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -51,10 +53,10 @@ public class ClinicConfigurationService {
   }
 
   @Transactional(readOnly = true)
-  public List<Unidade> unidades(boolean incluirInativas) {
+  public Page<Unidade> unidades(boolean incluirInativas, Pageable pageable) {
     UUID clinicaId = clinica().id();
-    return incluirInativas ? unidades.findByClinicaIdOrderByNome(clinicaId)
-        : unidades.findByClinicaIdAndAtivoTrueOrderByNome(clinicaId);
+    return incluirInativas ? unidades.findByClinicaId(clinicaId, pageable)
+        : unidades.findByClinicaIdAndAtivoTrue(clinicaId, pageable);
   }
 
   @Transactional
@@ -73,10 +75,10 @@ public class ClinicConfigurationService {
   }
 
   @Transactional(readOnly = true)
-  public List<Consultorio> consultorios(boolean incluirInativos) {
+  public Page<Consultorio> consultorios(boolean incluirInativos, Pageable pageable) {
     UUID clinicaId = clinica().id();
-    return incluirInativos ? consultorios.findByUnidadeClinicaIdOrderByNome(clinicaId)
-        : consultorios.findByUnidadeClinicaIdAndAtivoTrueOrderByNome(clinicaId);
+    return incluirInativos ? consultorios.findByUnidadeClinicaId(clinicaId, pageable)
+        : consultorios.findByUnidadeClinicaIdAndAtivoTrue(clinicaId, pageable);
   }
 
   @Transactional
@@ -106,10 +108,10 @@ public class ClinicConfigurationService {
   }
 
   @Transactional(readOnly = true)
-  public List<Especialidade> especialidades(boolean incluirInativas) {
+  public Page<Especialidade> especialidades(boolean incluirInativas, Pageable pageable) {
     UUID clinicaId = clinica().id();
-    return incluirInativas ? especialidades.findByClinicaIdOrderByNome(clinicaId)
-        : especialidades.findByClinicaIdAndAtivoTrueOrderByNome(clinicaId);
+    return incluirInativas ? especialidades.findByClinicaId(clinicaId, pageable)
+        : especialidades.findByClinicaIdAndAtivoTrue(clinicaId, pageable);
   }
 
   @Transactional
@@ -128,10 +130,10 @@ public class ClinicConfigurationService {
   }
 
   @Transactional(readOnly = true)
-  public List<Medico> medicos(boolean incluirInativos) {
+  public Page<Medico> medicos(boolean incluirInativos, Pageable pageable) {
     UUID clinicaId = clinica().id();
-    return incluirInativos ? medicos.findByClinicaIdOrderByNome(clinicaId)
-        : medicos.findByClinicaIdAndAtivoTrueOrderByNome(clinicaId);
+    return incluirInativos ? medicos.findByClinicaId(clinicaId, pageable)
+        : medicos.findByClinicaIdAndAtivoTrue(clinicaId, pageable);
   }
 
   @Transactional
@@ -216,7 +218,7 @@ public class ClinicConfigurationService {
   private void validarCrmDisponivel(Clinica clinica, String numero, String uf, UUID atual) {
     String normalizedNumero = Clinica.requiredText(numero, 30, "crmNumero");
     String normalizedUf = Clinica.requiredText(uf, 2, "crmUf").toUpperCase();
-    medicos.findByClinicaIdOrderByNome(clinica.id()).stream()
+    medicos.findByClinicaId(clinica.id(), Pageable.unpaged()).stream()
         .filter(medico -> !medico.id().equals(atual))
         .filter(medico -> medico.crmNumero().equals(normalizedNumero) && medico.crmUf().equals(normalizedUf))
         .findAny().ifPresent(medico -> { throw configurationConflict("CRM já cadastrado na clínica."); });

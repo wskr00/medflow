@@ -40,8 +40,14 @@ export MEDFLOW_DB_USERNAME=medflow
 export MEDFLOW_DB_PASSWORD=medflow-local-test
 export SPRING_DOCKER_COMPOSE_ENABLED=false
 ./gradlew clean build
-./gradlew bootRun
+./gradlew bootRun --args='--spring.profiles.active=dev'
 ```
+
+O profile `dev` aplica, além do esquema, os vínculos locais sintéticos e idempotentes
+dos subjects fixos do realm: paciente `20000000-0000-0000-0000-000000000001` e médico
+`20000000-0000-0000-0000-000000000003`. Eles não são email, username ou credenciais e
+não são expostos pelo CRUD administrativo. Os IDs locais correspondentes começam em
+`30000000-...`; o script fica em `db/devdata` e não é aplicado sem o profile.
 
 Desabilitar a integração automática com Compose nesse procedimento evita que
 ela inicie outros serviços ou substitua a conexão JDBC explícita por service

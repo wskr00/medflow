@@ -20,6 +20,8 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,10 +48,10 @@ public class SchedulingConfigurationService {
   }
 
   @Transactional(readOnly = true)
-  public List<RegraAgenda> regras(boolean incluirInativas) {
+  public Page<RegraAgenda> regras(boolean incluirInativas, Pageable pageable) {
     Clinica clinica = clinicas.findBySingletonTrue().orElseThrow(ResourceNotFoundException::new);
-    return incluirInativas ? regras.findByClinicaIdOrderByVigenteDeDesc(clinica.id())
-        : regras.findByClinicaIdAndAtivoTrue(clinica.id());
+    return incluirInativas ? regras.findByClinicaId(clinica.id(), pageable)
+        : regras.findByClinicaIdAndAtivoTrue(clinica.id(), pageable);
   }
 
   @Transactional
@@ -79,10 +81,10 @@ public class SchedulingConfigurationService {
   }
 
   @Transactional(readOnly = true)
-  public List<BloqueioAgenda> bloqueios(boolean incluirInativos) {
+  public Page<BloqueioAgenda> bloqueios(boolean incluirInativos, Pageable pageable) {
     Clinica clinica = clinicas.findBySingletonTrue().orElseThrow(ResourceNotFoundException::new);
-    return incluirInativos ? bloqueios.findByClinicaIdOrderByInicioDesc(clinica.id())
-        : bloqueios.findByClinicaIdAndAtivoTrue(clinica.id());
+    return incluirInativos ? bloqueios.findByClinicaId(clinica.id(), pageable)
+        : bloqueios.findByClinicaIdAndAtivoTrue(clinica.id(), pageable);
   }
 
   @Transactional
@@ -134,14 +136,14 @@ public class SchedulingConfigurationService {
   }
 
   private void validarConflitoRegra(RegraAgenda candidata, UUID idIgnorado) {
-    boolean conflitante = regras.findByClinicaIdAndAtivoTrue(candidata.clinica().id()).stream()
+    boolean conflitante = regras.findByClinicaIdAndAtivoTrue(candidata.clinica().id(), Pageable.unpaged()).stream()
         .filter(existente -> !existente.id().equals(idIgnorado))
         .anyMatch(candidata::conflitaCom);
     if (conflitante) throw conflict("Regra de agenda conflita com médico ou consultório.");
   }
 
   private void validarConflitoBloqueio(BloqueioAgenda candidato, UUID idIgnorado) {
-    boolean conflitante = bloqueios.findByClinicaIdAndAtivoTrue(candidato.clinica().id()).stream()
+    boolean conflitante = bloqueios.findByClinicaIdAndAtivoTrue(candidato.clinica().id(), Pageable.unpaged()).stream()
         .filter(existente -> !existente.id().equals(idIgnorado))
         .anyMatch(candidato::conflitaCom);
     if (conflitante) throw conflict("Bloqueio de agenda conflita com bloqueio existente.");

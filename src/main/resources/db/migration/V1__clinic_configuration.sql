@@ -1,6 +1,6 @@
 CREATE TABLE clinica (
     id UUID PRIMARY KEY,
-    singleton BOOLEAN NOT NULL DEFAULT TRUE UNIQUE,
+    singleton BOOLEAN NOT NULL DEFAULT TRUE UNIQUE CHECK (singleton),
     nome VARCHAR(200) NOT NULL,
     time_zone VARCHAR(64) NOT NULL,
     ativo BOOLEAN NOT NULL,
@@ -41,7 +41,7 @@ CREATE TABLE medico (
     nome VARCHAR(200) NOT NULL,
     crm_numero VARCHAR(30) NOT NULL,
     crm_uf VARCHAR(2) NOT NULL,
-    subject VARCHAR(255),
+    subject VARCHAR(255) CHECK (subject IS NULL OR btrim(subject) <> ''),
     ativo BOOLEAN NOT NULL,
     version BIGINT NOT NULL DEFAULT 0,
     CONSTRAINT uk_medico_crm UNIQUE (clinica_id, crm_numero, crm_uf)

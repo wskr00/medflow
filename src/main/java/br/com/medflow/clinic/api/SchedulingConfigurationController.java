@@ -13,6 +13,9 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,11 +26,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.validation.annotation.Validated;
 
 /** Rotas de configuração; disponibilidade e agendamento são implementados na Issue #10. */
 @RestController
 @RequestMapping("/api")
 @PreAuthorize("hasRole('ADMINISTRATOR')")
+@Validated
 public class SchedulingConfigurationController {
 
   private final SchedulingConfigurationService service;
@@ -35,9 +40,11 @@ public class SchedulingConfigurationController {
   public SchedulingConfigurationController(SchedulingConfigurationService service) { this.service = service; }
 
   @GetMapping("/regras-agenda")
-  java.util.List<ConfigurationApi.RegraResponse> regras(
-      @RequestParam(defaultValue = "false") boolean incluirInativas) {
-    return service.regras(incluirInativas).stream().map(ConfigurationApi::regra).toList();
+  ConfigurationApi.PageResponse<ConfigurationApi.RegraResponse> regras(
+      @RequestParam(defaultValue = "false") boolean incluirInativas,
+      @RequestParam(defaultValue = "0") @PositiveOrZero int page,
+      @RequestParam(defaultValue = "20") @jakarta.validation.constraints.Min(1) @Max(100) int size) {
+    return page(service.regras(incluirInativas, PageRequest.of(page, size, Sort.by("vigenteDe").descending())), ConfigurationApi::regra);
   }
 
   @PostMapping("/regras-agenda")
@@ -52,9 +59,11 @@ public class SchedulingConfigurationController {
   }
 
   @GetMapping("/bloqueios-agenda")
-  java.util.List<ConfigurationApi.BloqueioResponse> bloqueios(
-      @RequestParam(defaultValue = "false") boolean incluirInativas) {
-    return service.bloqueios(incluirInativas).stream().map(ConfigurationApi::bloqueio).toList();
+  ConfigurationApi.PageResponse<ConfigurationApi.BloqueioResponse> bloqueios(
+      @RequestParam(defaultValue = "false") boolean incluirInativas,
+      @RequestParam(defaultValue = "0") @PositiveOrZero int page,
+      @RequestParam(defaultValue = "20") @jakarta.validation.constraints.Min(1) @Max(100) int size) {
+    return page(service.bloqueios(incluirInativas, PageRequest.of(page, size, Sort.by("inicio").descending())), ConfigurationApi::bloqueio);
   }
 
   @PostMapping("/bloqueios-agenda")
@@ -79,7 +88,7 @@ public class SchedulingConfigurationController {
   record RegraUpdate(@NotNull UUID medicoId, @NotNull UUID especialidadeId, @NotNull UUID consultorioId,
       @NotNull @Min(1) @Max(7) Integer diaSemana, @NotNull LocalTime horaInicio, @NotNull LocalTime horaFim,
       @Positive int duracaoMinutos, @NotNull LocalDate vigenteDe, LocalDate vigenteAte, boolean ativo,
-      @PositiveOrZero long expectedVersion) {
+      @NotNull @PositiveOrZero Long expectedVersion) {
     SchedulingConfigurationService.RegraCommand toCommand() {
       return new SchedulingConfigurationService.RegraCommand(medicoId, especialidadeId, consultorioId,
           DayOfWeek.of(diaSemana), horaInicio, horaFim, duracaoMinutos, vigenteDe, vigenteAte, ativo, expectedVersion);
@@ -91,9 +100,15 @@ public class SchedulingConfigurationController {
     }
   }
   record BloqueioUpdate(@NotNull UUID medicoId, @NotNull Instant inicio, @NotNull Instant fim, boolean ativo,
-      @PositiveOrZero long expectedVersion) {
+      @NotNull @PositiveOrZero Long expectedVersion) {
     SchedulingConfigurationService.BloqueioCommand toCommand() {
       return new SchedulingConfigurationService.BloqueioCommand(medicoId, inicio, fim, ativo, expectedVersion);
     }
+  }
+
+  private static <S, T> ConfigurationApi.PageResponse<T> page(Page<S> source,
+      java.util.function.Function<S, T> mapper) {
+    return new ConfigurationApi.PageResponse<>(source.getContent().stream().map(mapper).toList(),
+        source.getNumber(), source.getSize(), source.getTotalElements());
   }
 }

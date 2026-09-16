@@ -78,6 +78,45 @@ class SecurityIntegrationTests {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("ACESSO_NEGADO"));
         }
+        for (String path : List.of("/api/clinica", "/api/unidades", "/api/consultorios",
+            "/api/especialidades", "/api/medicos", "/api/regras-agenda", "/api/bloqueios-agenda")) {
+            mvc.perform(get(path).with(jwt().jwt(tokenWithRoles("PATIENT"))
+                    .authorities(new SimpleGrantedAuthority("ROLE_PATIENT"))))
+                .andExpect(status().isForbidden());
+        }
+    }
+
+    @Test
+    void administratorCreatesListsAndUpdatesConfigurationWithMandatoryVersion() throws Exception {
+        var admin = jwt().jwt(tokenWithRoles("ADMINISTRATOR"))
+            .authorities(new SimpleGrantedAuthority("ROLE_ADMINISTRATOR"));
+        var created = mvc.perform(post("/api/unidades").with(admin)
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content("{\"nome\":\"Unidade HTTP\",\"endereco\":\"Rua HTTP\",\"ativo\":true}"))
+            .andExpect(status().isCreated())
+            .andExpect(header().exists("Location"))
+            .andReturn();
+        String location = created.getResponse().getHeader("Location");
+        mvc.perform(get("/api/unidades?page=0&size=1").with(admin))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items").isArray())
+            .andExpect(jsonPath("$.page").value(0))
+            .andExpect(jsonPath("$.size").value(1))
+            .andExpect(jsonPath("$.totalElements").value(org.hamcrest.Matchers.greaterThanOrEqualTo(1)));
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put(location).with(admin)
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content("{\"nome\":\"Unidade HTTP alterada\",\"endereco\":\"Rua HTTP\",\"ativo\":true,\"expectedVersion\":0}"))
+            .andExpect(status().isOk());
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put(location).with(admin)
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content("{\"nome\":\"Inválida\",\"endereco\":\"Rua\",\"ativo\":true}"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("ENTRADA_INVALIDA"));
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put(location).with(admin)
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content("{\"nome\":\"Versão antiga\",\"endereco\":\"Rua HTTP\",\"ativo\":true,\"expectedVersion\":0}"))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.code").value("VERSAO_DESATUALIZADA"));
     }
 
     @Test
