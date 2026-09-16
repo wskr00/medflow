@@ -15,9 +15,11 @@ src/main/webapp/app/
 
 ## Rotas e identidade
 
-As rotas são standalone e lazy. `/workspace` carrega o shell e direciona a primeira área autorizada em `/api/me`: `PATIENT`, `RECEPTIONIST`, `DOCTOR` ou `ADMINISTRATOR`. As quatro rotas de perfil já preservam navegação e foco, mas mostram apenas a referência de fundação; a lógica das jornadas #15–#18 ainda não existe.
+As rotas são standalone e lazy. A rota vazia de `/workspace` usa um `RedirectFunction` do Router para escolher a primeira área disponível na ordem explícita `PATIENT`, `RECEPTIONIST`, `DOCTOR`, `ADMINISTRATOR`; assim, uma conta multi-role tem destino determinístico. As rotas diretas de perfil usam `createAuthGuard` do `keycloak-angular`, que verifica os claims já gerenciados pela sessão e retorna `UrlTree` para acesso negado quando necessário. Isso limita a navegação, mas o backend continua sendo a autoridade de autorização.
 
-`IdentityService.identity` usa `httpResource` para `GET /api/me`. Isso mantém a leitura reativa e passa pelo `HttpClient` já configurado pelo `keycloak-angular`. A fundação não cria interceptor bearer, refresh manual, guard de autenticação próprio ou outra fonte de roles. O backend continua sendo a autoridade para autorização.
+`IdentityService.identity` usa `httpResource` para `GET /api/me`. Isso mantém a leitura reativa e passa pelo `HttpClient` já configurado pelo `keycloak-angular`. Um `401` nessa leitura volta ao fluxo de login do Keycloak; não há interceptor bearer, refresh manual ou nova fonte de roles. `withComponentInputBinding()` entrega o `profile` da rota diretamente ao componente de referência, sem leitura manual de `ActivatedRoute.snapshot`.
+
+O foco chega ao `<main>` no evento de ativação do `RouterOutlet`: tanto a rota final de um redirect quanto as rotas de perfil têm configurações distintas e ativam o conteúdo. A wildcard renderiza uma página de não encontrado em vez de redirecionar silenciosamente.
 
 ## Leituras e mutações
 
@@ -42,7 +44,7 @@ Não encapsular essas chamadas atrás de uma camada genérica sem consumidor. `4
 
 ## Formulários
 
-`ReferenceFormComponent` é uma implementação pequena para validar a composição Signal Forms + Helm antes das jornadas. Ela demonstra label associado, descrição, erro local e ponto de exibição para erro de servidor; não envia uma mutação fictícia. A API de cada jornada fará a mutação real com `HttpClient` explícito e mapeará o `fieldErrors` retornado.
+`ReferenceFormComponent` é uma implementação pequena para validar a composição Signal Forms + Helm antes das jornadas. `FormRoot` executa a submissão declarada no Signal Form, marca campos inválidos como tocados e demonstra label associado, descrição, erro local e ponto de exibição para erro de servidor; não envia uma mutação fictícia. A API de cada jornada fará a mutação real com `HttpClient` explícito e mapeará o `fieldErrors` retornado.
 
 ## Dependência das jornadas
 

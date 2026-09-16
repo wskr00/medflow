@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from "@angular/common/http";
 import { signal } from "@angular/core";
 import { TestBed } from "@angular/core/testing";
 import { provideRouter } from "@angular/router";
@@ -49,5 +50,45 @@ describe("WorkspaceShellComponent", () => {
     ).toContain("Pular para o conteúdo");
     fixture.componentInstance["focusMainContent"]();
     expect(document.activeElement).toBe(main);
+  });
+
+  it("delegates an unauthorized identity request to the existing Keycloak login flow", async () => {
+    let loginCalls = 0;
+    await TestBed.configureTestingModule({
+      imports: [WorkspaceShellComponent],
+      providers: [
+        provideRouter([]),
+        {
+          provide: Keycloak,
+          useValue: {
+            login: () => {
+              loginCalls += 1;
+              return Promise.resolve();
+            },
+            logout: () => Promise.resolve(),
+          },
+        },
+        {
+          provide: IdentityService,
+          useValue: {
+            identity: {
+              value: signal(undefined),
+              error: signal(new HttpErrorResponse({ status: 401 })),
+              isLoading: signal(false),
+              hasValue: () => false,
+              reload: () => true,
+            },
+          },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(WorkspaceShellComponent);
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+
+    expect(host.textContent).toContain("Sessão expirada");
+    (host.querySelector("button") as HTMLButtonElement).click();
+    expect(loginCalls).toBe(1);
   });
 });

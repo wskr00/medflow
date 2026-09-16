@@ -1,5 +1,7 @@
 import { Routes } from "@angular/router";
 
+import { defaultWorkspaceRedirect, requireRole } from "./auth/role.guard";
+
 export const routes: Routes = [
   {
     path: "workspace",
@@ -11,14 +13,12 @@ export const routes: Routes = [
       {
         path: "",
         pathMatch: "full",
-        loadComponent: () =>
-          import("./features/foundation/profile-redirect.component").then(
-            (m) => m.ProfileRedirectComponent,
-          ),
+        redirectTo: defaultWorkspaceRedirect,
       },
       {
         path: "patient",
         data: { profile: "patient" },
+        canActivate: [requireRole("PATIENT")],
         loadComponent: () =>
           import("./features/foundation/profile-foundation.component").then(
             (m) => m.ProfileFoundationComponent,
@@ -27,6 +27,7 @@ export const routes: Routes = [
       {
         path: "reception",
         data: { profile: "reception" },
+        canActivate: [requireRole("RECEPTIONIST")],
         loadComponent: () =>
           import("./features/foundation/profile-foundation.component").then(
             (m) => m.ProfileFoundationComponent,
@@ -35,6 +36,7 @@ export const routes: Routes = [
       {
         path: "doctor",
         data: { profile: "doctor" },
+        canActivate: [requireRole("DOCTOR")],
         loadComponent: () =>
           import("./features/foundation/profile-foundation.component").then(
             (m) => m.ProfileFoundationComponent,
@@ -43,6 +45,7 @@ export const routes: Routes = [
       {
         path: "administrator",
         data: { profile: "administrator" },
+        canActivate: [requireRole("ADMINISTRATOR")],
         loadComponent: () =>
           import("./features/foundation/profile-foundation.component").then(
             (m) => m.ProfileFoundationComponent,
@@ -65,5 +68,11 @@ export const routes: Routes = [
       ),
   },
   { path: "", pathMatch: "full", redirectTo: "workspace" },
-  { path: "**", redirectTo: "workspace" },
+  {
+    path: "**",
+    loadComponent: () =>
+      import("./features/not-found/not-found.component").then(
+        (m) => m.NotFoundComponent,
+      ),
+  },
 ];
