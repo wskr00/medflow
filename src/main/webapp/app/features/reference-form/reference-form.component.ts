@@ -81,9 +81,9 @@ import { PageHeaderComponent } from "../../shared/ui/page-header.component";
               hlmBtn
               variant="outline"
               type="button"
-              (click)="clearServerError()"
+              (click)="demonstrateServerError()"
             >
-              Limpar erro de servidor
+              Demonstrar erro de servidor
             </button>
           </div>
         </form>
@@ -105,17 +105,17 @@ export class ReferenceFormComponent {
     {
       submission: {
         action: async () => {
-          // O endpoint não pertence a esta fundação; isto representa o mapeamento de fieldErrors.
-          this.serverError.set(
-            "Exemplo de erro do servidor: revise o campo antes de enviar.",
-          );
+          this.serverError.set(null);
           this.submitted.set(true);
         },
       },
     },
   );
 
-  protected clearServerError(): void {
-    this.serverError.set(null);
+  protected demonstrateServerError(): void {
+    this.submitted.set(false);
+    this.serverError.set(
+      "Exemplo de erro do servidor: revise o campo antes de enviar.",
+    );
   }
 }

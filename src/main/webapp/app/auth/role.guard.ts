@@ -12,6 +12,7 @@ const navigationOrder: readonly MedflowRole[] = [
   "DOCTOR",
   "ADMINISTRATOR",
 ];
+const medflowApiClient = "medflow-api";
 
 const routeByRole: Readonly<Record<MedflowRole, string>> = {
   PATIENT: "/workspace/patient",
@@ -22,21 +23,15 @@ const routeByRole: Readonly<Record<MedflowRole, string>> = {
 
 function hasRole(authData: AuthGuardData, requiredRole: MedflowRole): boolean {
   return (
-    authData.grantedRoles.realmRoles.includes(requiredRole) ||
-    Object.values(authData.grantedRoles.resourceRoles).some((roles) =>
-      roles.includes(requiredRole),
-    )
+    authData.grantedRoles.resourceRoles[medflowApiClient]?.includes(
+      requiredRole,
+    ) ?? false
   );
 }
 
 function rolesFrom(keycloak: Keycloak): MedflowRole[] {
-  return navigationOrder.filter(
-    (role) =>
-      keycloak.realmAccess?.roles?.includes(role) ||
-      Object.values(keycloak.resourceAccess ?? {}).some((resource) =>
-        resource.roles?.includes(role),
-      ),
-  );
+  const roles = keycloak.resourceAccess?.[medflowApiClient]?.roles ?? [];
+  return navigationOrder.filter((role) => roles.includes(role));
 }
 
 /** Usa os claims já gerenciados pelo keycloak-angular somente para orientação de navegação. */
