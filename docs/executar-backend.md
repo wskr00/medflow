@@ -51,11 +51,10 @@ sintético, usar `docker stop medflow-issue27-postgres`; `docker start` o retoma
 
 ## Contrato HTTP
 
-`GET /api/health` retorna `200` e `{"status":"UP"}` quando a requisição chega
-ao controller. Indica capacidade de atender HTTP, não prontidão de PostgreSQL
-ou Keycloak. Não inclui versões, endereço de banco, usuários ou configurações.
-Esta entrega não troca a política de segurança: o acesso anônimo ao health é
-coordenado em #9. Não desabilitar filtros para conseguir acessar o endpoint.
+`GET /actuator/health` usa o endpoint nativo do Spring Boot Actuator, já presente
+no projeto, sem controller próprio. A resposta pública deve manter apenas o
+estado agregado, sem detalhes de componentes. O acesso anônimo ao health é
+coordenado em #9; não desabilitar filtros para acessar o endpoint.
 
 Todo request recebe um UUID próprio do servidor em `X-Request-Id`. O cabeçalho
 recebido do cliente é ignorado. A correlação fica no atributo interno

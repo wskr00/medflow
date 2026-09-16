@@ -2,7 +2,6 @@ package br.com.medflow.common.http;
 
 import java.util.UUID;
 
-import br.com.medflow.health.HealthController;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.junit.jupiter.api.AfterEach;
@@ -39,7 +38,7 @@ class HttpContractTests {
     void setUp() {
         validator = new LocalValidatorFactoryBean();
         validator.afterPropertiesSet();
-        mvc = MockMvcBuilders.standaloneSetup(new HealthController(), new HttpFixture())
+        mvc = MockMvcBuilders.standaloneSetup(new HttpFixture())
                 .setControllerAdvice(new ApiExceptionHandler())
                 .setValidator(validator)
                 .addFilters(new RequestIdFilter())
@@ -53,15 +52,13 @@ class HttpContractTests {
     }
 
     @Test
-    void healthExposesOnlyProcessStatusAndServerGeneratedCorrelation() throws Exception {
-        MvcResult first = mvc.perform(get("/api/health").header(RequestIdFilter.HEADER, "client-controlled"))
+    void requestCorrelationIsServerGenerated() throws Exception {
+        MvcResult first = mvc.perform(get("/test-only/status").header(RequestIdFilter.HEADER, "client-controlled"))
                 .andExpect(status().isOk())
-                .andExpect(content().json("{\"status\":\"UP\"}"))
-                .andExpect(jsonPath("$.length()").value(1))
                 .andReturn();
         String id = first.getResponse().getHeader(RequestIdFilter.HEADER);
         assertThat(UUID.fromString(id).toString()).isEqualTo(id);
-        MvcResult second = mvc.perform(get("/api/health")).andReturn();
+        MvcResult second = mvc.perform(get("/test-only/status")).andReturn();
         assertThat(second.getResponse().getHeader(RequestIdFilter.HEADER)).isNotEqualTo(id);
         assertThat(MDC.get("requestId")).isNull();
     }
@@ -112,7 +109,7 @@ class HttpContractTests {
 
     @Test
     void unsupportedMethodKeeps405AndAllowHeader() throws Exception {
-        mvc.perform(post("/api/health"))
+        mvc.perform(post("/test-only/status"))
                 .andExpect(status().isMethodNotAllowed())
                 .andExpect(header().string("Allow", containsString("GET")))
                 .andExpect(jsonPath("$.status").value(405))
@@ -162,6 +159,9 @@ class HttpContractTests {
 
     @RestController
     static class HttpFixture {
+        @GetMapping("/test-only/status")
+        void status() { }
+
         @PostMapping("/test-only/validation")
         void validate(@Valid @RequestBody ValidatedInput input) { }
 
