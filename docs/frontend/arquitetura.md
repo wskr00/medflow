@@ -13,6 +13,25 @@ src/main/webapp/app/
 
 `core` só contém composição técnica reutilizável; `shared/ui` só contém padrões de domínio com mais de um consumidor esperado. Cada jornada futura mantém página, componentes e API próximos na sua feature. Não há store global. Tipos de contrato e serviços HTTP de uma jornada ficam na própria feature, não no shell.
 
+## Composição por perfil
+
+`WorkspaceShell` é apenas a moldura autenticada. Cada feature pode ter rotas e
+um shell interno próprios quando isso representar melhor a tarefa do perfil.
+O `ProfileFoundationComponent` usado na fundação é um placeholder temporário,
+não um modelo para as jornadas #16–#18.
+
+| Perfil | Modo de trabalho | Composição inicial |
+|---|---|---|
+| Paciente | episódico, guiado e de baixa densidade | agendar, meus agendamentos e histórico; filtros, grade de horários, revisão e listas próprias |
+| Recepção | operação contínua e de alta densidade | agenda com toolbar e tabela mais painel de fila em desktop; cartões operacionais e fila abaixo/recolhível em tablet |
+| Médico | triagem seguida de tarefa clínica focada | agenda/fila próprias e rota dedicada de atendimento com contexto do paciente, editor clínico central e fila retrátil |
+| Administrador | configuração por conjuntos de domínio | navegação por clínica/unidades, consultórios, profissionais/especialidades, agenda e bloqueios; master/detail em desktop e fluxo empilhado em tablet |
+
+Componentes dessas composições permanecem nas respectivas features. A
+responsividade não consiste apenas em empilhar a mesma tela: ordem, densidade e
+forma de interação podem mudar entre 1366×768 e 768×1024, preservando a tarefa
+principal e o contexto necessário.
+
 ## Rotas e identidade
 
 As rotas são standalone e lazy. A rota vazia de `/workspace` usa um `RedirectFunction` do Router para escolher a primeira área disponível na ordem explícita `PATIENT`, `RECEPTIONIST`, `DOCTOR`, `ADMINISTRATOR`; assim, uma conta multi-role tem destino determinístico. As rotas diretas de perfil usam `createAuthGuard` do `keycloak-angular`, que verifica exclusivamente as client roles de `medflow-api` já gerenciadas pela sessão e retorna `UrlTree` para acesso negado quando necessário. Realm roles ou roles de outros clients não liberam navegação. Isso limita a navegação, mas o backend continua sendo a autoridade de autorização.
@@ -48,4 +67,4 @@ Não encapsular essas chamadas atrás de uma camada genérica sem consumidor. `4
 
 ## Dependência das jornadas
 
-As Issues #15, #16, #17 e #18 devem declarar dependência desta Issue #40 e usar este shell, tokens, estados e convenções HTTP. Elas não devem recriar cores, shell, navegação, status, feedback ou autenticação.
+As Issues #15, #16, #17 e #18 devem declarar dependência desta Issue #40 e usar seus tokens, primitives, autenticação e convenções HTTP. Elas não devem recriar esses fundamentos, mas devem substituir os placeholders e construir navegação, layouts e componentes adequados ao próprio perfil.

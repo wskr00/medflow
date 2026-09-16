@@ -47,6 +47,39 @@ Os dois testes frontend e o teste de contexto apenas comprovam que o bootstrap a
 | E2E                     | Fluxo completo com Angular, backend, PostgreSQL e Keycloak        | Em #24, após as jornadas existirem               |
 | RNFs                    | Concorrência, carga, responsividade, acessibilidade e clone limpo | Em #25, sobre fluxo integrado                    |
 
+## Gate manual para Pull Requests de frontend
+
+Toda Pull Request que altera experiência de frontend deve ser validada em
+navegador real com a aplicação integrada, além de build e testes automatizados.
+O autor ou testador deve subir PostgreSQL, Keycloak, backend e Angular, usar
+somente contas e dados sintéticos e registrar no PR o commit e o ambiente
+avaliados.
+
+O smoke mínimo inclui:
+
+- autenticar com o perfil afetado e verificar uma rota negada a outro perfil;
+- percorrer o fluxo principal e ao menos um estado de loading, vazio, erro ou
+  conflito aplicável;
+- inspecionar 1366×768 e 768×1024, incluindo espaçamento, hierarquia, clipping,
+  overflow horizontal, densidade e visibilidade das ações;
+- operar ações essenciais com Tab, Shift+Tab, Enter, Espaço e Escape; verificar
+  skip link, foco após navegação e retorno de foco de dialog/sheet;
+- verificar console e rede, sem erros inesperados nem `4xx`/`5xx` não
+  explicados, e conferir `requestId` em falhas contratadas;
+- anexar evidência visual representativa, sem token, senha, cabeçalho
+  `Authorization` ou conteúdo clínico sensível.
+
+Mudança no shell compartilhado exige smoke dos quatro perfis. Mudança de uma
+jornada exige o perfil proprietário e ao menos uma tentativa negativa de outro
+perfil. Backend indisponível ou massa insuficiente não transforma mock em
+evidência integrada: a limitação deve ser registrada e o gate permanece
+pendente.
+
+Esse gate por PR é menor que a #19, que consolidará Playwright, axe, quatro
+perfis e ambas as larguras. A #24 comprovará o fluxo ponta a ponta sem mocks, e
+a #25 consolidará a medição formal de RNF006/RNF007. Automação futura não
+elimina a inspeção manual de apresentação e usabilidade.
+
 Não foi adicionada regra ArchUnit vazia: ela deve nascer quando os módulos reais existirem e quando a dependência de teste estiver coordenada com o responsável pelo `build.gradle`. Também não foram criadas fixtures sem consumidor: perfis do Keycloak, estados persistidos e os 20 pacientes concorrentes devem nascer junto dos testes reais correspondentes. Playwright, axe e carga com 20 usuários ficam para o momento em que exista comportamento real a provar.
 
 ## Cenários funcionais posteriores

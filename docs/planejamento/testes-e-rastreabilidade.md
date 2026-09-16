@@ -64,6 +64,13 @@ Testes de componentes e serviços verificam estados de carregamento, vazio, suce
 
 Playwright executará as quatro jornadas principais em navegador real. Um cenário ponta a ponta usará Angular, backend, PostgreSQL e Keycloak reais. Variações de UI que não exigem nova comprovação do backend podem usar interceptação controlada de rede.
 
+Antes dessa consolidação, toda Pull Request de frontend já possui gate manual
+em navegador real: perfil afetado, negação cruzada, 1366×768, 768×1024,
+teclado/foco, console, rede e evidência visual sanitizada. Alterações no shell
+exigem os quatro perfis. Esse smoke identifica defeitos de composição,
+espaçamento e responsividade que testes de componentes não demonstram; não
+substitui a matriz completa da #19 nem o E2E real da #24.
+
 O cenário integrado mínimo parte apenas da Clínica singleton, identidades e vínculos reproduzíveis. A Administração configura Unidade, Consultório, Médico, Especialidade e Regra de Agenda pela UI/API; em seguida, o cenário percorre disponibilidade, criação, check-in, fila, início, salvamento explícito do registro, finalização e históricos autorizados. A execução também tenta acesso indevido, conflito de horário e transição inválida.
 
 ## Massa sintética reproduzível
