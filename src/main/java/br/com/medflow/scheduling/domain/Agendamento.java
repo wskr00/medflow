@@ -18,6 +18,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.util.UUID;
 
 /** Reserva confirmada. Seus vínculos são históricos e não são derivados novamente da regra. */
@@ -87,6 +88,24 @@ public class Agendamento {
   public void cancelar(Instant agora, long expectedVersion) {
     validarMutacao(agora, expectedVersion);
     status = StatusAgendamento.CANCELADA;
+  }
+
+  public void checkIn(Instant agora, ZoneId zone, long expectedVersion) {
+    if (status == StatusAgendamento.EM_ESPERA && checkInEm != null) {
+      throw new BusinessConflictException(
+          "CHECKIN_JA_REALIZADO", "O check-in já foi realizado.");
+    }
+    if (version != expectedVersion) {
+      throw new BusinessConflictException(
+          "VERSAO_DESATUALIZADA", "O recurso foi alterado por outra operação.");
+    }
+    if (status != StatusAgendamento.AGENDADA
+        || !inicio.atZone(zone).toLocalDate().equals(agora.atZone(zone).toLocalDate())) {
+      throw new BusinessConflictException(
+          "TRANSICAO_INVALIDA", "O agendamento não permite check-in neste momento.");
+    }
+    status = StatusAgendamento.EM_ESPERA;
+    checkInEm = agora;
   }
 
   public void validarMutacao(Instant agora, long expectedVersion) {
