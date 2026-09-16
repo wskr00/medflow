@@ -166,7 +166,7 @@ export class PatientAppointmentsComponent {
           this.clearReschedule();
           this.api.appointments.reload();
         },
-        error: (error: unknown) => this.handleRescheduleError(error),
+        error: (error: unknown) => this.handleRescheduleError(dialog, error),
       });
   }
 
@@ -189,7 +189,7 @@ export class PatientAppointmentsComponent {
           this.cancellationTarget.set(null);
           this.api.appointments.reload();
         },
-        error: (error: unknown) => this.handleCancellationError(error),
+        error: (error: unknown) => this.handleCancellationError(dialog, error),
       });
   }
 
@@ -214,10 +214,16 @@ export class PatientAppointmentsComponent {
     this.api.setAppointmentsPage(this.api.appointmentsPage() + 1);
   }
 
-  private handleRescheduleError(error: unknown): void {
+  private handleRescheduleError(dialog: HlmDialog, error: unknown): void {
     const issue = patientApiIssue(error);
-    this.rescheduleIssue.set(issue);
     this.feedback.emit({ kind: issue.isConflict ? "conflict" : "error", title: issue.title, description: issue.description });
+    if (this.invalidatesTarget(issue.code)) {
+      dialog.close();
+      this.clearReschedule();
+      this.api.appointments.reload();
+      return;
+    }
+    this.rescheduleIssue.set(issue);
     if (issue.code === "HORARIO_INDISPONIVEL") {
       this.rescheduleSlot.set(null);
       this.rescheduleAvailability.reload();
@@ -225,11 +231,22 @@ export class PatientAppointmentsComponent {
     if (issue.isConflict) this.api.appointments.reload();
   }
 
-  private handleCancellationError(error: unknown): void {
+  private handleCancellationError(dialog: HlmDialog, error: unknown): void {
     const issue = patientApiIssue(error);
-    this.cancellationIssue.set(issue);
     this.feedback.emit({ kind: issue.isConflict ? "conflict" : "error", title: issue.title, description: issue.description });
+    if (this.invalidatesTarget(issue.code)) {
+      dialog.close();
+      this.cancellationTarget.set(null);
+      this.cancellationIssue.set(null);
+      this.api.appointments.reload();
+      return;
+    }
+    this.cancellationIssue.set(issue);
     if (issue.isConflict) this.api.appointments.reload();
+  }
+
+  private invalidatesTarget(code: string): boolean {
+    return ["VERSAO_DESATUALIZADA", "TRANSICAO_INVALIDA", "RECURSO_NAO_ENCONTRADO"].includes(code);
   }
 
   private clearReschedule(): void {

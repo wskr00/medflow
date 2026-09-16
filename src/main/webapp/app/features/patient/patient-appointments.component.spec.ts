@@ -81,4 +81,69 @@ describe("PatientAppointmentsComponent", () => {
     expect(component.cancellationTarget()).toBeNull();
     http.verify({ ignoreCancelled: true });
   });
+
+  it("fecha o reagendamento desatualizado e descarta o alvo local", () => {
+    TestBed.configureTestingModule({
+      imports: [PatientAppointmentsComponent],
+      providers: [PatientAppointmentsApi, provideHttpClient(), provideHttpClientTesting()],
+    });
+    const fixture = TestBed.createComponent(PatientAppointmentsComponent);
+    fixture.componentRef.setInput("timeZone", "America/Belem");
+    fixture.detectChanges();
+    const http = TestBed.inject(HttpTestingController);
+    http.match((request) => request.method === "GET").forEach((request) =>
+      request.flush({ items: [], page: 0, size: 100, totalElements: 0 }),
+    );
+    const component = fixture.componentInstance as unknown as {
+      rescheduleTarget: { set(value: unknown): void; (): unknown };
+      rescheduleSlot: { set(value: unknown): void; (): unknown };
+      rescheduleIssue: { (): unknown };
+      confirmReschedule(dialog: { close(): void }): void;
+    };
+    component.rescheduleTarget.set({ id: "appointment-1", version: 2 });
+    component.rescheduleSlot.set({ regraAgendaId: "rule-1", inicio: "2026-09-18T10:00:00-03:00" });
+    const dialog = { close: vi.fn() };
+    component.confirmReschedule(dialog);
+    http.expectOne("/api/agendamentos/appointment-1/reagendamento").flush(
+      { status: 409, code: "VERSAO_DESATUALIZADA", message: "atualizado", requestId: "request-2", fieldErrors: [] },
+      { status: 409, statusText: "Conflict" },
+    );
+
+    expect(dialog.close).toHaveBeenCalledOnce();
+    expect(component.rescheduleTarget()).toBeNull();
+    expect(component.rescheduleSlot()).toBeNull();
+    expect(component.rescheduleIssue()).toBeNull();
+    http.verify({ ignoreCancelled: true });
+  });
+
+  it("fecha o cancelamento cujo estado não permite mais a transição", () => {
+    TestBed.configureTestingModule({
+      imports: [PatientAppointmentsComponent],
+      providers: [PatientAppointmentsApi, provideHttpClient(), provideHttpClientTesting()],
+    });
+    const fixture = TestBed.createComponent(PatientAppointmentsComponent);
+    fixture.componentRef.setInput("timeZone", "America/Belem");
+    fixture.detectChanges();
+    const http = TestBed.inject(HttpTestingController);
+    http.match((request) => request.method === "GET").forEach((request) =>
+      request.flush({ items: [], page: 0, size: 100, totalElements: 0 }),
+    );
+    const component = fixture.componentInstance as unknown as {
+      cancellationTarget: { set(value: unknown): void; (): unknown };
+      cancellationIssue: { (): unknown };
+      confirmCancellation(dialog: { close(): void }): void;
+    };
+    component.cancellationTarget.set({ id: "appointment-1", version: 2 });
+    const dialog = { close: vi.fn() };
+    component.confirmCancellation(dialog);
+    http.expectOne("/api/agendamentos/appointment-1/cancelamento").flush(
+      { status: 409, code: "TRANSICAO_INVALIDA", message: "estado mudou", requestId: "request-3", fieldErrors: [] },
+      { status: 409, statusText: "Conflict" },
+    );
+
+    expect(dialog.close).toHaveBeenCalledOnce();
+    expect(component.cancellationTarget()).toBeNull();
+    expect(component.cancellationIssue()).toBeNull();
+    http.verify({ ignoreCancelled: true });
+  });
 });
