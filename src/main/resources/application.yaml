@@ -1,3 +1,7 @@
 spring:
     application:
         name: medflow
+    datasource:
+        url: ${MEDFLOW_DB_URL}
+        username: ${MEDFLOW_DB_USERNAME}
+        password: ${MEDFLOW_DB_PASSWORD}
