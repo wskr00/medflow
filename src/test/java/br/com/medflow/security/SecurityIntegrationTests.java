@@ -46,6 +46,22 @@ class SecurityIntegrationTests {
             .andExpect(jsonPath("$.status").value(401))
             .andExpect(jsonPath("$.code").value("NAO_AUTENTICADO"))
             .andExpect(jsonPath("$.fieldErrors").isEmpty())
+            .andExpect(header().string("WWW-Authenticate", org.hamcrest.Matchers.startsWith("Bearer")))
+            .andExpect(header().exists(RequestIdFilter.HEADER))
+            .andReturn().getResponse();
+
+        assertThat(response.getContentAsString())
+            .contains(response.getHeader(RequestIdFilter.HEADER));
+    }
+
+    @Test
+    void authenticatedTokenWithoutMvpRoleReturnsCorrelated403() throws Exception {
+        Jwt token = tokenWithRoles("UNKNOWN_ROLE");
+
+        var response = mvc.perform(get("/api/me").with(jwt().jwt(token).authorities(List.of())))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.status").value(403))
+            .andExpect(jsonPath("$.code").value("ACESSO_NEGADO"))
             .andExpect(header().exists(RequestIdFilter.HEADER))
             .andReturn().getResponse();
 

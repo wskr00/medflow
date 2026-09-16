@@ -45,7 +45,10 @@ public class SecurityConfiguration {
         .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(authorize -> authorize
             .requestMatchers("/actuator/health").permitAll()
-            .anyRequest().authenticated())
+            .requestMatchers("/", "/index.html", "/*.js", "/*.css", "/media/**", "/favicon.ico")
+                .permitAll()
+            .requestMatchers("/api/**").hasAnyRole(APPLICATION_ROLES.toArray(String[]::new))
+            .anyRequest().denyAll())
         .exceptionHandling(exceptionHandling -> exceptionHandling
             .authenticationEntryPoint(authenticationEntryPoint)
             .accessDeniedHandler(accessDeniedHandler))

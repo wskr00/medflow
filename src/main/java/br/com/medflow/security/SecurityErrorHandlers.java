@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.MediaType;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
 
 final class SecurityErrorHandlers {
 
@@ -17,13 +18,17 @@ final class SecurityErrorHandlers {
   }
 
   static AuthenticationEntryPoint authenticationEntryPoint(ObjectMapper objectMapper) {
-    return (request, response, exception) -> writeError(
-        objectMapper,
-        request,
-        response,
-        HttpServletResponse.SC_UNAUTHORIZED,
-        "NAO_AUTENTICADO",
-        "É necessário autenticar para acessar este recurso.");
+    var bearerEntryPoint = new BearerTokenAuthenticationEntryPoint();
+    return (request, response, exception) -> {
+      bearerEntryPoint.commence(request, response, exception);
+      writeError(
+          objectMapper,
+          request,
+          response,
+          HttpServletResponse.SC_UNAUTHORIZED,
+          "NAO_AUTENTICADO",
+          "É necessário autenticar para acessar este recurso.");
+    };
   }
 
   static AccessDeniedHandler accessDeniedHandler(ObjectMapper objectMapper) {

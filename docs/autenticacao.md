@@ -63,7 +63,9 @@ export MEDFLOW_DB_PASSWORD=medflow
 As URLs do frontend podem ser sobrescritas antes do bundle por
 `globalThis.__MEDFLOW_CONFIG__`; por padrão são Keycloak `localhost:8085`, realm
 `medflow`, client `medflow-web` e API relativa `/api`. O interceptor oficial só
-envia o token para a origem e o caminho exatos da API configurada.
+envia o token para a origem e o caminho exatos da API configurada. Durante
+`npm start`, `proxy.conf.json` encaminha `/api` ao backend em `localhost:8080`,
+evitando liberar CORS ou enviar tokens a uma origem ampla apenas para desenvolvimento.
 
 ## Validação executada
 
@@ -77,8 +79,11 @@ Em ambiente isolado com dados sintéticos foram observados:
   locais nulos;
 - token emitido por outro realm/audiência retornando 401;
 - token real já expirado retornando 401;
-- build backend com 18 testes sem falhas;
-- frontend com 2 testes e build de produção sem falhas.
+- build backend com 19 testes sem falhas, incluindo 403 para JWT sem perfil MVP
+  e preservação do challenge `WWW-Authenticate` em 401;
+- frontend com 2 testes e build de produção sem falhas;
+- proxy de desenvolvimento encaminhando `/api/me` ao backend e preservando
+  status 401, envelope, challenge Bearer e `X-Request-Id`.
 
 Os testes com JWT injetado no MockMvc verificam contrato e conversão de roles;
 a validação criptográfica acima foi um smoke contra o Keycloak real. Ainda não
