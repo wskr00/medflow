@@ -84,6 +84,29 @@ class ReceptionPersistenceIntegrationTests {
   }
 
   @Test
+  void agendaAndCheckInUseClinicDateAcrossUtcBoundary() {
+    Fixture fixture = fixture("utc-boundary", TODAY, DayOfWeek.WEDNESDAY,
+        LocalTime.of(21, 30), LocalTime.of(22, 30));
+    var scheduled = appointments.criar(fixture.patient(), fixture.ruleId(),
+        OffsetDateTime.parse("2026-09-17T00:30:00Z"));
+
+    var localDay = reception.agenda(fixture.reception(), TODAY, fixture.unitId(),
+        fixture.doctorId(), StatusAgendamento.AGENDADA, PageRequest.of(0, 10,
+            Sort.by(Sort.Order.asc("inicio"), Sort.Order.asc("id"))));
+    var utcDay = reception.agenda(fixture.reception(), TODAY.plusDays(1), fixture.unitId(),
+        fixture.doctorId(), StatusAgendamento.AGENDADA, PageRequest.of(0, 10,
+            Sort.by(Sort.Order.asc("inicio"), Sort.Order.asc("id"))));
+
+    assertThat(localDay.getContent()).extracting(ReceptionService.OperationalAppointment::id)
+        .containsExactly(scheduled.id());
+    assertThat(utcDay).isEmpty();
+    var checked = reception.checkIn(fixture.reception(), scheduled.id(), scheduled.version());
+    assertThat(checked.status()).isEqualTo(StatusAgendamento.EM_ESPERA);
+    assertThat(checked.inicio()).isEqualTo(offset(TODAY, 21, 30));
+    assertThat(checked.checkInEm()).isEqualTo(offset(TODAY, 9, 0));
+  }
+
+  @Test
   void dailyAgendaFiltersAndQueueIncludesEarlierPendingAppointmentsInStableOrder() {
     Fixture fixture = fixture("queries", TODAY, DayOfWeek.WEDNESDAY);
     var first = appointments.criar(fixture.patient(), fixture.ruleId(), offset(TODAY, 10, 0));
@@ -107,6 +130,48 @@ class ReceptionPersistenceIntegrationTests {
     assertThat(queue.stream().filter(item -> item.id().equals(first.id())).findFirst().orElseThrow()
         .pendenteDeDiaAnterior()).isFalse();
     assertThat(queue.stream().noneMatch(item -> item.id().equals(second.id()))).isTrue();
+  }
+
+  @Test
+  void queueOrdersByStartThenCheckInTimestampThenId() {
+    var specialty = clinic.criarEspecialidade("Especialidade queue-order", true);
+    var unit = clinic.criarUnidade("Unidade queue-order", "Endereço queue-order", true);
+    List<UUID> roomIds = new ArrayList<>();
+    List<UUID> doctorIds = new ArrayList<>();
+    List<UUID> patientIds = new ArrayList<>();
+    for (int index = 0; index < 4; index++) {
+      roomIds.add(clinic.criarConsultorio(unit.id(), "Sala queue-order-" + index, true).id());
+      doctorIds.add(clinic.criarMedico("Médico queue-order-" + index,
+          "81" + index, "PA", List.of(specialty.id()), true).id());
+      patientIds.add(provisioning.provisionar("patient-queue-order-" + index,
+          "Paciente queue-order-" + index).id());
+    }
+    var singleton = clinic.clinica();
+    AuthenticatedActor receptionist = new AuthenticatedActor("reception-queue-order",
+        Set.of("RECEPTIONIST"), null, null, singleton.id(), singleton.timeZone());
+    UUID earlierStart = UUID.fromString("10000000-0000-0000-0000-000000000001");
+    UUID earlierCheckIn = UUID.fromString("10000000-0000-0000-0000-000000000004");
+    UUID lowerIdTie = UUID.fromString("10000000-0000-0000-0000-000000000002");
+    UUID higherIdTie = UUID.fromString("10000000-0000-0000-0000-000000000003");
+
+    insertPending(earlierStart, singleton.id(), patientIds.get(0), doctorIds.get(0),
+        specialty.id(), roomIds.get(0), offset(TODAY, 9, 0).toInstant(),
+        offset(TODAY, 8, 50).toInstant());
+    insertPending(earlierCheckIn, singleton.id(), patientIds.get(1), doctorIds.get(1),
+        specialty.id(), roomIds.get(1), offset(TODAY, 10, 0).toInstant(),
+        offset(TODAY, 8, 0).toInstant());
+    insertPending(lowerIdTie, singleton.id(), patientIds.get(2), doctorIds.get(2),
+        specialty.id(), roomIds.get(2), offset(TODAY, 10, 0).toInstant(),
+        offset(TODAY, 8, 5).toInstant());
+    insertPending(higherIdTie, singleton.id(), patientIds.get(3), doctorIds.get(3),
+        specialty.id(), roomIds.get(3), offset(TODAY, 10, 0).toInstant(),
+        offset(TODAY, 8, 5).toInstant());
+
+    var queue = reception.queue(receptionist, unit.id(), null, PageRequest.of(0, 10,
+        Sort.by(Sort.Order.asc("inicio"), Sort.Order.asc("checkInEm"), Sort.Order.asc("id"))));
+
+    assertThat(queue.getContent()).extracting(ReceptionService.OperationalAppointment::id)
+        .containsExactly(earlierStart, earlierCheckIn, lowerIdTie, higherIdTie);
   }
 
   @Test
@@ -250,6 +315,11 @@ class ReceptionPersistenceIntegrationTests {
   }
 
   private Fixture fixture(String suffix, LocalDate date, DayOfWeek day) {
+    return fixture(suffix, date, day, LocalTime.of(10, 0), LocalTime.of(13, 0));
+  }
+
+  private Fixture fixture(String suffix, LocalDate date, DayOfWeek day,
+      LocalTime start, LocalTime end) {
     var specialty = clinic.criarEspecialidade("Especialidade " + suffix, true);
     var unit = clinic.criarUnidade("Unidade " + suffix, "Endereço " + suffix, true);
     var room = clinic.criarConsultorio(unit.id(), "Sala " + suffix, true);
@@ -257,8 +327,8 @@ class ReceptionPersistenceIntegrationTests {
         Integer.toString(Math.abs(suffix.hashCode())), "PA", List.of(specialty.id()), true);
     clinic.provisionarSubjectMedico(doctor.id(), "doctor-" + suffix);
     var rule = configuration.criarRegra(new SchedulingConfigurationService.RegraCommand(
-        doctor.id(), specialty.id(), room.id(), day, LocalTime.of(10, 0),
-        LocalTime.of(13, 0), 30, date, date, true, 0));
+        doctor.id(), specialty.id(), room.id(), day, start, end, 30,
+        date, date, true, 0));
     AuthenticatedActor patient = patient("patient-" + suffix);
     var singleton = clinic.clinica();
     AuthenticatedActor receptionist = new AuthenticatedActor("reception-" + suffix,
@@ -277,15 +347,20 @@ class ReceptionPersistenceIntegrationTests {
   private UUID insertEarlierPending(Fixture fixture, LocalDate date, int hour, int minute) {
     UUID id = UUID.randomUUID();
     Instant start = offset(date, hour, minute).toInstant();
+    insertPending(id, fixture.reception().clinicaId(), fixture.patientId(), fixture.doctorId(),
+        fixture.specialtyId(), fixture.roomId(), start, start.minusSeconds(600));
+    return id;
+  }
+
+  private void insertPending(UUID id, UUID clinicId, UUID patientId, UUID doctorId,
+      UUID specialtyId, UUID roomId, Instant start, Instant checkIn) {
     jdbc.update("""
         insert into agendamento
           (id, clinica_id, paciente_id, medico_id, especialidade_id, consultorio_id,
            inicio, fim, status, check_in_em, version)
         values (?, ?, ?, ?, ?, ?, ?, ?, 'EM_ESPERA', ?, 0)
-        """, id, fixture.reception().clinicaId(), fixture.patientId(), fixture.doctorId(),
-        fixture.specialtyId(), fixture.roomId(), Timestamp.from(start),
-        Timestamp.from(start.plusSeconds(1800)), Timestamp.from(start.minusSeconds(600)));
-    return id;
+        """, id, clinicId, patientId, doctorId, specialtyId, roomId, Timestamp.from(start),
+        Timestamp.from(start.plusSeconds(1800)), Timestamp.from(checkIn));
   }
 
   private static OffsetDateTime offset(LocalDate date, int hour, int minute) {

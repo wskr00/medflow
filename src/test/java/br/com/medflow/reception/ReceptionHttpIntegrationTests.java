@@ -87,7 +87,8 @@ class ReceptionHttpIntegrationTests {
         .andExpect(status().isConflict())
         .andExpect(jsonPath("$.code").value("CHECKIN_JA_REALIZADO"));
 
-    mvc.perform(get("/api/recepcao/fila?page=0&size=20").with(reception))
+    mvc.perform(get("/api/recepcao/fila?unidadeId=" + fixture.unitId() + "&page=0&size=20")
+            .with(reception))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.totalElements").value(2))
         .andExpect(jsonPath("$.items[0].id").value(previous.toString()))
@@ -97,11 +98,41 @@ class ReceptionHttpIntegrationTests {
   }
 
   @Test
-  void receptionEndpointsDenyOtherRolesAndReturnUniform404ForUnknownFiltersOrAppointment()
+  void queuePaginationKeepsGlobalOrderAcrossPages() throws Exception {
+    Fixture fixture = fixture("http-queue-pages");
+    UUID first = insertPending(fixture, TODAY, 8, 0);
+    UUID second = insertPending(fixture, TODAY, 9, 0);
+    UUID third = insertPending(fixture, TODAY, 10, 0);
+    var reception = principal("reception-http-queue-pages", "RECEPTIONIST");
+    String path = "/api/recepcao/fila?unidadeId=" + fixture.unitId();
+
+    mvc.perform(get(path + "&page=0&size=2").with(reception))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.page").value(0))
+        .andExpect(jsonPath("$.size").value(2))
+        .andExpect(jsonPath("$.totalElements").value(3))
+        .andExpect(jsonPath("$.items.length()").value(2))
+        .andExpect(jsonPath("$.items[0].id").value(first.toString()))
+        .andExpect(jsonPath("$.items[1].id").value(second.toString()));
+    mvc.perform(get(path + "&page=1&size=2").with(reception))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.page").value(1))
+        .andExpect(jsonPath("$.size").value(2))
+        .andExpect(jsonPath("$.totalElements").value(3))
+        .andExpect(jsonPath("$.items.length()").value(1))
+        .andExpect(jsonPath("$.items[0].id").value(third.toString()));
+  }
+
+  @Test
+  void receptionEndpointsAllowReceptionistDenyOtherRolesAndReturnUniform404ForUnknownResources()
       throws Exception {
     Fixture fixture = fixture("http-auth");
     var scheduled = appointments.criar(fixture.patient(), fixture.ruleId(), offset(TODAY, 10, 0));
     String body = "{\"expectedVersion\":0}";
+
+    mvc.perform(get("/api/recepcao/agenda?data=2026-09-16")
+            .with(principal("allowed-reception", "RECEPTIONIST")))
+        .andExpect(status().isOk());
 
     for (String role : List.of("PATIENT", "DOCTOR", "ADMINISTRATOR")) {
       var denied = principal("denied-" + role, role);
@@ -153,6 +184,17 @@ class ReceptionHttpIntegrationTests {
   private UUID insertEarlierPending(Fixture fixture, LocalDate date) {
     UUID id = UUID.randomUUID();
     Instant start = offset(date, 10, 0).toInstant();
+    insertPending(fixture, id, start);
+    return id;
+  }
+
+  private UUID insertPending(Fixture fixture, LocalDate date, int hour, int minute) {
+    UUID id = UUID.randomUUID();
+    insertPending(fixture, id, offset(date, hour, minute).toInstant());
+    return id;
+  }
+
+  private void insertPending(Fixture fixture, UUID id, Instant start) {
     jdbc.update("""
         insert into agendamento
           (id, clinica_id, paciente_id, medico_id, especialidade_id, consultorio_id,
@@ -161,7 +203,6 @@ class ReceptionHttpIntegrationTests {
         """, id, clinic.clinica().id(), fixture.patientId(), fixture.doctorId(),
         fixture.specialtyId(), fixture.roomId(), Timestamp.from(start),
         Timestamp.from(start.plusSeconds(1800)), Timestamp.from(start.minusSeconds(600)));
-    return id;
   }
 
   private static org.springframework.test.web.servlet.request.RequestPostProcessor principal(
