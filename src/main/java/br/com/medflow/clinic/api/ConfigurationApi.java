@@ -32,6 +32,11 @@ final class ConfigurationApi {
     return new MedicoResponse(value.id(), value.nome(), value.crmNumero(), value.crmUf(),
         value.especialidades().stream().map(Especialidade::id).toList(), value.ativo(), value.version());
   }
+  static CatalogResponse catalogo(Unidade value) { return new CatalogResponse(value.id(), value.nome()); }
+  static CatalogResponse catalogo(Especialidade value) { return new CatalogResponse(value.id(), value.nome()); }
+  static CatalogMedicoResponse catalogo(Medico value) {
+    return new CatalogMedicoResponse(value.id(), value.nome(), value.especialidades().stream().map(Especialidade::id).toList());
+  }
   static RegraResponse regra(RegraAgenda value) {
     return new RegraResponse(value.id(), value.medico().id(), value.especialidade().id(), value.consultorio().id(),
         value.diaSemana().getValue(), value.horaInicio(), value.horaFim(), value.duracaoMinutos(),
@@ -47,6 +52,8 @@ final class ConfigurationApi {
   record EspecialidadeResponse(UUID id, String nome, boolean ativo, long version) { }
   record MedicoResponse(UUID id, String nome, String crmNumero, String crmUf, List<UUID> especialidadeIds,
       boolean ativo, long version) { }
+  record CatalogResponse(UUID id, String nome) { }
+  record CatalogMedicoResponse(UUID id, String nome, List<UUID> especialidadeIds) { }
   record RegraResponse(UUID id, UUID medicoId, UUID especialidadeId, UUID consultorioId, int diaSemana,
       LocalTime horaInicio, LocalTime horaFim, int duracaoMinutos, LocalDate vigenteDe, LocalDate vigenteAte,
       boolean ativo, long version) { }

@@ -17,6 +17,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,7 +30,6 @@ import org.springframework.validation.annotation.Validated;
 
 @RestController
 @RequestMapping("/api")
-@PreAuthorize("hasRole('ADMINISTRATOR')")
 @Validated
 public class ClinicConfigurationController {
 
@@ -37,34 +37,36 @@ public class ClinicConfigurationController {
 
   public ClinicConfigurationController(ClinicConfigurationService service) { this.service = service; }
 
-  @GetMapping("/clinica")
+  @GetMapping("/clinica") @PreAuthorize("hasRole('ADMINISTRATOR')")
   ConfigurationApi.ClinicResponse clinica() { return ConfigurationApi.clinic(service.clinica()); }
 
-  @PutMapping("/clinica")
+  @PutMapping("/clinica") @PreAuthorize("hasRole('ADMINISTRATOR')")
   ConfigurationApi.ClinicResponse alterarClinica(@Valid @RequestBody ClinicInput input) {
     return ConfigurationApi.clinic(service.alterarClinica(input.expectedVersion(), input.nome(), input.timeZone(), input.ativo()));
   }
 
   @GetMapping("/unidades")
-  ConfigurationApi.PageResponse<ConfigurationApi.UnidadeResponse> unidades(
+  @PreAuthorize("hasRole('ADMINISTRATOR') or (!#incluirInativas and hasAnyRole('PATIENT','RECEPTIONIST'))")
+  Object unidades(Authentication authentication,
       @RequestParam(defaultValue = "false") boolean incluirInativas,
       @RequestParam(defaultValue = "0") @PositiveOrZero int page,
       @RequestParam(defaultValue = "20") @jakarta.validation.constraints.Min(1) @jakarta.validation.constraints.Max(100) int size) {
-    return page(service.unidades(incluirInativas, PageRequest.of(page, size, Sort.by("nome"))), ConfigurationApi::unidade);
+    var values = service.unidades(incluirInativas, PageRequest.of(page, size, Sort.by("nome")));
+    return isAdmin(authentication) ? page(values, ConfigurationApi::unidade) : page(values, ConfigurationApi::catalogo);
   }
 
-  @PostMapping("/unidades")
+  @PostMapping("/unidades") @PreAuthorize("hasRole('ADMINISTRATOR')")
   ResponseEntity<ConfigurationApi.UnidadeResponse> criarUnidade(@Valid @RequestBody UnidadeInput input) {
     var value = ConfigurationApi.unidade(service.criarUnidade(input.nome(), input.endereco(), input.ativo()));
     return ResponseEntity.created(URI.create("/api/unidades/" + value.id())).body(value);
   }
 
-  @PutMapping("/unidades/{id}")
+  @PutMapping("/unidades/{id}") @PreAuthorize("hasRole('ADMINISTRATOR')")
   ConfigurationApi.UnidadeResponse alterarUnidade(@PathVariable UUID id, @Valid @RequestBody UnidadeUpdate input) {
     return ConfigurationApi.unidade(service.alterarUnidade(id, input.expectedVersion(), input.nome(), input.endereco(), input.ativo()));
   }
 
-  @GetMapping("/consultorios")
+  @GetMapping("/consultorios") @PreAuthorize("hasRole('ADMINISTRATOR')")
   ConfigurationApi.PageResponse<ConfigurationApi.ConsultorioResponse> consultorios(
       @RequestParam(defaultValue = "false") boolean incluirInativas,
       @RequestParam(defaultValue = "0") @PositiveOrZero int page,
@@ -72,13 +74,13 @@ public class ClinicConfigurationController {
     return page(service.consultorios(incluirInativas, PageRequest.of(page, size, Sort.by("nome"))), ConfigurationApi::consultorio);
   }
 
-  @PostMapping("/consultorios")
+  @PostMapping("/consultorios") @PreAuthorize("hasRole('ADMINISTRATOR')")
   ResponseEntity<ConfigurationApi.ConsultorioResponse> criarConsultorio(@Valid @RequestBody ConsultorioInput input) {
     var value = ConfigurationApi.consultorio(service.criarConsultorio(input.unidadeId(), input.nome(), input.ativo()));
     return ResponseEntity.created(URI.create("/api/consultorios/" + value.id())).body(value);
   }
 
-  @PutMapping("/consultorios/{id}")
+  @PutMapping("/consultorios/{id}") @PreAuthorize("hasRole('ADMINISTRATOR')")
   ConfigurationApi.ConsultorioResponse alterarConsultorio(@PathVariable UUID id,
       @Valid @RequestBody ConsultorioUpdate input) {
     return ConfigurationApi.consultorio(service.alterarConsultorio(id, input.unidadeId(), input.expectedVersion(),
@@ -86,41 +88,45 @@ public class ClinicConfigurationController {
   }
 
   @GetMapping("/especialidades")
-  ConfigurationApi.PageResponse<ConfigurationApi.EspecialidadeResponse> especialidades(
+  @PreAuthorize("hasRole('ADMINISTRATOR') or (!#incluirInativas and hasAnyRole('PATIENT','RECEPTIONIST'))")
+  Object especialidades(Authentication authentication,
       @RequestParam(defaultValue = "false") boolean incluirInativas,
       @RequestParam(defaultValue = "0") @PositiveOrZero int page,
       @RequestParam(defaultValue = "20") @jakarta.validation.constraints.Min(1) @jakarta.validation.constraints.Max(100) int size) {
-    return page(service.especialidades(incluirInativas, PageRequest.of(page, size, Sort.by("nome"))), ConfigurationApi::especialidade);
+    var values = service.especialidades(incluirInativas, PageRequest.of(page, size, Sort.by("nome")));
+    return isAdmin(authentication) ? page(values, ConfigurationApi::especialidade) : page(values, ConfigurationApi::catalogo);
   }
 
-  @PostMapping("/especialidades")
+  @PostMapping("/especialidades") @PreAuthorize("hasRole('ADMINISTRATOR')")
   ResponseEntity<ConfigurationApi.EspecialidadeResponse> criarEspecialidade(@Valid @RequestBody NamedInput input) {
     var value = ConfigurationApi.especialidade(service.criarEspecialidade(input.nome(), input.ativo()));
     return ResponseEntity.created(URI.create("/api/especialidades/" + value.id())).body(value);
   }
 
-  @PutMapping("/especialidades/{id}")
+  @PutMapping("/especialidades/{id}") @PreAuthorize("hasRole('ADMINISTRATOR')")
   ConfigurationApi.EspecialidadeResponse alterarEspecialidade(@PathVariable UUID id,
       @Valid @RequestBody NamedUpdate input) {
     return ConfigurationApi.especialidade(service.alterarEspecialidade(id, input.expectedVersion(), input.nome(), input.ativo()));
   }
 
   @GetMapping("/medicos")
-  ConfigurationApi.PageResponse<ConfigurationApi.MedicoResponse> medicos(
+  @PreAuthorize("hasRole('ADMINISTRATOR') or (!#incluirInativas and hasAnyRole('PATIENT','RECEPTIONIST'))")
+  Object medicos(Authentication authentication,
       @RequestParam(defaultValue = "false") boolean incluirInativas,
       @RequestParam(defaultValue = "0") @PositiveOrZero int page,
       @RequestParam(defaultValue = "20") @jakarta.validation.constraints.Min(1) @jakarta.validation.constraints.Max(100) int size) {
-    return page(service.medicos(incluirInativas, PageRequest.of(page, size, Sort.by("nome"))), ConfigurationApi::medico);
+    var values = service.medicos(incluirInativas, PageRequest.of(page, size, Sort.by("nome")));
+    return isAdmin(authentication) ? page(values, ConfigurationApi::medico) : page(values, ConfigurationApi::catalogo);
   }
 
-  @PostMapping("/medicos")
+  @PostMapping("/medicos") @PreAuthorize("hasRole('ADMINISTRATOR')")
   ResponseEntity<ConfigurationApi.MedicoResponse> criarMedico(@Valid @RequestBody MedicoInput input) {
     var value = ConfigurationApi.medico(service.criarMedico(input.nome(), input.crmNumero(), input.crmUf(),
         input.especialidadeIds(), input.ativo()));
     return ResponseEntity.created(URI.create("/api/medicos/" + value.id())).body(value);
   }
 
-  @PutMapping("/medicos/{id}")
+  @PutMapping("/medicos/{id}") @PreAuthorize("hasRole('ADMINISTRATOR')")
   ConfigurationApi.MedicoResponse alterarMedico(@PathVariable UUID id, @Valid @RequestBody MedicoUpdate input) {
     return ConfigurationApi.medico(service.alterarMedico(id, input.expectedVersion(), input.nome(), input.crmNumero(),
         input.crmUf(), input.especialidadeIds(), input.ativo()));
@@ -130,6 +136,10 @@ public class ClinicConfigurationController {
       Function<S, T> mapper) {
     return new ConfigurationApi.PageResponse<>(source.getContent().stream().map(mapper).toList(),
         source.getNumber(), source.getSize(), source.getTotalElements());
+  }
+
+  private static boolean isAdmin(Authentication authentication) {
+    return authentication.getAuthorities().stream().anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMINISTRATOR"));
   }
 
   record ClinicInput(@NotBlank @Size(max = 200) String nome, @NotBlank @Size(max = 64) String timeZone,

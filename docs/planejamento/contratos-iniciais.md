@@ -93,3 +93,5 @@ Em duplicação simultânea de check-in, a validação pode observar versão ant
 ## Condição para trabalho paralelo
 
 Estes contratos devem ser transcritos em OpenAPI/exemplos de teste no início das respectivas Issues. Frontend pode trabalhar contra mocks do contrato estabilizado; integração final depende do backend e da autorização. Alterações de contrato após esta rodada precisam ser discutidas entre Backend, Frontend, Segurança e QA antes da adoção.
+
+Catálogos mínimos: Paciente e Recepção podem consultar somente unidades, especialidades e médicos ativos. Unidade/especialidade retornam `{id,nome}` e médico `{id,nome,especialidadeIds}`; não retornam endereço, CRM, ativo, versão ou subject. `incluirInativas=true` e DTOs completos são exclusivos de Administração. Médico não usa catálogo geral neste recorte.

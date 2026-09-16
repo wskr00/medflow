@@ -322,3 +322,5 @@ O ensaio de RNF009 será executado a partir de clone limpo em diretório tempor�
 - A ausência de `NAO_COMPARECEU`, conflito por Paciente e limite global de atendimentos simultâneos é deliberada nesta versão e deve permanecer visível como limitação.
 
 Não restou contradição conhecida que impeça o início de #27, #9 e #23 depois da apresentação da síntese ao usuário. A #8 depende da integração da base recuperada em #27. #24 e #25 permanecem naturalmente bloqueadas até existirem fluxo integrado e implementações mensuráveis.
+
+Na #8, validar Paciente/Recepção em catálogos mínimos ativos, ausência de campos administrativos, negação de inativos e negação para Médico. Filtros de catálogo adicionais ficam para as jornadas que os consumirem.

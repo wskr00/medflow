@@ -78,12 +78,47 @@ class SecurityIntegrationTests {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("ACESSO_NEGADO"));
         }
-        for (String path : List.of("/api/clinica", "/api/unidades", "/api/consultorios",
-            "/api/especialidades", "/api/medicos", "/api/regras-agenda", "/api/bloqueios-agenda")) {
+        for (String path : List.of("/api/clinica", "/api/consultorios", "/api/regras-agenda", "/api/bloqueios-agenda")) {
             mvc.perform(get(path).with(jwt().jwt(tokenWithRoles("PATIENT"))
                     .authorities(new SimpleGrantedAuthority("ROLE_PATIENT"))))
                 .andExpect(status().isForbidden());
         }
+        for (String path : List.of("/api/unidades", "/api/especialidades", "/api/medicos")) {
+            mvc.perform(get(path).with(jwt().jwt(tokenWithRoles("DOCTOR"))
+                    .authorities(new SimpleGrantedAuthority("ROLE_DOCTOR"))))
+                .andExpect(status().isForbidden());
+        }
+    }
+
+    @Test
+    void patientAndReceptionistReceiveOnlyActiveMinimalCatalogs() throws Exception {
+        var specialty = clinic.criarEspecialidade("Catálogo ativo", true);
+        var unit = clinic.criarUnidade("Unidade catálogo", "Endereço privado", true);
+        clinic.criarMedico("Médico catálogo", "88888", "PA", List.of(specialty.id()), true);
+        clinic.criarEspecialidade("Catálogo inativo", false);
+        for (String role : List.of("PATIENT", "RECEPTIONIST")) {
+            var principal = jwt().jwt(tokenWithRoles(role))
+                .authorities(new SimpleGrantedAuthority("ROLE_" + role));
+            mvc.perform(get("/api/unidades").with(principal))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].id").exists())
+                .andExpect(jsonPath("$.items[0].nome").exists())
+                .andExpect(jsonPath("$.items[0].endereco").doesNotExist())
+                .andExpect(jsonPath("$.items[0].ativo").doesNotExist())
+                .andExpect(jsonPath("$.items[0].version").doesNotExist());
+            mvc.perform(get("/api/medicos").with(principal))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].especialidadeIds").isArray())
+                .andExpect(jsonPath("$.items[0].crmNumero").doesNotExist());
+            mvc.perform(get("/api/especialidades?incluirInativas=true").with(principal))
+                .andExpect(status().isForbidden());
+        }
+        var admin = jwt().jwt(tokenWithRoles("ADMINISTRATOR"))
+            .authorities(new SimpleGrantedAuthority("ROLE_ADMINISTRATOR"));
+        mvc.perform(get("/api/especialidades?incluirInativas=true").with(admin))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items[0].ativo").exists())
+            .andExpect(jsonPath("$.totalElements").value(org.hamcrest.Matchers.greaterThanOrEqualTo(2)));
     }
 
     @Test
