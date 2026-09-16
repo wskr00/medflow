@@ -14,12 +14,6 @@ const navigationOrder: readonly MedflowRole[] = [
 ];
 const medflowApiClient = "medflow-api";
 
-const routeByRole: Readonly<Record<MedflowRole, string>> = {
-  PATIENT: "/workspace/patient",
-  RECEPTIONIST: "/workspace/reception",
-  DOCTOR: "/workspace/doctor",
-  ADMINISTRATOR: "/workspace/administrator",
-};
 
 function hasRole(authData: AuthGuardData, requiredRole: MedflowRole): boolean {
   return (
@@ -40,9 +34,7 @@ export const defaultWorkspaceRedirect: RedirectFunction = () => {
   const keycloak = inject(Keycloak);
   if (!keycloak.authenticated) return router.parseUrl("/access-denied");
 
-  const firstRole = rolesFrom(keycloak)[0];
-
-  return router.parseUrl(firstRole ? routeByRole[firstRole] : "/access-denied");
+  return router.parseUrl(rolesFrom(keycloak).includes("PATIENT") ? "/workspace/patient" : "/access-denied");
 };
 
 /** O frontend limita a navegação; o backend permanece a autoridade de autorização. */

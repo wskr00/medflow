@@ -77,7 +77,7 @@ describe("MedFlow role routing", () => {
     expect(router.serializeUrl(result as UrlTree)).toBe("/access-denied");
   });
 
-  it("chooses the first available area by the explicit multi-role navigation order", async () => {
+  it("does not route to a profile whose journey has not been implemented", async () => {
     await TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
@@ -95,7 +95,7 @@ describe("MedFlow role routing", () => {
     );
 
     expect(TestBed.inject(Router).serializeUrl(redirect as UrlTree)).toBe(
-      "/workspace/doctor",
+      "/access-denied",
     );
   });
 

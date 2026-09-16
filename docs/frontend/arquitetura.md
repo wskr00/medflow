@@ -5,20 +5,18 @@
 ```text
 src/main/webapp/app/
   auth/                 keycloak-angular e a leitura de identidade
-  core/layout/          shell e composição de navegação
   shared/ui/            padrões reais: cabeçalho, status e estados
   features/             páginas lazy por jornada
   shared/ui/helm/       componentes Helm gerados pelo Spartan CLI
 ```
 
-`core` só contém composição técnica reutilizável; `shared/ui` só contém padrões de domínio com mais de um consumidor esperado. Cada jornada futura mantém página, componentes e API próximos na sua feature. Não há store global. Tipos de contrato e serviços HTTP de uma jornada ficam na própria feature, não no shell.
+`shared/ui` só contém padrões de domínio com mais de um consumidor esperado. Cada jornada mantém página, layout, navegação e API próximos na sua feature. Não há shell global, store global ou cabeçalho universal: a composição visual é responsabilidade do perfil.
 
 ## Composição por perfil
 
-`WorkspaceShell` é apenas a moldura autenticada. Cada feature pode ter rotas e
-um shell interno próprios quando isso representar melhor a tarefa do perfil.
-O `ProfileFoundationComponent` usado na fundação é um placeholder temporário,
-não um modelo para as jornadas #16–#18.
+Cada feature possui o próprio layout quando sua tarefa o exige. A jornada do
+Paciente usa cabeçalho horizontal único e navegação de Consultas, Agendar e
+Histórico; não herda sidebar, marca ou navegação de outro perfil.
 
 | Perfil | Modo de trabalho | Composição inicial |
 |---|---|---|
@@ -34,11 +32,11 @@ principal e o contexto necessário.
 
 ## Rotas e identidade
 
-As rotas são standalone e lazy. A rota vazia de `/workspace` usa um `RedirectFunction` do Router para escolher a primeira área disponível na ordem explícita `PATIENT`, `RECEPTIONIST`, `DOCTOR`, `ADMINISTRATOR`; assim, uma conta multi-role tem destino determinístico. As rotas diretas de perfil usam `createAuthGuard` do `keycloak-angular`, que verifica exclusivamente as client roles de `medflow-api` já gerenciadas pela sessão e retorna `UrlTree` para acesso negado quando necessário. Realm roles ou roles de outros clients não liberam navegação. Isso limita a navegação, mas o backend continua sendo a autoridade de autorização.
+As rotas são standalone e lazy. A rota vazia de `/workspace` encaminha a jornada já implementada do Paciente; outras jornadas só entram quando tiverem a própria composição. A rota direta usa `createAuthGuard` do `keycloak-angular`, que verifica exclusivamente as client roles de `medflow-api` já gerenciadas pela sessão e retorna `UrlTree` para acesso negado quando necessário. Realm roles ou roles de outros clients não liberam navegação. Isso limita a navegação, mas o backend continua sendo a autoridade de autorização.
 
 `IdentityService.identity` usa `httpResource` para `GET /api/me`. Isso mantém a leitura reativa e passa pelo `HttpClient` já configurado pelo `keycloak-angular`. Um `401` nessa leitura volta ao fluxo de login do Keycloak; não há interceptor bearer, refresh manual ou nova fonte de roles. `withComponentInputBinding()` entrega o `profile` da rota diretamente ao componente de referência, sem leitura manual de `ActivatedRoute.snapshot`.
 
-O foco chega ao `<main>` no evento de ativação do `RouterOutlet`: tanto a rota final de um redirect quanto as rotas de perfil têm configurações distintas e ativam o conteúdo. A wildcard renderiza uma página de não encontrado em vez de redirecionar silenciosamente.
+A wildcard renderiza uma página de não encontrado em vez de redirecionar silenciosamente.
 
 ## Leituras e mutações
 
