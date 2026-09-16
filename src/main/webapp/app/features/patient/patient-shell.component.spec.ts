@@ -12,5 +12,7 @@ describe("PatientShellComponent", () => {
     expect((text.match(/MedFlow/g) ?? []).length).toBe(1);
     expect(text).toContain("Consultas");
     expect(text).not.toContain("Operação clínica");
+    expect(fixture.nativeElement.querySelector("main")?.className).toContain("max-w-6xl");
+    expect(fixture.nativeElement.querySelector("main")?.className).toContain("py-8");
   });
 });
