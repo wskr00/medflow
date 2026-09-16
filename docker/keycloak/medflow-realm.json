@@ -97,6 +97,24 @@
           }
         }
       ]
+    },
+    {
+      "id": "10000000-0000-0000-0000-000000000004",
+      "clientId": "medflow-test-no-audience",
+      "name": "MedFlow Test Client Without API Audience",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "bearerOnly": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "medflow-test-no-audience-secret",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": false,
+      "redirectUris": [],
+      "webOrigins": []
     }
   ],
   "roles": {

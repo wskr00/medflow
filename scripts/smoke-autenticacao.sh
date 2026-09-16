@@ -22,6 +22,7 @@ done
 smoke_dir="$(mktemp -d)"
 admin_token=""
 restore_realm=false
+restore_frontend_url=false
 
 cleanup() {
   if [[ "$restore_realm" == true && -n "$admin_token" ]]; then
@@ -30,6 +31,13 @@ cleanup() {
       --header "Authorization: Bearer $admin_token" \
       --header 'Content-Type: application/json' \
       --data '{"accessTokenLifespan":300}' || true
+  fi
+  if [[ "$restore_frontend_url" == true && -n "$admin_token" ]]; then
+    curl --silent --fail --output /dev/null --request PUT \
+      "$auth_base_url/admin/realms/medflow" \
+      --header "Authorization: Bearer $admin_token" \
+      --header 'Content-Type: application/json' \
+      --data '{"attributes":{}}' || true
   fi
   rm -r -- "$smoke_dir"
 }
@@ -86,10 +94,41 @@ assert_status 200 "$valid_status" "Token válido"
 jq -e '.roles == ["PATIENT"] and .pacienteId == null and .medicoId == null and .clinicaId == null' \
   "$smoke_dir/me.json" >/dev/null
 
+wrong_audience_token="$(token_for medflow medflow-test-no-audience paciente paciente \
+  medflow-test-no-audience-secret)"
+jq -eRn --arg token "$wrong_audience_token" '
+  $token | split(".")[1] | @base64d | fromjson |
+  select(.iss | endswith("/realms/medflow")) |
+  select(.aud != "medflow-api")
+' >/dev/null
+wrong_audience_status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
+  --header "Authorization: Bearer $wrong_audience_token" "$api_base_url/api/me")"
+assert_status 401 "$wrong_audience_status" "Token sem audiência medflow-api"
+
 admin_token="$(token_for master admin-cli admin admin)"
+curl --silent --fail --output /dev/null --request PUT \
+  "$auth_base_url/admin/realms/medflow" \
+  --header "Authorization: Bearer $admin_token" \
+  --header 'Content-Type: application/json' \
+  --data '{"attributes":{"frontendUrl":"http://wrong-issuer.invalid"}}'
+restore_frontend_url=true
+
+wrong_issuer_token="$(token_for medflow medflow-test paciente paciente medflow-test-secret)"
+jq -eRn --arg token "$wrong_issuer_token" '
+  $token | split(".")[1] | @base64d | fromjson |
+  select(.iss == "http://wrong-issuer.invalid/realms/medflow") |
+  select(.aud == "medflow-api")
+' >/dev/null
 wrong_issuer_status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
-  --header "Authorization: Bearer $admin_token" "$api_base_url/api/me")"
-assert_status 401 "$wrong_issuer_status" "Token de outro emissor/audiência"
+  --header "Authorization: Bearer $wrong_issuer_token" "$api_base_url/api/me")"
+assert_status 401 "$wrong_issuer_status" "Token com emissor incorreto"
+
+curl --silent --fail --output /dev/null --request PUT \
+  "$auth_base_url/admin/realms/medflow" \
+  --header "Authorization: Bearer $admin_token" \
+  --header 'Content-Type: application/json' \
+  --data '{"attributes":{}}'
+restore_frontend_url=false
 
 curl --silent --fail --output /dev/null --request PUT \
   "$auth_base_url/admin/realms/medflow" \
@@ -108,4 +147,4 @@ expired_status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
   --header "Authorization: Bearer $expired_token" "$api_base_url/api/me")"
 assert_status 401 "$expired_status" "Token expirado"
 
-echo "Smoke de autenticação passou: health, 401, JWT válido, emissor/audiência e expiração."
+echo "Smoke de autenticação passou: health, 401, JWT válido, emissor, audiência e expiração."

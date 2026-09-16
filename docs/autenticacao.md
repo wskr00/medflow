@@ -49,9 +49,11 @@ sintética, depois que Keycloak e backend estiverem prontos:
 ```
 
 O script valida o health, 401 sem token, challenge Bearer, token válido, emissor
-ou audiência incorretos e expiração real. Para produzir o caso expirado ele muda
-temporariamente o lifespan do realm local e o restaura ao terminar, inclusive em
-falha. Por segurança, recusa URLs que não sejam `localhost` ou `127.0.0.1`.
+incorreto, audiência incorreta e expiração real como casos separados. Para esses
+negativos ele usa um client sintético sem mapper de audiência e altera
+temporariamente o Frontend URL e o lifespan do realm local, restaurando ambos ao
+terminar, inclusive em falha. Por segurança, recusa URLs que não sejam
+`localhost` ou `127.0.0.1`.
 
 Inicialização local com portas alternativas:
 
