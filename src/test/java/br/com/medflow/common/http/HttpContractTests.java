@@ -1,5 +1,6 @@
 package br.com.medflow.common.http;
 
+import br.com.medflow.audit.web.AuditFailureReporter;
 import java.util.UUID;
 
 import jakarta.validation.Valid;
@@ -24,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.mockito.Mockito.mock;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -39,7 +41,7 @@ class HttpContractTests {
         validator = new LocalValidatorFactoryBean();
         validator.afterPropertiesSet();
         mvc = MockMvcBuilders.standaloneSetup(new HttpFixture())
-                .setControllerAdvice(new ApiExceptionHandler())
+                .setControllerAdvice(new ApiExceptionHandler(mock(AuditFailureReporter.class)))
                 .setValidator(validator)
                 .addFilters(new RequestIdFilter())
                 .build();
