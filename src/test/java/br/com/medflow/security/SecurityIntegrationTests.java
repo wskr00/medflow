@@ -10,12 +10,16 @@ import br.com.medflow.clinic.application.PatientProvisioningService;
 import br.com.medflow.common.http.RequestIdFilter;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.annotation.AnnotatedElementUtils;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -43,6 +47,10 @@ class SecurityIntegrationTests {
 
     @Autowired
     private PatientProvisioningService patients;
+
+    @Autowired
+    @Qualifier("requestMappingHandlerMapping")
+    private RequestMappingHandlerMapping handlerMapping;
 
     @Test
     void actuatorHealthIsPublicAndUsesNativeEndpoint() throws Exception {
@@ -92,12 +100,14 @@ class SecurityIntegrationTests {
 
     @Test
     void patientAndReceptionistReceiveOnlyActiveMinimalCatalogs() throws Exception {
+        patients.provisionar("subject-catalog-patient", "Paciente do catálogo");
         var specialty = clinic.criarEspecialidade("Catálogo ativo", true);
         var unit = clinic.criarUnidade("Unidade catálogo", "Endereço privado", true);
         clinic.criarMedico("Médico catálogo", "88888", "PA", List.of(specialty.id()), true);
         clinic.criarEspecialidade("Catálogo inativo", false);
         for (String role : List.of("PATIENT", "RECEPTIONIST")) {
-            var principal = jwt().jwt(tokenWithRoles(role))
+            String subject = role.equals("PATIENT") ? "subject-catalog-patient" : "subject-receptionist";
+            var principal = jwt().jwt(tokenWithSubjectAndRoles(subject, role))
                 .authorities(new SimpleGrantedAuthority("ROLE_" + role));
             mvc.perform(get("/api/unidades").with(principal))
                 .andExpect(status().isOk())
@@ -119,6 +129,58 @@ class SecurityIntegrationTests {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.items[0].ativo").exists())
             .andExpect(jsonPath("$.totalElements").value(org.hamcrest.Matchers.greaterThanOrEqualTo(2)));
+    }
+
+    @Test
+    void patientWithoutLocalLinkReceives403ButMeDoesNotProvisionIt() throws Exception {
+        Jwt token = tokenWithSubjectAndRoles("patient-without-link", "PATIENT");
+        var principal = jwt().jwt(token).authorities(new SimpleGrantedAuthority("ROLE_PATIENT"));
+
+        mvc.perform(get("/api/unidades").with(principal))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.code").value("ACESSO_NEGADO"));
+        mvc.perform(get("/api/me").with(principal))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.pacienteId").value(org.hamcrest.Matchers.nullValue()))
+            .andExpect(jsonPath("$.medicoId").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    @Test
+    void multiRoleAccountUsesTheConcreteRoleAndActiveLink() throws Exception {
+        var specialty = clinic.criarEspecialidade("Vínculo médico", true);
+        var doctor = clinic.criarMedico("Médico inativo", "77777", "PA", List.of(specialty.id()), true);
+        var linkedDoctor = clinic.provisionarSubjectMedico(doctor.id(), "admin-doctor-subject");
+        clinic.alterarMedico(linkedDoctor.id(), linkedDoctor.version(), linkedDoctor.nome(),
+            linkedDoctor.crmNumero(), linkedDoctor.crmUf(), List.of(specialty.id()), false);
+        Jwt token = tokenWithSubjectAndRoles("admin-doctor-subject", "ADMINISTRATOR", "DOCTOR");
+
+        mvc.perform(get("/api/clinica").with(jwt().jwt(token).authorities(
+                new SimpleGrantedAuthority("ROLE_ADMINISTRATOR"),
+                new SimpleGrantedAuthority("ROLE_DOCTOR"))))
+            .andExpect(status().isOk());
+        mvc.perform(get("/api/me").with(jwt().jwt(token).authorities(
+                new SimpleGrantedAuthority("ROLE_ADMINISTRATOR"),
+                new SimpleGrantedAuthority("ROLE_DOCTOR"))))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.medicoId").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    @Test
+    void everyCurrentApiHandlerDeclaresFunctionalMethodAuthorization() {
+        var unprotected = handlerMapping.getHandlerMethods().entrySet().stream()
+            .filter(entry -> entry.getKey().getPatternValues().stream()
+                .anyMatch(pattern -> pattern.startsWith("/api/")))
+            .filter(entry -> entry.getValue().getBeanType().getPackageName().startsWith("br.com.medflow"))
+            .filter(entry -> !AnnotatedElementUtils.hasAnnotation(
+                entry.getValue().getMethod(), PreAuthorize.class))
+            .filter(entry -> !AnnotatedElementUtils.hasAnnotation(
+                entry.getValue().getBeanType(), PreAuthorize.class))
+            .map(entry -> entry.getKey().getPatternValues() + " -> "
+                + entry.getValue().getMethod().toGenericString())
+            .sorted()
+            .toList();
+
+        assertThat(unprotected).as("endpoints /api sem gate funcional explícito").isEmpty();
     }
 
     @Test
@@ -198,6 +260,13 @@ class SecurityIntegrationTests {
             .andExpect(jsonPath("$.clinicaId").value("00000000-0000-0000-0000-000000000001"))
             .andExpect(jsonPath("$.timeZone").value("America/Belem"));
 
+        Jwt administratorOnly = tokenWithSubjectAndRoles("subject-sintetico", "ADMINISTRATOR");
+        mvc.perform(get("/api/me").with(jwt().jwt(administratorOnly)
+                .authorities(converter.convert(administratorOnly))))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.pacienteId").value(org.hamcrest.Matchers.nullValue()))
+            .andExpect(jsonPath("$.medicoId").value(org.hamcrest.Matchers.nullValue()));
+
         assertThat(converter.convert(token)).containsExactlyInAnyOrder(
             new SimpleGrantedAuthority("ROLE_PATIENT"),
             new SimpleGrantedAuthority("ROLE_DOCTOR"));
@@ -235,9 +304,13 @@ class SecurityIntegrationTests {
     }
 
     private Jwt tokenWithRoles(String... roles) {
+        return tokenWithSubjectAndRoles("subject-sintetico", roles);
+    }
+
+    private Jwt tokenWithSubjectAndRoles(String subject, String... roles) {
         return Jwt.withTokenValue("synthetic")
             .header("alg", "none")
-            .subject("subject-sintetico")
+            .subject(subject)
             .issuer("http://issuer.test/realms/medflow")
             .audience(List.of("medflow-api"))
             .issuedAt(Instant.now())
