@@ -10,6 +10,7 @@ import br.com.medflow.clinic.persistence.ConsultorioRepository;
 import br.com.medflow.clinic.persistence.EspecialidadeRepository;
 import br.com.medflow.clinic.persistence.MedicoRepository;
 import br.com.medflow.clinic.persistence.PacienteRepository;
+import br.com.medflow.clinic.persistence.UnidadeRepository;
 import br.com.medflow.common.auth.AuthenticatedActor;
 import br.com.medflow.common.http.BusinessConflictException;
 import br.com.medflow.common.http.ResourceNotFoundException;
@@ -62,6 +63,7 @@ class AppointmentPersistenceIntegrationTests {
   @Autowired private MedicoRepository medicoRepository;
   @Autowired private EspecialidadeRepository especialidadeRepository;
   @Autowired private ConsultorioRepository consultorioRepository;
+  @Autowired private UnidadeRepository unidadeRepository;
   @Autowired private DataSource dataSource;
   @Autowired private JdbcTemplate jdbc;
 
@@ -226,6 +228,94 @@ class AppointmentPersistenceIntegrationTests {
   }
 
   @Test
+  void clinicDeactivationOrTimeZoneChangeCannotInvalidateFutureReservation() {
+    Fixture fixture = fixture("clinic-guard", LocalTime.of(8, 0), LocalTime.of(10, 0), 30,
+        MONDAY.minusWeeks(1), MONDAY.plusWeeks(1));
+    appointments.criar(fixture.patient(), fixture.regraId(), offset(8, 0));
+    var singleton = clinic.clinica();
+
+    assertReservationsConflict(() -> clinic.alterarClinica(singleton.version(), singleton.nome(),
+        singleton.timeZone(), false));
+    assertClinicUnchanged(singleton);
+
+    assertReservationsConflict(() -> clinic.alterarClinica(singleton.version(), singleton.nome(),
+        "UTC", true));
+    assertClinicUnchanged(singleton);
+  }
+
+  @Test
+  void unitDeactivationCannotInvalidateFutureReservationAndRollsBack() {
+    Fixture fixture = fixture("unit-guard", LocalTime.of(8, 0), LocalTime.of(10, 0), 30,
+        MONDAY.minusWeeks(1), MONDAY.plusWeeks(1));
+    appointments.criar(fixture.patient(), fixture.regraId(), offset(8, 0));
+    var unit = unidadeRepository.findById(fixture.unidadeId()).orElseThrow();
+
+    assertReservationsConflict(() -> clinic.alterarUnidade(unit.id(), unit.version(),
+        "Unidade não persistida", "Endereço não persistido", false));
+
+    var persisted = unidadeRepository.findById(unit.id()).orElseThrow();
+    assertThat(persisted.nome()).isEqualTo(unit.nome());
+    assertThat(persisted.endereco()).isEqualTo(unit.endereco());
+    assertThat(persisted.ativo()).isTrue();
+    assertThat(persisted.version()).isEqualTo(unit.version());
+  }
+
+  @Test
+  void roomDeactivationRollsBackForActiveReservationButIgnoresCancelledOne() {
+    Fixture fixture = fixture("room-guard", LocalTime.of(8, 0), LocalTime.of(10, 0), 30,
+        MONDAY.minusWeeks(1), MONDAY.plusWeeks(1));
+    var reserved = appointments.criar(fixture.patient(), fixture.regraId(), offset(8, 0));
+    var room = consultorioRepository.findById(fixture.consultorioId()).orElseThrow();
+
+    assertReservationsConflict(() -> clinic.alterarConsultorio(room.id(), fixture.unidadeId(),
+        room.version(), "Sala não persistida", false));
+    var rolledBack = consultorioRepository.findById(room.id()).orElseThrow();
+    assertThat(rolledBack.nome()).isEqualTo(room.nome());
+    assertThat(rolledBack.ativo()).isTrue();
+    assertThat(rolledBack.version()).isEqualTo(room.version());
+
+    appointments.cancelar(fixture.patient(), reserved.id(), reserved.version());
+    var deactivated = clinic.alterarConsultorio(room.id(), fixture.unidadeId(), room.version(),
+        room.nome(), false);
+    assertThat(deactivated.ativo()).isFalse();
+  }
+
+  @Test
+  void specialtyDeactivationCannotInvalidateFutureReservationAndRollsBack() {
+    Fixture fixture = fixture("specialty-guard", LocalTime.of(8, 0), LocalTime.of(10, 0), 30,
+        MONDAY.minusWeeks(1), MONDAY.plusWeeks(1));
+    appointments.criar(fixture.patient(), fixture.regraId(), offset(8, 0));
+    var specialty = especialidadeRepository.findById(fixture.especialidadeId()).orElseThrow();
+
+    assertReservationsConflict(() -> clinic.alterarEspecialidade(specialty.id(), specialty.version(),
+        "Especialidade não persistida", false));
+
+    var persisted = especialidadeRepository.findById(specialty.id()).orElseThrow();
+    assertThat(persisted.nome()).isEqualTo(specialty.nome());
+    assertThat(persisted.ativo()).isTrue();
+    assertThat(persisted.version()).isEqualTo(specialty.version());
+  }
+
+  @Test
+  void doctorDeactivationOrBookedSpecialtyRemovalCannotInvalidateReservation() {
+    Fixture fixture = fixture("doctor-guard", LocalTime.of(8, 0), LocalTime.of(10, 0), 30,
+        MONDAY.minusWeeks(1), MONDAY.plusWeeks(1));
+    appointments.criar(fixture.patient(), fixture.regraId(), offset(8, 0));
+    var doctor = clinic.medicos(true, PageRequest.of(0, 100)).stream()
+        .filter(value -> value.id().equals(fixture.medicoId())).findFirst().orElseThrow();
+
+    assertReservationsConflict(() -> clinic.alterarMedico(doctor.id(), doctor.version(),
+        "Médico não persistido", doctor.crmNumero(), doctor.crmUf(),
+        List.of(fixture.especialidadeId()), false));
+    assertDoctorUnchanged(doctor, fixture.especialidadeId());
+
+    var replacement = clinic.criarEspecialidade("Especialidade substituta doctor-guard", true);
+    assertReservationsConflict(() -> clinic.alterarMedico(doctor.id(), doctor.version(),
+        doctor.nome(), doctor.crmNumero(), doctor.crmUf(), List.of(replacement.id()), true));
+    assertDoctorUnchanged(doctor, fixture.especialidadeId());
+  }
+
+  @Test
   void serializesTwentyDistinctPatientsWithExactlyOneWinnerInThreeControlledRounds()
       throws Exception {
     Fixture fixture = fixture("concurrency", LocalTime.of(8, 0), LocalTime.of(12, 0), 30,
@@ -370,6 +460,25 @@ class AppointmentPersistenceIntegrationTests {
     assertThat(persisted.vigenteDe()).isEqualTo(MONDAY.minusWeeks(1));
     assertThat(persisted.vigenteAte()).isEqualTo(MONDAY.plusWeeks(1));
     assertThat(persisted.version()).isZero();
+  }
+
+  private void assertClinicUnchanged(br.com.medflow.clinic.domain.Clinica expected) {
+    var persisted = clinic.clinica();
+    assertThat(persisted.nome()).isEqualTo(expected.nome());
+    assertThat(persisted.timeZone()).isEqualTo(expected.timeZone());
+    assertThat(persisted.ativo()).isTrue();
+    assertThat(persisted.version()).isEqualTo(expected.version());
+  }
+
+  private void assertDoctorUnchanged(
+      br.com.medflow.clinic.domain.Medico expected, UUID bookedSpecialtyId) {
+    var persisted = clinic.medicos(true, PageRequest.of(0, 100)).stream()
+        .filter(value -> value.id().equals(expected.id())).findFirst().orElseThrow();
+    assertThat(persisted.nome()).isEqualTo(expected.nome());
+    assertThat(persisted.ativo()).isTrue();
+    assertThat(persisted.version()).isEqualTo(expected.version());
+    assertThat(persisted.especialidades()).extracting(value -> value.id())
+        .containsExactly(bookedSpecialtyId);
   }
 
   private AuthenticatedActor patient(String subject) {

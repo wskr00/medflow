@@ -54,7 +54,7 @@ public class Clinica {
     return normalized;
   }
 
-  private static String validTimeZone(String value) {
+  public static String validTimeZone(String value) {
     String normalized = requiredText(value, 64, "timeZone");
     try {
       ZoneId.of(normalized);

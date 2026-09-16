@@ -13,7 +13,9 @@ import br.com.medflow.clinic.persistence.UnidadeRepository;
 import br.com.medflow.common.http.BusinessConflictException;
 import br.com.medflow.common.http.ResourceNotFoundException;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -29,15 +31,17 @@ public class ClinicConfigurationService {
   private final ConsultorioRepository consultorios;
   private final EspecialidadeRepository especialidades;
   private final MedicoRepository medicos;
+  private final FutureAppointmentGuard futureAppointments;
 
   public ClinicConfigurationService(ClinicaRepository clinicas, UnidadeRepository unidades,
       ConsultorioRepository consultorios, EspecialidadeRepository especialidades,
-      MedicoRepository medicos) {
+      MedicoRepository medicos, FutureAppointmentGuard futureAppointments) {
     this.clinicas = clinicas;
     this.unidades = unidades;
     this.consultorios = consultorios;
     this.especialidades = especialidades;
     this.medicos = medicos;
+    this.futureAppointments = futureAppointments;
   }
 
   @Transactional(readOnly = true)
@@ -47,7 +51,11 @@ public class ClinicConfigurationService {
   public Clinica alterarClinica(long expectedVersion, String nome, String timeZone, boolean ativo) {
     Clinica clinica = lockClinica();
     assertVersion(clinica.version(), expectedVersion);
-    clinica.alterar(nome, timeZone, ativo);
+    String normalizedTimeZone = Clinica.validTimeZone(timeZone);
+    if ((clinica.ativo() && !ativo) || !clinica.timeZone().equals(normalizedTimeZone)) {
+      futureAppointments.assertClinicCanChangeAvailability(clinica.id());
+    }
+    clinica.alterar(nome, normalizedTimeZone, ativo);
     clinicas.flush();
     return clinica;
   }
@@ -69,6 +77,9 @@ public class ClinicConfigurationService {
     Clinica clinica = lockClinica();
     Unidade unidade = unidadeDaClinica(id, clinica);
     assertVersion(unidade.version(), expectedVersion);
+    if (unidade.ativo() && !ativo) {
+      futureAppointments.assertUnitCanBeDeactivated(unidade.id());
+    }
     unidade.alterar(nome, endereco, ativo);
     unidades.flush();
     return unidade;
@@ -102,6 +113,9 @@ public class ClinicConfigurationService {
     if (ativo && !consultorio.unidade().ativo()) {
       throw configurationConflict("Consultório ativo exige unidade ativa.");
     }
+    if (consultorio.ativo() && !ativo) {
+      futureAppointments.assertRoomCanBeDeactivated(consultorio.id());
+    }
     consultorio.alterar(nome, ativo);
     consultorios.flush();
     return consultorio;
@@ -124,6 +138,9 @@ public class ClinicConfigurationService {
     Clinica clinica = lockClinica();
     Especialidade especialidade = especialidadeDaClinica(id, clinica);
     assertVersion(especialidade.version(), expectedVersion);
+    if (especialidade.ativo() && !ativo) {
+      futureAppointments.assertSpecialtyCanBeDeactivated(especialidade.id());
+    }
     especialidade.alterar(nome, ativo);
     especialidades.flush();
     return especialidade;
@@ -157,6 +174,14 @@ public class ClinicConfigurationService {
     List<Especialidade> vinculos = especialidadesDaClinica(especialidadeIds, clinica);
     if (ativo && vinculos.stream().anyMatch(especialidade -> !especialidade.ativo())) {
       throw configurationConflict("Médico ativo exige especialidades ativas.");
+    }
+    if (medico.ativo() && !ativo) {
+      futureAppointments.assertDoctorCanBeDeactivated(medico.id());
+    } else {
+      Set<UUID> removidas = new HashSet<>(medico.especialidades().stream()
+          .map(Especialidade::id).toList());
+      removidas.removeAll(vinculos.stream().map(Especialidade::id).toList());
+      futureAppointments.assertDoctorSpecialtiesCanBeRemoved(medico.id(), removidas);
     }
     validarCrmDisponivel(clinica, crmNumero, crmUf, medico.id());
     medico.alterar(nome, crmNumero, crmUf, vinculos, ativo);
