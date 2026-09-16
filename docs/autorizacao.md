@@ -27,7 +27,7 @@ O `SecurityFilterChain` continua responsável por autenticação, validação do
 | `/clinica`, `/consultorios`, regras e bloqueios | negado | negado | negado | permitido |
 | mutações de configuração | negado | negado | negado | permitido |
 
-As projeções mínimas não retornam endereço, CRM, flags administrativas, versão, subject ou texto clínico. Não existe conteúdo clínico no modelo atual; portanto, o isolamento de texto clínico da Recepção ainda não pode ser demonstrado contra um recurso real.
+As projeções mínimas não retornam endereço, CRM, flags administrativas, versão, subject ou texto clínico. A #10 acrescentou a projeção operacional de Agendamento para Recepção, sem campos clínicos; o isolamento contra RegistroClinico será ampliado quando o recurso existir na #13.
 
 ## Integração obrigatória nas Issues dependentes
 
@@ -47,6 +47,8 @@ Aplicação por Issue:
 
 Uma conta multi-role só satisfaz uma operação clínica quando possui a role concreta e o vínculo correspondente. `ADMINISTRATOR` isoladamente deixa `pacienteId` e `medicoId` nulos no actor e não concede acesso clínico automático.
 
+Na implementação da #10, `GET /api/disponibilidades` permite Paciente vinculado e a prévia explícita de Administração. Recepção consulta ofertas somente pelo endpoint contextual do agendamento; criação continua exclusiva de Paciente, e Administração não lê nem altera reservas. Cancelamento e reagendamento fazem a consulta escopada, adquirem o lock da Clínica e repetem a autorização sobre o agregado recarregado.
+
 ## Limite de rastreabilidade
 
-Os testes desta Issue comprovam autenticação/negação HTTP, matriz dos endpoints existentes, vínculo Patient ausente, vínculo Doctor inativo, conta multi-role, contexto administrativo sem herança clínica e ausência de autocadastro. Os cenários de `404` para outro Paciente/Médico, DTO operacional da Recepção sem texto clínico e revalidação real depois do lock permanecem critérios de #10/#12/#13 e da matriz final de RNF002 em #23/#25. Nenhum endpoint, entidade ou helper de recurso fictício foi criado para antecipar essa evidência.
+Os testes da #11 comprovam autenticação/negação HTTP, matriz dos endpoints então existentes, vínculo Patient ausente, vínculo Doctor inativo, conta multi-role, contexto administrativo sem herança clínica e ausência de autocadastro. A #10 acrescenta `404` uniforme para agendamento inexistente/alheio, DTO operacional da Recepção sem texto clínico e revalidação pós-lock. Os equivalentes de Atendimento/Médico permanecem critérios de #12/#13 e da matriz final de RNF002 em #23/#25.
