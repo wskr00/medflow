@@ -2,7 +2,7 @@ import { provideHttpClient } from "@angular/common/http";
 import { HttpTestingController, provideHttpClientTesting } from "@angular/common/http/testing";
 import { TestBed } from "@angular/core/testing";
 import { describe, expect, it } from "vitest";
-import { PatientApi } from "./patient.api";
+import { PatientApi, patientIssue } from "./patient.api";
 
 describe("PatientApi", () => {
   it("usa recorte e RSQL na listagem operacional", () => {
@@ -19,5 +19,8 @@ describe("PatientApi", () => {
     api.cancel("appointment", 3).subscribe();
     expect(http.expectOne("/api/agendamentos/appointment/cancelamento").request.body).toEqual({ expectedVersion: 3 });
     http.verify();
+  });
+  it("traduz 404 de reagendamento para uma orientação contextual", () => {
+    expect(patientIssue({ status: 404, error: {} }).title).toBe("Consulta não encontrada");
   });
 });
