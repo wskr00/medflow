@@ -29,6 +29,20 @@ public interface AgendamentoRepository
       @Param("fim") Instant fim);
 
   @Query("""
+      select a from Agendamento a
+      where a.clinica.id = :clinicaId
+        and a.status <> br.com.medflow.scheduling.domain.StatusAgendamento.CANCELADA
+        and (a.medico.id = :medicoId or a.consultorio.id = :consultorioId)
+        and a.inicio < :fim and :inicio < a.fim
+      """)
+  List<Agendamento> findOcupacoesDoMedicoOuConsultorio(
+      @Param("clinicaId") UUID clinicaId,
+      @Param("medicoId") UUID medicoId,
+      @Param("consultorioId") UUID consultorioId,
+      @Param("inicio") Instant inicio,
+      @Param("fim") Instant fim);
+
+  @Query("""
       select case when count(a) > 0 then true else false end
       from Agendamento a
       where a.clinica.id = :clinicaId
@@ -46,4 +60,36 @@ public interface AgendamentoRepository
       @Param("ignorado") UUID ignorado);
 
   long countByStatus(StatusAgendamento status);
+
+  @Query("""
+      select a from Agendamento a
+      where a.clinica.id = :clinicaId
+        and a.medico.id = :medicoId
+        and a.especialidade.id = :especialidadeId
+        and a.consultorio.id = :consultorioId
+        and a.status <> br.com.medflow.scheduling.domain.StatusAgendamento.CANCELADA
+        and a.inicio > :agora
+      """)
+  List<Agendamento> findReservasFuturasDaConfiguracao(
+      @Param("clinicaId") UUID clinicaId,
+      @Param("medicoId") UUID medicoId,
+      @Param("especialidadeId") UUID especialidadeId,
+      @Param("consultorioId") UUID consultorioId,
+      @Param("agora") Instant agora);
+
+  @Query("""
+      select case when count(a) > 0 then true else false end
+      from Agendamento a
+      where a.clinica.id = :clinicaId
+        and a.medico.id = :medicoId
+        and a.status <> br.com.medflow.scheduling.domain.StatusAgendamento.CANCELADA
+        and a.inicio > :agora
+        and a.inicio < :fim and :inicio < a.fim
+      """)
+  boolean existeReservaFuturaDoMedicoNoIntervalo(
+      @Param("clinicaId") UUID clinicaId,
+      @Param("medicoId") UUID medicoId,
+      @Param("agora") Instant agora,
+      @Param("inicio") Instant inicio,
+      @Param("fim") Instant fim);
 }

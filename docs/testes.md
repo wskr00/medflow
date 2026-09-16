@@ -57,7 +57,7 @@ A #10 acrescenta a fixture consumida de 20 pacientes distintos e o teste sincron
 
 ## Evidência automatizada de disponibilidade e agendamento (#10)
 
-Os testes `AppointmentPersistenceIntegrationTests` e `AppointmentHttpIntegrationTests` cobrem RF005–RF009 e a implementação inicial de RNF004. Usam relógio fixo, fuso `America/Belem`, dados sintéticos e PostgreSQL Testcontainers. Exercitam vigência inclusiva, estrutura ativa, bloqueio, conflito por médico e consultório, sobreposição parcial, adjacência, cancelamento, paginação/filtros próprios, versões, no-op, rollback de reagendamento, projeções e fronteiras `403`/`404`.
+Os testes `AppointmentPersistenceIntegrationTests` e `AppointmentHttpIntegrationTests` cobrem RF005–RF009 e a implementação inicial de RNF004. Usam relógio fixo, fuso `America/Belem`, dados sintéticos e PostgreSQL Testcontainers. Exercitam vigência inclusiva, estrutura ativa, bloqueio, conflito por médico e consultório, sobreposição parcial, adjacência, cancelamento, paginação/filtros próprios, versões, no-op, rollback de reagendamento, projeções e fronteiras `403`/`404`. Também comprovam que criar/alterar bloqueio ou encurtar/desativar uma regra não invalida reserva futura, e que a autorização contextual é repetida depois de uma espera real pelo lock da Clínica.
 
 Execução isolada reproduzível:
 
