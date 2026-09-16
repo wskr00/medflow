@@ -14,4 +14,5 @@ public interface MedicoRepository extends JpaRepository<Medico, UUID> {
   @EntityGraph(attributePaths = "especialidades")
   Page<Medico> findByClinicaIdAndAtivoTrue(UUID clinicaId, Pageable pageable);
   Optional<Medico> findBySubject(String subject);
+  Optional<Medico> findBySubjectAndAtivoTrue(String subject);
 }

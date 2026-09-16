@@ -3,7 +3,6 @@ package br.com.medflow.clinic.application;
 import br.com.medflow.clinic.persistence.ClinicaRepository;
 import br.com.medflow.clinic.persistence.MedicoRepository;
 import br.com.medflow.clinic.persistence.PacienteRepository;
-import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,12 +23,10 @@ public class IdentityProjectionService {
   }
 
   @Transactional(readOnly = true)
-  public IdentityProjection lookup(String subject, Set<String> roles) {
+  public IdentityProjection lookup(String subject) {
     var clinica = clinicas.findBySingletonTrue().orElseThrow();
-    UUID pacienteId = roles.contains("PATIENT")
-        ? pacientes.findBySubject(subject).map(paciente -> paciente.id()).orElse(null) : null;
-    UUID medicoId = roles.contains("DOCTOR")
-        ? medicos.findBySubject(subject).map(medico -> medico.id()).orElse(null) : null;
+    UUID pacienteId = pacientes.findBySubject(subject).map(paciente -> paciente.id()).orElse(null);
+    UUID medicoId = medicos.findBySubjectAndAtivoTrue(subject).map(medico -> medico.id()).orElse(null);
     return new IdentityProjection(pacienteId, medicoId, clinica.id(), clinica.timeZone());
   }
 

@@ -1,16 +1,13 @@
 package br.com.medflow.security;
 
+import br.com.medflow.common.auth.AuthenticatedActor;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import br.com.medflow.clinic.application.IdentityProjectionService;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -19,32 +16,26 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api")
 public class IdentityController {
 
-  private final String timeZone;
-  private final IdentityProjectionService identities;
+  private final AuthenticatedContextService contexts;
 
-  public IdentityController(@Value("${medflow.security.time-zone:America/Belem}") String timeZone,
-      IdentityProjectionService identities) {
-    this.timeZone = timeZone;
-    this.identities = identities;
+  public IdentityController(AuthenticatedContextService contexts) {
+    this.contexts = contexts;
   }
 
   @GetMapping("/me")
+  @PreAuthorize("hasAnyRole('PATIENT','RECEPTIONIST','DOCTOR','ADMINISTRATOR')")
   public ResponseEntity<IdentityResponse> me(Authentication authentication) {
-    Jwt jwt = ((JwtAuthenticationToken) authentication).getToken();
-    List<String> roles = authentication.getAuthorities().stream()
-        .map(authority -> authority.getAuthority())
-        .filter(authority -> authority.startsWith("ROLE_"))
-        .map(authority -> authority.substring("ROLE_".length()))
+    AuthenticatedActor context = contexts.resolve(authentication);
+    List<String> roles = context.roles().stream()
         .sorted(Comparator.naturalOrder())
         .toList();
-    var projection = identities.lookup(jwt.getSubject(), Set.copyOf(roles));
     return ResponseEntity.ok(new IdentityResponse(
-        jwt.getSubject(),
+        context.subject(),
         roles,
-        projection.pacienteId(),
-        projection.medicoId(),
-        projection.clinicaId(),
-        projection.timeZone() == null ? timeZone : projection.timeZone()));
+        context.pacienteId(),
+        context.medicoId(),
+        context.clinicaId(),
+        context.timeZone()));
   }
 
   @JsonInclude(JsonInclude.Include.ALWAYS)
