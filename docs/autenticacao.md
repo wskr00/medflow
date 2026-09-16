@@ -103,4 +103,23 @@ Em ambiente isolado com dados sintéticos foram observados:
 
 Os testes com JWT injetado no MockMvc verificam contrato e conversão de roles;
 a validação criptográfica acima foi um smoke contra o Keycloak real. Ainda não
-há autorização contextual, vínculo persistido, auditoria funcional ou fluxo E2E.
+há fluxo E2E completo do frontend.
+
+## Eventos de autenticação no Keycloak
+
+Login, logout e falhas de autenticação pertencem ao Keycloak e não são copiados
+para a tabela de auditoria funcional da aplicação. No realm `medflow`, a
+Administração do Keycloak deve habilitar em **Realm settings → Events** o
+armazenamento de eventos de usuário e selecionar, no mínimo, `LOGIN`, `LOGOUT`
+e `LOGIN_ERROR`. A consulta é feita em **Events → User events**, com período e
+tipos delimitados; ela deve ser restrita a operadores autorizados do ambiente.
+
+O backend registra apenas tentativas contra operações críticas da API (por
+exemplo, uma requisição sem credencial a uma mutação auditável), identificando
+o ator como `ANONIMO` e sem armazenar token, senha, cabeçalhos ou detalhes da
+falha de autenticação. Assim, o evento HTTP funcional não substitui nem duplica
+o evento de login do provedor de identidade.
+
+O realm sintético versionado serve à demonstração local. Esta entrega não
+define retenção, exportação ou garantia de imutabilidade dos eventos do
+Keycloak em ambiente de produção.

@@ -1,5 +1,6 @@
 package br.com.medflow.security;
 
+import br.com.medflow.audit.web.AuditFailureReporter;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -36,10 +37,12 @@ public class SecurityConfiguration {
   SecurityFilterChain securityFilterChain(
       HttpSecurity http,
       JwtAuthenticationConverter jwtAuthenticationConverter,
-      ObjectMapper objectMapper) throws Exception {
+      ObjectMapper objectMapper,
+      AuditFailureReporter auditFailures) throws Exception {
     AuthenticationEntryPoint authenticationEntryPoint =
-        SecurityErrorHandlers.authenticationEntryPoint(objectMapper);
-    AccessDeniedHandler accessDeniedHandler = SecurityErrorHandlers.accessDeniedHandler(objectMapper);
+        SecurityErrorHandlers.authenticationEntryPoint(objectMapper, auditFailures);
+    AccessDeniedHandler accessDeniedHandler =
+        SecurityErrorHandlers.accessDeniedHandler(objectMapper, auditFailures);
 
     http
         .csrf(AbstractHttpConfigurer::disable)
