@@ -321,4 +321,4 @@ O ensaio de RNF009 será executado a partir de clone limpo em diretório tempor�
 - O lock singleton de Clínica resolve de forma simples as corridas de configuração e agenda, mas introduz contenção global. RNF005 determinará por evidência se a escolha atende ao MVP.
 - A ausência de `NAO_COMPARECEU`, conflito por Paciente e limite global de atendimentos simultâneos é deliberada nesta versão e deve permanecer visível como limitação.
 
-Não restou contradição conhecida que impeça o início de #8, #9 e #23 depois da apresentação da síntese ao usuário. #24 e #25 permanecem naturalmente bloqueadas até existirem fluxo integrado e implementações mensuráveis.
+Não restou contradição conhecida que impeça o início de #27, #9 e #23 depois da apresentação da síntese ao usuário. A #8 depende da integração da base recuperada em #27. #24 e #25 permanecem naturalmente bloqueadas até existirem fluxo integrado e implementações mensuráveis.
