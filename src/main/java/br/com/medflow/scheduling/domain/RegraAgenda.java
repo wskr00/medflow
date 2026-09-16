@@ -14,8 +14,12 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import java.time.DayOfWeek;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 @Entity
@@ -90,6 +94,23 @@ public class RegraAgenda {
 
   public boolean vigenteEm(LocalDate data) {
     return !data.isBefore(vigenteDe) && (vigenteAte == null || !data.isAfter(vigenteAte));
+  }
+
+  /** Verifica se um intervalo confirmado ainda corresponde exatamente a um slot desta regra. */
+  public boolean oferece(Instant inicio, Instant fim, ZoneId zone) {
+    if (!ativo || inicio == null || fim == null || zone == null || !inicio.isBefore(fim)
+        || ChronoUnit.MINUTES.between(inicio, fim) != duracaoMinutos) {
+      return false;
+    }
+    ZonedDateTime inicioLocal = inicio.atZone(zone);
+    ZonedDateTime fimLocal = fim.atZone(zone);
+    LocalDate data = inicioLocal.toLocalDate();
+    long minutosDesdeInicio = ChronoUnit.MINUTES.between(horaInicio, inicioLocal.toLocalTime());
+    return data.equals(fimLocal.toLocalDate()) && vigenteEm(data)
+        && diaSemana() == data.getDayOfWeek()
+        && inicioLocal.getSecond() == 0 && inicioLocal.getNano() == 0
+        && minutosDesdeInicio >= 0 && minutosDesdeInicio % duracaoMinutos == 0
+        && !fimLocal.toLocalTime().isAfter(horaFim);
   }
 
   private static boolean intervalosSobrepostos(LocalDate inicioA, LocalDate fimA,

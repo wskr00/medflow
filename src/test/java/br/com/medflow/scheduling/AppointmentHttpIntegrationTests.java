@@ -65,6 +65,9 @@ class AppointmentHttpIntegrationTests {
         .andExpect(status().isForbidden());
     mvc.perform(get(availability).with(principal("reception", "RECEPTIONIST")))
         .andExpect(status().isForbidden());
+    mvc.perform(get(availability).with(principal(fixture.subject(), "PATIENT")))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.items.length()").value(4));
 
     mvc.perform(get(availability).with(principal("administrator", "ADMINISTRATOR")))
         .andExpect(status().isOk())
@@ -144,6 +147,28 @@ class AppointmentHttpIntegrationTests {
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.code").value("RECURSO_NAO_ENCONTRADO"));
 
+    mvc.perform(get(location + "/disponibilidades?data=2026-09-21")
+            .with(principal(foreign.subject(), "PATIENT")))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("RECURSO_NAO_ENCONTRADO"));
+    mvc.perform(get("/api/agendamentos/" + UUID.randomUUID()
+            + "/disponibilidades?data=2026-09-21")
+            .with(principal(foreign.subject(), "PATIENT")))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("RECURSO_NAO_ENCONTRADO"));
+
+    String rescheduleBody = "{\"regraAgendaId\":\"" + owner.ruleId()
+        + "\",\"inicio\":\"2026-09-21T08:30:00-03:00\",\"expectedVersion\":0}";
+    mvc.perform(post(location + "/reagendamento").with(principal(foreign.subject(), "PATIENT"))
+            .contentType(MediaType.APPLICATION_JSON).content(rescheduleBody))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("RECURSO_NAO_ENCONTRADO"));
+    mvc.perform(post("/api/agendamentos/" + UUID.randomUUID() + "/reagendamento")
+            .with(principal(foreign.subject(), "PATIENT"))
+            .contentType(MediaType.APPLICATION_JSON).content(rescheduleBody))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("RECURSO_NAO_ENCONTRADO"));
+
     mvc.perform(get("/api/me/agendamentos?page=0&size=1&status=AGENDADA&dataDe=2026-09-21&dataAte=2026-09-21")
             .with(principal(owner.subject(), "PATIENT")))
         .andExpect(status().isOk())
@@ -152,6 +177,69 @@ class AppointmentHttpIntegrationTests {
         .andExpect(jsonPath("$.totalElements").value(1))
         .andExpect(jsonPath("$.items[0].id").exists())
         .andExpect(jsonPath("$.items[0].paciente").doesNotExist());
+  }
+
+  @Test
+  void patientAndReceptionistRescheduleAndCancelWhileAdminAndDoctorRemainDenied()
+      throws Exception {
+    Fixture fixture = fixture("http-mutations");
+    var room = clinic.criarConsultorio(fixture.unitId(), "Sala alternativa HTTP", true);
+    var alternateRule = configuration.criarRegra(new SchedulingConfigurationService.RegraCommand(
+        fixture.doctorId(), fixture.specialtyId(), room.id(), DayOfWeek.MONDAY,
+        LocalTime.of(10, 0), LocalTime.of(11, 0), 30, MONDAY, MONDAY, true, 0));
+
+    var created = mvc.perform(post("/api/agendamentos").with(principal(fixture.subject(), "PATIENT"))
+            .contentType(MediaType.APPLICATION_JSON).content(createBody(fixture, "08:00")))
+        .andExpect(status().isCreated()).andReturn();
+    String location = created.getResponse().getHeader("Location");
+    String receptionistReschedule = "{\"regraAgendaId\":\"" + alternateRule.id()
+        + "\",\"inicio\":\"2026-09-21T10:00:00-03:00\",\"expectedVersion\":0}";
+
+    mvc.perform(post(location + "/reagendamento")
+            .with(principal("mutations-reception", "RECEPTIONIST"))
+            .contentType(MediaType.APPLICATION_JSON).content(receptionistReschedule))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.version").value(1))
+        .andExpect(jsonPath("$.consultorio.id").value(room.id().toString()))
+        .andExpect(jsonPath("$.paciente.id").value(fixture.patientId().toString()));
+    mvc.perform(post(location + "/cancelamento")
+            .with(principal("mutations-reception", "RECEPTIONIST"))
+            .contentType(MediaType.APPLICATION_JSON).content("{\"expectedVersion\":1}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.version").value(2))
+        .andExpect(jsonPath("$.status").value("CANCELADA"))
+        .andExpect(jsonPath("$.paciente.id").value(fixture.patientId().toString()));
+
+    var patientCreated = mvc.perform(post("/api/agendamentos")
+            .with(principal(fixture.subject(), "PATIENT"))
+            .contentType(MediaType.APPLICATION_JSON).content(createBody(fixture, "08:30")))
+        .andExpect(status().isCreated()).andReturn();
+    String patientLocation = patientCreated.getResponse().getHeader("Location");
+    String patientReschedule = "{\"regraAgendaId\":\"" + fixture.ruleId()
+        + "\",\"inicio\":\"2026-09-21T09:00:00-03:00\",\"expectedVersion\":0}";
+    mvc.perform(post(patientLocation + "/reagendamento")
+            .with(principal(fixture.subject(), "PATIENT"))
+            .contentType(MediaType.APPLICATION_JSON).content(patientReschedule))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.version").value(1))
+        .andExpect(jsonPath("$.paciente").doesNotExist());
+    mvc.perform(post(patientLocation + "/cancelamento")
+            .with(principal(fixture.subject(), "PATIENT"))
+            .contentType(MediaType.APPLICATION_JSON).content("{\"expectedVersion\":1}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("CANCELADA"));
+
+    for (String role : List.of("ADMINISTRATOR", "DOCTOR")) {
+      var principal = principal("denied-" + role, role);
+      mvc.perform(post(patientLocation + "/reagendamento").with(principal)
+              .contentType(MediaType.APPLICATION_JSON).content(patientReschedule))
+          .andExpect(status().isForbidden());
+      mvc.perform(post(patientLocation + "/cancelamento").with(principal)
+              .contentType(MediaType.APPLICATION_JSON).content("{\"expectedVersion\":1}"))
+          .andExpect(status().isForbidden());
+      mvc.perform(get(patientLocation + "/disponibilidades?data=2026-09-21").with(principal))
+          .andExpect(status().isForbidden());
+    }
   }
 
   private Fixture fixture(String name) {
