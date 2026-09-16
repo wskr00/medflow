@@ -10,16 +10,18 @@ import { HlmEmptyImports } from "@spartan-ng/helm/empty";
     <main class="mx-auto flex min-h-dvh max-w-xl items-center p-6">
       <section hlmEmpty>
         <div hlmEmptyHeader>
-          <h1 hlmEmptyTitle>Acesso não disponível</h1>
+          <h1 hlmEmptyTitle>Página não encontrada</h1>
           <p hlmEmptyDescription>
-            Seu perfil não tem uma área de trabalho disponível nesta aplicação.
+            O endereço informado não corresponde a uma área do MedFlow.
           </p>
         </div>
         <div hlmEmptyContent>
-          <a routerLink="/workspace" hlmBtn variant="outline">Voltar</a>
+          <a routerLink="/workspace" hlmBtn variant="outline"
+            >Ir para a área de trabalho</a
+          >
         </div>
       </section>
     </main>
   `,
 })
-export class AccessDeniedComponent {}
+export class NotFoundComponent {}

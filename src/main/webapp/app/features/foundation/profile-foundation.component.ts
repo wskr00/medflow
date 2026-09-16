@@ -1,10 +1,17 @@
-import { ChangeDetectionStrategy, Component, inject } from "@angular/core";
-import { ActivatedRoute, RouterLink } from "@angular/router";
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  input,
+} from "@angular/core";
+import { RouterLink } from "@angular/router";
 import { HlmCardImports } from "@spartan-ng/helm/card";
 
 import { PageHeaderComponent } from "../../shared/ui/page-header.component";
 import { StatePanelComponent } from "../../shared/ui/state-panel.component";
 import { StatusBadgeComponent } from "../../shared/ui/status-badge.component";
+
+type ProfileKey = "patient" | "reception" | "doctor" | "administrator";
 
 interface ProfileFoundationCopy {
   readonly eyebrow: string;
@@ -14,7 +21,7 @@ interface ProfileFoundationCopy {
   readonly emptyDescription: string;
 }
 
-const copyByProfile: Readonly<Record<string, ProfileFoundationCopy>> = {
+const copyByProfile: Readonly<Record<ProfileKey, ProfileFoundationCopy>> = {
   patient: {
     eyebrow: "Paciente",
     title: "Meus atendimentos",
@@ -59,9 +66,9 @@ const copyByProfile: Readonly<Record<string, ProfileFoundationCopy>> = {
   ],
   template: `
     <app-page-header
-      [eyebrow]="copy.eyebrow"
-      [title]="copy.title"
-      [description]="copy.description"
+      [eyebrow]="copy().eyebrow"
+      [title]="copy().title"
+      [description]="copy().description"
     />
 
     <section hlmCard>
@@ -81,8 +88,8 @@ const copyByProfile: Readonly<Record<string, ProfileFoundationCopy>> = {
         </div>
         <app-state-panel
           state="empty"
-          [title]="copy.emptyTitle"
-          [description]="copy.emptyDescription"
+          [title]="copy().emptyTitle"
+          [description]="copy().emptyDescription"
         />
         <a
           routerLink="/workspace/reference-form"
@@ -94,8 +101,6 @@ const copyByProfile: Readonly<Record<string, ProfileFoundationCopy>> = {
   `,
 })
 export class ProfileFoundationComponent {
-  private readonly route = inject(ActivatedRoute);
-  protected readonly copy =
-    copyByProfile[this.route.snapshot.data["profile"] as string] ??
-    copyByProfile["patient"];
+  readonly profile = input<ProfileKey>("patient");
+  protected readonly copy = computed(() => copyByProfile[this.profile()]);
 }

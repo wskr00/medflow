@@ -6,6 +6,7 @@ import {
   inject,
   viewChild,
 } from "@angular/core";
+import { HttpErrorResponse } from "@angular/common/http";
 import { RouterLink, RouterLinkActive, RouterOutlet } from "@angular/router";
 import Keycloak from "keycloak-js";
 import { HlmAlertImports } from "@spartan-ng/helm/alert";
@@ -61,19 +62,30 @@ const navigationByRole: Readonly<Record<string, NavigationItem>> = {
     } @else if (identity.identity.error()) {
       <main class="mx-auto flex min-h-dvh w-full max-w-xl items-center p-6">
         <section hlmAlert variant="destructive">
-          <h1 hlmAlertTitle>Não foi possível abrir sua área</h1>
-          <p hlmAlertDescription>
-            A identidade não foi carregada. Verifique a conexão e tente
-            novamente.
-          </p>
-          <button
-            hlmBtn
-            variant="outline"
-            type="button"
-            (click)="identity.identity.reload()"
-          >
-            Tentar novamente
-          </button>
+          @if (identityRequestIsUnauthorized()) {
+            <h1 hlmAlertTitle>Sessão expirada</h1>
+            <p hlmAlertDescription>
+              Entre novamente para continuar. O Keycloak gerencia a renovação e
+              a autenticação da sessão.
+            </p>
+            <button hlmBtn variant="outline" type="button" (click)="login()">
+              Entrar novamente
+            </button>
+          } @else {
+            <h1 hlmAlertTitle>Não foi possível abrir sua área</h1>
+            <p hlmAlertDescription>
+              A identidade não foi carregada. Verifique a conexão e tente
+              novamente.
+            </p>
+            <button
+              hlmBtn
+              variant="outline"
+              type="button"
+              (click)="identity.identity.reload()"
+            >
+              Tentar novamente
+            </button>
+          }
         </section>
       </main>
     } @else if (identity.identity.hasValue()) {
@@ -192,5 +204,14 @@ export class WorkspaceShellComponent {
 
   protected logout(): void {
     void this.keycloak.logout({ redirectUri: window.location.origin });
+  }
+
+  protected identityRequestIsUnauthorized(): boolean {
+    const error = this.identity.identity.error();
+    return error instanceof HttpErrorResponse && error.status === 401;
+  }
+
+  protected login(): void {
+    void this.keycloak.login({ redirectUri: window.location.href });
   }
 }

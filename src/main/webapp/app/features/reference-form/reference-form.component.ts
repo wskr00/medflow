@@ -36,11 +36,7 @@ import { PageHeaderComponent } from "../../shared/ui/page-header.component";
         </p>
       </div>
       <div hlmCardContent class="pb-6">
-        <form
-          [formRoot]="referenceForm"
-          (submit)="submit()"
-          class="flex flex-col gap-5"
-        >
+        <form [formRoot]="referenceForm" class="flex flex-col gap-5">
           <div hlmField>
             <label hlmFieldLabel for="reference-message">Mensagem</label>
             <textarea
@@ -97,26 +93,27 @@ import { PageHeaderComponent } from "../../shared/ui/page-header.component";
 })
 export class ReferenceFormComponent {
   private readonly model = signal({ message: "" });
-  protected readonly referenceForm = form(this.model, (path) => {
-    required(path.message, {
-      message: "Informe uma mensagem antes de continuar.",
-    });
-  });
   protected readonly serverError = signal<string | null>(null);
   protected readonly submitted = signal(false);
-
-  protected submit(): void {
-    this.referenceForm.message().markAsTouched();
-    this.submitted.set(false);
-
-    if (!this.referenceForm().valid()) return;
-
-    // O endpoint não pertence a esta fundação; esta mensagem representa o mapeamento de fieldErrors.
-    this.serverError.set(
-      "Exemplo de erro do servidor: revise o campo antes de enviar.",
-    );
-    this.submitted.set(true);
-  }
+  protected readonly referenceForm = form(
+    this.model,
+    (path) => {
+      required(path.message, {
+        message: "Informe uma mensagem antes de continuar.",
+      });
+    },
+    {
+      submission: {
+        action: async () => {
+          // O endpoint não pertence a esta fundação; isto representa o mapeamento de fieldErrors.
+          this.serverError.set(
+            "Exemplo de erro do servidor: revise o campo antes de enviar.",
+          );
+          this.submitted.set(true);
+        },
+      },
+    },
+  );
 
   protected clearServerError(): void {
     this.serverError.set(null);
