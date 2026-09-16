@@ -4,9 +4,8 @@
     "types": []
   },
   "include": [
-    "src/main/webapp/**/*.ts"
+    "src/main/webapp/**/*.ts",
+    "src/main/webapp/shared/ui/helm/**/src/**/*.ts"
   ],
-  "exclude": [
-    "src/main/webapp/**/*.spec.ts"
-  ]
+  "exclude": ["src/main/webapp/**/*.spec.ts"]
 }
