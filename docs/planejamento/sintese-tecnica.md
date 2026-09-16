@@ -120,9 +120,9 @@ Mínimo de validação: domínio, persistência real PostgreSQL, matriz negativa
 
 ## Prontidão e primeira rodada de trabalho
 
-Após apresentação da síntese, #1 está pronta para completar a base HTTP/erros/health; #9 está pronta para autenticação/contexto/realm; #23 está pronta para estruturar testes/CI/evidências. A #1 será reaberta pelos critérios que faltam no bootstrap atual. #8 tem desenho e aceite definidos, mas sua implementação integrada depende dessa base; deve começar na sequência de #1.
+Após apresentação da síntese, #27 está pronta para completar a base HTTP/erros/health; #9 está pronta para autenticação/contexto/realm; #23 está pronta para estruturar testes/CI/evidências. A antiga #1 apareceu fechada na leitura inicial, mas foi encontrada excluída (HTTP 410) ao tentar atualizar o planejamento; #27 recupera os critérios ausentes. #8 tem desenho e aceite definidos, mas sua implementação integrada depende dessa base; deve começar na sequência de #27.
 
-Paralelismo inicial proposto: Lucas em #9 (realm, segurança, integração login); Gustavo em #1 (base HTTP/erros/health, depois #8 clinic/configuração/Flyway); João Vitor em #23 (testes/CI). Eric revisa o contrato e apoia apenas a integração de login de #9; Luiz revisa a documentação da #7. Cada Issue executável terá sua branch e worktree na fase de implementação.
+Paralelismo inicial proposto: Lucas em #9 (realm, segurança, integração login); Gustavo em #27 (base HTTP/erros/health, depois #8 clinic/configuração/Flyway); João Vitor em #23 (testes/CI). Eric revisa o contrato e apoia apenas a integração de login de #9; Luiz revisa a documentação da #7. Cada Issue executável terá sua branch e worktree na fase de implementação.
 
 Recursos compartilhados são serializados: Gustavo coordena migrations e dependências Gradle; Lucas coordena Compose/configuração de segurança; alterações `build.gradle`, `application.yaml`, `compose.yaml`, `app.config.ts` e `package.json` são combinadas antes de edição. QA começa pelo desenho de fixtures/harness e incorpora dependências já estabilizadas. #8 pode produzir domínio independente, mas APIs só integram com autenticação/autorização e auditoria correspondentes.
 

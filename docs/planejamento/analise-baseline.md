@@ -9,8 +9,9 @@ Inspeção em 16 de setembro de 2026, vinculada à Issue #7.
 - Nenhum Pull Request aberto foi encontrado durante a inspeção.
 - A documentação fornecida em `docs/` estava fora do versionamento no checkout principal. Foi copiada integralmente para o worktree documental, preservando os originais.
 - O Project MedFlow — 2026.2 contém #7–#19 e #23–#25. #7, #8, #9 e #23 estavam em Ready; as demais em Backlog. Esse estado administrativo não comprova critérios técnicos satisfeitos.
-- #20–#22 estão fechadas com motivo `duplicate`; correspondem a #17–#19 e não representam funcionalidades concluídas.
+- Na leitura inicial, #20–#22 estavam fechadas com motivo `duplicate`; correspondiam a #17–#19 e não representavam funcionalidades concluídas. Na atualização final, deixaram de aparecer na listagem; #20 também retornou HTTP 410. Essas entradas são evidência histórica, não tarefas a recriar.
 - #1 está fechada, mas o código atual não demonstra todos os seus critérios: não há controller `/api/health`, contrato global de erros, request ID ou rota de exemplo com validação.
+- Atualização durante a rodada: a consulta posterior da #1 retornou HTTP 410, indicando exclusão no GitHub. A #27 foi criada para recuperar os critérios faltantes; a exclusão não foi realizada nesta rodada. A observação inicial acima é preservada como evidência temporal.
 - Os runs recentes retornados pelo GitHub são execuções históricas de assistência de código, não evidência de CI do MVP atual.
 
 ## Bootstrap inspecionado

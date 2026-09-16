@@ -226,19 +226,19 @@ A Issue #7 mantém a baseline e a Issue #24 valida o fluxo integrado. A tabela a
 | RNF008 | #8–#14, #23, #25 | Resultado da CI e da regra arquitetural de ciclos/dependências |
 | RNF009 | #9, #23, #25 | Registro de clone limpo, comandos documentados e smoke de health/login |
 
-As Issues #20, #21 e #22 estão fechadas com `state_reason=duplicate` e correspondem respectivamente a #17, #18 e #19. Elas são histórico administrativo, não evidência de implementação concluída. A Issue #1 também não é evidência suficiente: está fechada, mas a baseline inspecionada não contém todos os seus critérios.
+Na leitura inicial, as Issues #20, #21 e #22 estavam fechadas com `state_reason=duplicate` e correspondiam respectivamente a #17, #18 e #19. Na atualização final, deixaram de aparecer na listagem; #20 retornou HTTP 410. São histórico administrativo, não entregas concluídas nem tarefas a recriar. A Issue #1 apareceu fechada na inspeção inicial, com critérios ausentes no código; posteriormente retornou HTTP 410 (excluída). A #27 recupera os critérios técnicos faltantes.
 
 ## Dependências e ordem de validação
 
 - #23 pode estruturar fixtures, convenções e comandos desde o início.
-- A primeira rodada paralela contém #1 no Backend, #9 em Segurança e #23 em QA, com coordenação dos artefatos compartilhados.
-- #8 começa após a correção e integração de #1; #1 deverá ser reaberta porque a baseline não satisfaz todos os seus critérios.
+- A primeira rodada paralela contém #27 no Backend, #9 em Segurança e #23 em QA, com coordenação dos artefatos compartilhados.
+- #8 começa após a correção e integração de #27, que recupera os critérios faltantes da antiga #1 excluída.
 - #11 depende do contexto de identidade de #9.
 - #10 depende da estrutura e regras de #8 e dos contratos de identidade/autorização necessários.
 - #12 depende de agendamentos válidos produzidos por #10.
 - #13 depende do estado `EM_ESPERA` e da fila de #12.
 - #14 é transversal; sua infraestrutura deve ser coordenada antes de cada operação crítica, evitando retrofit no fim.
-- #15–#18 podem começar contra mocks dos contratos estabilizados; integração depende respectivamente de #10, #12, #13 e #8, além de #11 para autorização.
+- #15–#18 podem começar contra mocks dos contratos estabilizados; integração depende respectivamente de #10, #12, #13 e #8, além de #11 para autorização. O histórico final da jornada #15 também depende de #13.
 - #19 depende das quatro jornadas navegáveis.
 - #24 depende do fluxo integrado e do ambiente reproduzível.
 - #25 depende das implementações de cada RNF e dos procedimentos definidos em #23.
