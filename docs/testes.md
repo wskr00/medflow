@@ -79,6 +79,20 @@ Execução isolada reproduzível:
 
 Os testes HTTP verificam paginação, filtros escopados, `404` uniforme, projeção operacional sem conteúdo clínico e negação de Paciente, Médico e Administração. Essa evidência não inclui atendimento, auditoria, frontend ou medição de desempenho.
 
+## Evidência automatizada de atendimento e registro clínico (#13)
+
+`CarePersistenceIntegrationTests` e `CareHttpIntegrationTests` exercitam RF013–RF017 com relógio fixo, fuso `America/Belem`, dados sintéticos e PostgreSQL Testcontainers. A cobertura inclui agenda e fila próprias do Médico, fronteira UTC/data local, início único e atômico, rascunho incompleto/completo, limites sem truncamento, trim, versionamento, finalização e imutabilidade. Rollbacks preservam o rascunho confirmado e impedem estado híbrido entre Atendimento e Agendamento.
+
+As corridas iniciar×iniciar, salvar×salvar e salvar×finalizar usam barreiras, timeouts e encerramento limitado dos executores, sem `sleep` ou transação compartilhada. Cenários controlados de espera pelo lock real da Clínica comprovam releitura de estado e revalidação do Médico atribuído. Os testes HTTP verificam paginação global, vínculo ativo, conta multi-role, matriz negativa, `404` uniforme, histórico médico vazio uniforme e separação entre histórico clínico do Médico e histórico operacional do Paciente, inclusive sem eco de texto clínico em erros.
+
+Execução isolada reproduzível:
+
+```bash
+./gradlew --no-daemon --no-watch-fs test --tests 'br.com.medflow.care.*IntegrationTests'
+```
+
+Essa evidência não inclui auditoria, frontend, validação clínica do conteúdo ou medição de desempenho.
+
 ## Evidência e diagnóstico
 
 Uma falha deve registrar, conforme aplicável:
