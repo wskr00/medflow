@@ -1,0 +1,19 @@
+-- Dados exclusivamente sintéticos, idempotentes e separados do histórico Flyway.
+INSERT INTO unidade (id, clinica_id, nome, endereco, ativo, version)
+VALUES ('30000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'Unidade demonstração', 'Endereço sintético', TRUE, 0)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO especialidade (id, clinica_id, nome, ativo, version)
+VALUES ('30000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', 'Clínica geral', TRUE, 0)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO consultorio (id, unidade_id, nome, ativo, version)
+VALUES ('30000000-0000-0000-0000-000000000003', '30000000-0000-0000-0000-000000000001', 'Consultório demonstração', TRUE, 0)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO medico (id, clinica_id, nome, crm_numero, crm_uf, subject, ativo, version)
+VALUES ('30000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000001', 'Médico sintético', '000001', 'PA', '20000000-0000-0000-0000-000000000003', TRUE, 0)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO medico_especialidade (medico_id, especialidade_id)
+VALUES ('30000000-0000-0000-0000-000000000004', '30000000-0000-0000-0000-000000000002')
+ON CONFLICT DO NOTHING;
+INSERT INTO paciente (id, clinica_id, nome, subject, version)
+VALUES ('30000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000001', 'Paciente sintético', '20000000-0000-0000-0000-000000000001', 0)
+ON CONFLICT (id) DO NOTHING;

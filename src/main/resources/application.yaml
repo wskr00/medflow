@@ -1,3 +1,24 @@
 spring:
     application:
         name: medflow
+    datasource:
+        url: ${MEDFLOW_DB_URL}
+        username: ${MEDFLOW_DB_USERNAME}
+        password: ${MEDFLOW_DB_PASSWORD}
+    jpa:
+        hibernate:
+            ddl-auto: validate
+        open-in-view: false
+    flyway:
+        enabled: true
+    security:
+        oauth2:
+            resourceserver:
+                jwt:
+                    issuer-uri: ${MEDFLOW_OIDC_ISSUER_URI:http://localhost:8085/realms/medflow}
+                    jwk-set-uri: ${MEDFLOW_OIDC_JWK_SET_URI:http://localhost:8085/realms/medflow/protocol/openid-connect/certs}
+                    audiences: ${MEDFLOW_OIDC_AUDIENCE:medflow-api}
+
+medflow:
+    security:
+        time-zone: ${MEDFLOW_TIME_ZONE:America/Belem}
