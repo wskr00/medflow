@@ -35,6 +35,9 @@ O conjunto é intencionalmente pequeno e foi instalado pelo CLI Spartan:
 | `field`, `input`, `textarea` | composição de formulário e validação acessível.       |
 | `empty`, `skeleton`          | ausência e carregamento.                              |
 | `sheet`                      | navegação recolhível em tela estreita.                |
+| `native-select`              | filtros de catálogo da jornada do paciente.           |
+| `dialog`                     | confirmação de cancelamento e reagendamento.          |
+| `spinner`                    | feedback durante confirmação de mutações.             |
 
 `label` e `separator` foram incluídos como dependências transitivas do CLI. Não adicionar componente por conveniência: cada jornada deve usar um Helm existente ou justificar o novo componente no PR. Rodar `npx ng g @spartan-ng/cli:healthcheck` após atualizações Spartan.
 
