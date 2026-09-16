@@ -1,6 +1,8 @@
 package br.com.medflow.security;
 
 import tools.jackson.databind.ObjectMapper;
+import br.com.medflow.audit.domain.AuditResult;
+import br.com.medflow.audit.web.AuditFailureReporter;
 import br.com.medflow.common.http.ApiError;
 import br.com.medflow.common.http.RequestIdFilter;
 import java.io.IOException;
@@ -17,10 +19,12 @@ final class SecurityErrorHandlers {
   private SecurityErrorHandlers() {
   }
 
-  static AuthenticationEntryPoint authenticationEntryPoint(ObjectMapper objectMapper) {
+  static AuthenticationEntryPoint authenticationEntryPoint(
+      ObjectMapper objectMapper, AuditFailureReporter auditFailures) {
     var bearerEntryPoint = new BearerTokenAuthenticationEntryPoint();
     return (request, response, exception) -> {
       bearerEntryPoint.commence(request, response, exception);
+      auditFailures.record(request, AuditResult.NEGADO);
       writeError(
           objectMapper,
           request,
@@ -31,14 +35,18 @@ final class SecurityErrorHandlers {
     };
   }
 
-  static AccessDeniedHandler accessDeniedHandler(ObjectMapper objectMapper) {
-    return (request, response, exception) -> writeError(
-        objectMapper,
-        request,
-        response,
-        HttpServletResponse.SC_FORBIDDEN,
-        "ACESSO_NEGADO",
-        "Você não tem permissão para acessar este recurso.");
+  static AccessDeniedHandler accessDeniedHandler(
+      ObjectMapper objectMapper, AuditFailureReporter auditFailures) {
+    return (request, response, exception) -> {
+      auditFailures.record(request, AuditResult.NEGADO);
+      writeError(
+          objectMapper,
+          request,
+          response,
+          HttpServletResponse.SC_FORBIDDEN,
+          "ACESSO_NEGADO",
+          "Você não tem permissão para acessar este recurso.");
+    };
   }
 
   private static void writeError(

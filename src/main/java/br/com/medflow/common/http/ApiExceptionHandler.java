@@ -1,8 +1,11 @@
 package br.com.medflow.common.http;
 
+import br.com.medflow.audit.domain.AuditResult;
+import br.com.medflow.audit.web.AuditFailureReporter;
 import java.util.List;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -23,6 +26,11 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
+    private final AuditFailureReporter auditFailures;
+
+    public ApiExceptionHandler(AuditFailureReporter auditFailures) {
+        this.auditFailures = auditFailures;
+    }
 
     /** {@inheritDoc} */
     @Override
@@ -61,6 +69,7 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(BusinessConflictException.class)
     public ResponseEntity<ApiError> handleConflict(BusinessConflictException exception,
             HttpServletRequest request) {
+        auditFailures.record(request, AuditResult.CONFLITO);
         String id = RequestIdFilter.requestId(request);
         return ResponseEntity.status(HttpStatus.CONFLICT).body(new ApiError(
             HttpStatus.CONFLICT.value(), exception.code(), exception.getMessage(), id, List.of()));
@@ -69,6 +78,7 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiError> handleNotFound(ResourceNotFoundException exception,
             HttpServletRequest request) {
+        auditFailures.record(request, AuditResult.NEGADO);
         String id = RequestIdFilter.requestId(request);
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiError(
             HttpStatus.NOT_FOUND.value(), "RECURSO_NAO_ENCONTRADO", "Recurso não encontrado.", id, List.of()));
@@ -77,6 +87,13 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiError> handleInvalidArgument(IllegalArgumentException exception,
             HttpServletRequest request) {
+        String id = RequestIdFilter.requestId(request);
+        return ResponseEntity.badRequest().body(error(HttpStatus.BAD_REQUEST.value(), id, List.of()));
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ApiError> handleConstraintViolation(
+            ConstraintViolationException exception, HttpServletRequest request) {
         String id = RequestIdFilter.requestId(request);
         return ResponseEntity.badRequest().body(error(HttpStatus.BAD_REQUEST.value(), id, List.of()));
     }
