@@ -17,7 +17,7 @@ describe("PatientJourneyComponent", () => {
         provideRouter([]),
         {
           provide: IdentityService,
-          useValue: { identity: { value: () => ({ timeZone: "America/Belem" }) } },
+          useValue: { identity: { hasValue: () => true, value: () => ({ timeZone: "America/Belem" }) } },
         },
       ],
     });
@@ -37,6 +37,40 @@ describe("PatientJourneyComponent", () => {
     expect(text).toContain("Encontrar horário");
     expect(text).toContain("Histórico de atendimentos");
     expect(text).not.toContain("Resumo de anamnese");
+    http.verify();
+  });
+
+  it("limpa profissional incompatível ao mudar a especialidade", () => {
+    TestBed.configureTestingModule({
+      imports: [PatientJourneyComponent],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([]),
+        {
+          provide: IdentityService,
+          useValue: { identity: { hasValue: () => true, value: () => ({ timeZone: "America/Belem" }) } },
+        },
+      ],
+    });
+    const fixture = TestBed.createComponent(PatientJourneyComponent);
+    fixture.detectChanges();
+    const http = TestBed.inject(HttpTestingController);
+    http.match(() => true).forEach((request) => {
+      if (request.request.url.includes("/medicos")) {
+        request.flush({ items: [{ id: "doctor-a", nome: "Dra. Ana", especialidadeIds: ["cardio"] }], page: 0, size: 100, totalElements: 1 });
+      } else {
+        request.flush({ items: [], page: 0, size: 100, totalElements: 0 });
+      }
+    });
+    const component = fixture.componentInstance as unknown as {
+      filterModel: { set(value: { data: string; unidadeId: string; especialidadeId: string; medicoId: string }): void; (): { medicoId: string } };
+      onSpecialtyChanged(value: string): void;
+    };
+    component.filterModel.set({ data: "2026-09-17", unidadeId: "unit", especialidadeId: "cardio", medicoId: "doctor-a" });
+    component.onSpecialtyChanged("dermato");
+
+    expect(component.filterModel().medicoId).toBe("");
     http.verify();
   });
 });

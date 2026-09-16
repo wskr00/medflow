@@ -35,6 +35,11 @@ import { formatPatientDateTime } from "./patient-date-time";
               </article>
             }
           </div>
+          <nav aria-label="Paginação do histórico" class="flex flex-wrap items-center gap-3">
+            <button hlmBtn variant="outline" type="button" [disabled]="api.historyPage() === 0" (click)="previousPage()">Página anterior</button>
+            <p class="text-muted-foreground text-sm" aria-live="polite">Página {{ api.historyPage() + 1 }} de {{ totalPages() }} · {{ api.history.value()?.totalElements }} atendimentos</p>
+            <button hlmBtn variant="outline" type="button" [disabled]="api.historyPage() + 1 >= totalPages()" (click)="nextPage()">Próxima página</button>
+          </nav>
         }
       </div>
     </section>
@@ -50,5 +55,18 @@ export class PatientHistoryComponent {
 
   protected issue(error: unknown) {
     return patientApiIssue(error);
+  }
+
+  protected totalPages(): number {
+    const response = this.api.history.value();
+    return response ? Math.max(1, Math.ceil(response.totalElements / response.size)) : 1;
+  }
+
+  protected previousPage(): void {
+    this.api.setHistoryPage(this.api.historyPage() - 1);
+  }
+
+  protected nextPage(): void {
+    this.api.setHistoryPage(this.api.historyPage() + 1);
   }
 }

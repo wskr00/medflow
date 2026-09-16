@@ -14,7 +14,7 @@ import { PageHeaderComponent } from "../../shared/ui/page-header.component";
 import { StatePanelComponent } from "../../shared/ui/state-panel.component";
 import { PatientAppointmentsApi, patientApiIssue } from "./patient-appointments.api";
 import { PatientAppointmentsComponent } from "./patient-appointments.component";
-import { formatPatientDateTime } from "./patient-date-time";
+import { addCivilDays, formatPatientDateTime } from "./patient-date-time";
 import { PatientHistoryComponent } from "./patient-history.component";
 import {
   AvailabilityQuery,
@@ -130,6 +130,7 @@ import {
                 selectId="patient-specialty"
                 [formField]="filtersForm.especialidadeId"
                 aria-describedby="patient-specialty-description"
+                (valueChange)="onSpecialtyChanged($event)"
               >
                 <option hlmNativeSelectOption value="">Selecione uma especialidade</option>
                 @for (specialty of api.specialties().items; track specialty.id) {
@@ -307,9 +308,7 @@ export class PatientJourneyComponent {
   protected changeDate(days: number): void {
     const value = this.filterModel();
     if (!value.data) return;
-    const date = new Date(`${value.data}T12:00:00`);
-    date.setDate(date.getDate() + days);
-    const next = date.toISOString().slice(0, 10);
+    const next = addCivilDays(value.data, days);
     this.filterModel.update((filters) => ({ ...filters, data: next }));
     if (value.unidadeId && value.especialidadeId) this.searchAvailability();
   }
@@ -339,6 +338,7 @@ export class PatientJourneyComponent {
           this.selectedSlot.set(null);
           this.feedback.set({ kind: "success", title: "Agendamento confirmado", description: "O horário foi reservado e sua lista foi atualizada." });
           this.availability.reload();
+          this.api.setAppointmentsPage(0);
           this.api.appointments.reload();
         },
         error: (error: unknown) => this.handleMutationError(error, true),
@@ -347,6 +347,20 @@ export class PatientJourneyComponent {
 
   protected reloadCatalogs(): void {
     this.api.reloadCatalogs();
+  }
+
+  protected onSpecialtyChanged(specialtyId: string | null | undefined): void {
+    const doctorId = this.filterModel().medicoId;
+    const isCompatible = this.api.doctors().items.some(
+      (doctor) => doctor.id === doctorId && doctor.especialidadeIds.includes(specialtyId ?? ""),
+    );
+    if (doctorId && !isCompatible) {
+      this.filterModel.update((filters) => ({
+        ...filters,
+        especialidadeId: specialtyId ?? "",
+        medicoId: "",
+      }));
+    }
   }
 
   protected emptyAvailabilityDescription(): string {
@@ -365,7 +379,11 @@ export class PatientJourneyComponent {
   }
 
   protected readonly timeZone = computed(
-    () => this.identity.identity.value()?.timeZone ?? this.availability.value()?.timeZone ?? "UTC",
+    () => {
+      if (this.identity.identity.hasValue()) return this.identity.identity.value().timeZone;
+      if (this.availability.hasValue()) return this.availability.value().timeZone;
+      return "UTC";
+    },
   );
 
   private handleMutationError(error: unknown, reloadAvailability: boolean): void {

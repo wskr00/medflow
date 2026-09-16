@@ -1,9 +1,9 @@
-import { provideHttpClient } from "@angular/common/http";
+import { HttpErrorResponse, provideHttpClient } from "@angular/common/http";
 import { HttpTestingController, provideHttpClientTesting } from "@angular/common/http/testing";
 import { TestBed } from "@angular/core/testing";
 import { describe, expect, it } from "vitest";
 
-import { PatientAppointmentsApi } from "./patient-appointments.api";
+import { PatientAppointmentsApi, patientApiIssue } from "./patient-appointments.api";
 
 describe("PatientAppointmentsApi", () => {
   it("percorre todas as páginas de catálogo antes de disponibilizar opções", () => {
@@ -45,7 +45,20 @@ describe("PatientAppointmentsApi", () => {
 
     expect(api.units().items.map((item) => item.id)).toEqual(["unit-1", "unit-2"]);
     expect(api.units().loading).toBe(false);
-    http.verify();
+
+    api.setAppointmentsPage(1);
+    TestBed.tick();
+    http.expectOne((request) =>
+      request.url.includes("/me/agendamentos") && request.urlWithParams.includes("page=1"),
+    ).flush({ items: [], page: 1, size: 20, totalElements: 40 });
+    api.setHistoryPage(1);
+    TestBed.tick();
+    http.expectOne((request) =>
+      request.url.includes("/me/historico") && request.urlWithParams.includes("page=1"),
+    ).flush({ items: [], page: 1, size: 20, totalElements: 40 });
+    expect(api.appointmentsPage()).toBe(1);
+    expect(api.historyPage()).toBe(1);
+    http.verify({ ignoreCancelled: true });
   });
 
   it("envia apenas os campos contratuais nas mutações", () => {
@@ -71,5 +84,14 @@ describe("PatientAppointmentsApi", () => {
     expect(cancel.request.body).toEqual({ expectedVersion: 4 });
     cancel.flush({});
     http.verify();
+  });
+
+  it("normaliza erros sem código, inclusive respostas sem corpo", () => {
+    expect(patientApiIssue(new HttpErrorResponse({ status: 404, error: null })).code)
+      .toBe("RECURSO_NAO_ENCONTRADO");
+    expect(patientApiIssue(new HttpErrorResponse({ status: 400, error: null })).code)
+      .toBe("ENTRADA_INVALIDA");
+    expect(patientApiIssue(new HttpErrorResponse({ status: 0, error: null })).code)
+      .toBe("FALHA_DE_REDE");
   });
 });
