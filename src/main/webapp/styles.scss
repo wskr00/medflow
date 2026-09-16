@@ -1,1 +1,10 @@
-/* You can add global styles to this file, and also import other style files */
+@import "./tailwind.css";
+
+html,
+body {
+  min-width: 20rem;
+}
+
+body {
+  margin: 0;
+}
