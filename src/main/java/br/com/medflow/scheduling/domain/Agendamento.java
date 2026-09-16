@@ -68,6 +68,11 @@ public class Agendamento {
   public Instant checkInEm() { return checkInEm; }
   public long version() { return version; }
 
+  /** The same temporal rule used by cancellation and rescheduling, without a version check. */
+  public boolean permiteAlteracao(Instant agora) {
+    return status == StatusAgendamento.AGENDADA && agora.isBefore(inicio);
+  }
+
   public boolean atual(Consultorio novoConsultorio, Instant novoInicio, Instant novoFim) {
     return consultorio.id().equals(novoConsultorio.id())
         && inicio.equals(novoInicio) && fim.equals(novoFim);
@@ -127,7 +132,7 @@ public class Agendamento {
 
   public void validarMutacao(Instant agora, long expectedVersion) {
     validarVersao(expectedVersion);
-    if (status != StatusAgendamento.AGENDADA || !agora.isBefore(inicio)) {
+    if (!permiteAlteracao(agora)) {
       throw new BusinessConflictException(
           "TRANSICAO_INVALIDA", "O agendamento não permite esta operação.");
     }

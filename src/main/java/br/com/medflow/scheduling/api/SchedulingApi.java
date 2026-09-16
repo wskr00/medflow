@@ -20,13 +20,13 @@ final class SchedulingApi {
   static PatientAppointmentResponse patient(AppointmentService.AppointmentView value) {
     return new PatientAppointmentResponse(value.id(), value.version(), value.inicio(), value.fim(),
         value.status(), value.checkInEm(), named(value.medico()), named(value.especialidade()),
-        named(value.unidade()), named(value.consultorio()));
+        named(value.unidade()), named(value.consultorio()), allowedActions(value));
   }
 
   static ReceptionAppointmentResponse reception(AppointmentService.AppointmentView value) {
     return new ReceptionAppointmentResponse(value.id(), value.version(), value.inicio(), value.fim(),
         value.status(), value.checkInEm(), named(value.medico()), named(value.especialidade()),
-        named(value.unidade()), named(value.consultorio()), named(value.paciente()));
+        named(value.unidade()), named(value.consultorio()), named(value.paciente()), allowedActions(value));
   }
 
   static PageResponse<PatientAppointmentResponse> patientPage(
@@ -39,6 +39,10 @@ final class SchedulingApi {
     return new NamedResponse(value.id(), value.nome());
   }
 
+  private static AllowedActionsResponse allowedActions(AppointmentService.AppointmentView value) {
+    return new AllowedActionsResponse(value.canReschedule(), value.canCancel());
+  }
+
   record NamedResponse(UUID id, String nome) { }
 
   record SlotResponse(UUID regraAgendaId, UUID medicoId, UUID especialidadeId,
@@ -47,15 +51,17 @@ final class SchedulingApi {
 
   record AvailabilityResponse(List<SlotResponse> items, String timeZone) { }
 
+  record AllowedActionsResponse(boolean canReschedule, boolean canCancel) { }
+
   record PatientAppointmentResponse(UUID id, long version, OffsetDateTime inicio,
       OffsetDateTime fim, StatusAgendamento status, OffsetDateTime checkInEm,
       NamedResponse medico, NamedResponse especialidade, NamedResponse unidade,
-      NamedResponse consultorio) { }
+      NamedResponse consultorio, AllowedActionsResponse allowedActions) { }
 
   record ReceptionAppointmentResponse(UUID id, long version, OffsetDateTime inicio,
       OffsetDateTime fim, StatusAgendamento status, OffsetDateTime checkInEm,
       NamedResponse medico, NamedResponse especialidade, NamedResponse unidade,
-      NamedResponse consultorio, NamedResponse paciente) { }
+      NamedResponse consultorio, NamedResponse paciente, AllowedActionsResponse allowedActions) { }
 
   record PageResponse<T>(List<T> items, int page, int size, long totalElements) { }
 }

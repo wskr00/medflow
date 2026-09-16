@@ -15,19 +15,32 @@ import br.com.medflow.clinic.persistence.MedicoRepository;
 import br.com.medflow.clinic.persistence.UnidadeRepository;
 import br.com.medflow.common.http.BusinessConflictException;
 import br.com.medflow.common.http.ResourceNotFoundException;
+import br.com.medflow.common.query.RsqlFilter;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Casos de uso administrativos da estrutura da clínica única. */
 @Service
 public class ClinicConfigurationService {
+
+  private static final Map<String, String> CATALOG_ALIASES = Map.of("id", "id", "nome", "nome");
+  private static final Map<String, String> MEDICO_CATALOG_ALIASES = Map.of(
+      "id", "id", "nome", "nome", "especialidadeId", "especialidades.id");
+  private static final Map<Class<?>, List<String>> UNIDADE_FILTER_FIELDS = Map.of(
+      Unidade.class, List.of("id", "nome"));
+  private static final Map<Class<?>, List<String>> ESPECIALIDADE_FILTER_FIELDS = Map.of(
+      Especialidade.class, List.of("id", "nome"));
+  private static final Map<Class<?>, List<String>> MEDICO_FILTER_FIELDS = Map.of(
+      Medico.class, List.of("id", "nome"), Especialidade.class, List.of("id"));
 
   private final ClinicaRepository clinicas;
   private final UnidadeRepository unidades;
@@ -70,9 +83,14 @@ public class ClinicConfigurationService {
 
   @Transactional(readOnly = true)
   public Page<Unidade> unidades(boolean incluirInativas, Pageable pageable) {
+    return unidades(incluirInativas, null, pageable);
+  }
+
+  @Transactional(readOnly = true)
+  public Page<Unidade> unidades(boolean incluirInativas, String q, Pageable pageable) {
     UUID clinicaId = clinica().id();
-    return incluirInativas ? unidades.findByClinicaId(clinicaId, pageable)
-        : unidades.findByClinicaIdAndAtivoTrue(clinicaId, pageable);
+    return unidades.findAll(ClinicConfigurationService.<Unidade>catalogScope(clinicaId, incluirInativas)
+        .and(RsqlFilter.specification(q, CATALOG_ALIASES, UNIDADE_FILTER_FIELDS)), pageable);
   }
 
   @Transactional
@@ -142,9 +160,14 @@ public class ClinicConfigurationService {
 
   @Transactional(readOnly = true)
   public Page<Especialidade> especialidades(boolean incluirInativas, Pageable pageable) {
+    return especialidades(incluirInativas, null, pageable);
+  }
+
+  @Transactional(readOnly = true)
+  public Page<Especialidade> especialidades(boolean incluirInativas, String q, Pageable pageable) {
     UUID clinicaId = clinica().id();
-    return incluirInativas ? especialidades.findByClinicaId(clinicaId, pageable)
-        : especialidades.findByClinicaIdAndAtivoTrue(clinicaId, pageable);
+    return especialidades.findAll(ClinicConfigurationService.<Especialidade>catalogScope(clinicaId, incluirInativas)
+        .and(RsqlFilter.specification(q, CATALOG_ALIASES, ESPECIALIDADE_FILTER_FIELDS)), pageable);
   }
 
   @Transactional
@@ -173,9 +196,18 @@ public class ClinicConfigurationService {
 
   @Transactional(readOnly = true)
   public Page<Medico> medicos(boolean incluirInativos, Pageable pageable) {
+    return medicos(incluirInativos, null, pageable);
+  }
+
+  @Transactional(readOnly = true)
+  public Page<Medico> medicos(boolean incluirInativos, String q, Pageable pageable) {
     UUID clinicaId = clinica().id();
-    return incluirInativos ? medicos.findByClinicaId(clinicaId, pageable)
-        : medicos.findByClinicaIdAndAtivoTrue(clinicaId, pageable);
+    Specification<Medico> scope = (root, query, builder) -> {
+      var predicate = builder.equal(root.get("clinica").get("id"), clinicaId);
+      return incluirInativos ? predicate : builder.and(predicate, builder.isTrue(root.get("ativo")));
+    };
+    return medicos.findAll(scope.and(RsqlFilter.specification(q, MEDICO_CATALOG_ALIASES,
+        MEDICO_FILTER_FIELDS)), pageable);
   }
 
   @Transactional
@@ -235,6 +267,13 @@ public class ClinicConfigurationService {
 
   private Clinica lockClinica() {
     return clinicas.findSingletonForUpdate().orElseThrow(ResourceNotFoundException::new);
+  }
+
+  private static <T> Specification<T> catalogScope(UUID clinicaId, boolean incluirInativas) {
+    return (root, query, builder) -> {
+      var predicate = builder.equal(root.get("clinica").get("id"), clinicaId);
+      return incluirInativas ? predicate : builder.and(predicate, builder.isTrue(root.get("ativo")));
+    };
   }
 
   private Unidade unidadeDaClinica(UUID id, Clinica clinica) {
