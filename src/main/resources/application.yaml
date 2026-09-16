@@ -5,6 +5,12 @@ spring:
         url: ${MEDFLOW_DB_URL}
         username: ${MEDFLOW_DB_USERNAME}
         password: ${MEDFLOW_DB_PASSWORD}
+    jpa:
+        hibernate:
+            ddl-auto: validate
+        open-in-view: false
+    flyway:
+        enabled: true
     security:
         oauth2:
             resourceserver:

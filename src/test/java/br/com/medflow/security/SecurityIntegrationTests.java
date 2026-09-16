@@ -4,11 +4,15 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
+import br.com.medflow.PostgresTestConfiguration;
+import br.com.medflow.clinic.application.ClinicConfigurationService;
+import br.com.medflow.clinic.application.PatientProvisioningService;
 import br.com.medflow.common.http.RequestIdFilter;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.test.web.servlet.MockMvc;
@@ -16,6 +20,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -27,10 +32,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
     "spring.security.oauth2.resourceserver.jwt.audiences=medflow-api"
 })
 @AutoConfigureMockMvc
+@Import(PostgresTestConfiguration.class)
 class SecurityIntegrationTests {
 
     @Autowired
     private MockMvc mvc;
+
+    @Autowired
+    private ClinicConfigurationService clinic;
+
+    @Autowired
+    private PatientProvisioningService patients;
 
     @Test
     void actuatorHealthIsPublicAndUsesNativeEndpoint() throws Exception {
@@ -52,6 +64,20 @@ class SecurityIntegrationTests {
 
         assertThat(response.getContentAsString())
             .contains(response.getHeader(RequestIdFilter.HEADER));
+    }
+
+    @Test
+    void administrativeMutationRequiresAdministratorRole() throws Exception {
+        String payload = "{\"nome\":\"Unidade sintética\",\"endereco\":\"Rua 1\",\"ativo\":true}";
+        mvc.perform(post("/api/unidades").contentType(org.springframework.http.MediaType.APPLICATION_JSON).content(payload))
+            .andExpect(status().isUnauthorized());
+        for (String role : List.of("PATIENT", "RECEPTIONIST", "DOCTOR")) {
+            mvc.perform(post("/api/unidades").contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                    .content(payload).with(jwt().jwt(tokenWithRoles(role))
+                        .authorities(new SimpleGrantedAuthority("ROLE_" + role))))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("ACESSO_NEGADO"));
+        }
     }
 
     @Test
@@ -80,6 +106,10 @@ class SecurityIntegrationTests {
 
     @Test
     void authenticatedIdentityContainsOnlyAllowedClientRoles() throws Exception {
+        var specialty = clinic.criarEspecialidade("Especialidade de teste", true);
+        var doctor = clinic.criarMedico("Médico de teste", "99999", "PA", List.of(specialty.id()), true);
+        clinic.provisionarSubjectMedico(doctor.id(), "subject-sintetico");
+        var patient = patients.provisionar("subject-sintetico", "Paciente de teste");
         Jwt token = tokenWithRoles("PATIENT", "DOCTOR", "UNKNOWN_ROLE");
         var converter = new SecurityConfiguration.MedflowApiRolesConverter();
 
@@ -89,14 +119,31 @@ class SecurityIntegrationTests {
             .andExpect(jsonPath("$.roles[0]").value("DOCTOR"))
             .andExpect(jsonPath("$.roles[1]").value("PATIENT"))
             .andExpect(jsonPath("$.roles.length()").value(2))
-            .andExpect(jsonPath("$.pacienteId").value(org.hamcrest.Matchers.nullValue()))
-            .andExpect(jsonPath("$.medicoId").value(org.hamcrest.Matchers.nullValue()))
-            .andExpect(jsonPath("$.clinicaId").value(org.hamcrest.Matchers.nullValue()))
+            .andExpect(jsonPath("$.pacienteId").value(patient.id().toString()))
+            .andExpect(jsonPath("$.medicoId").value(doctor.id().toString()))
+            .andExpect(jsonPath("$.clinicaId").value("00000000-0000-0000-0000-000000000001"))
             .andExpect(jsonPath("$.timeZone").value("America/Belem"));
 
         assertThat(converter.convert(token)).containsExactlyInAnyOrder(
             new SimpleGrantedAuthority("ROLE_PATIENT"),
             new SimpleGrantedAuthority("ROLE_DOCTOR"));
+    }
+
+    @Test
+    void unknownSubjectDoesNotCreateLocalIdentityLink() throws Exception {
+        Jwt token = Jwt.withTokenValue("synthetic")
+            .header("alg", "none")
+            .subject("subject-desconhecido")
+            .issuedAt(Instant.now())
+            .expiresAt(Instant.now().plusSeconds(300))
+            .claim("resource_access", Map.of("medflow-api", Map.of("roles", List.of("PATIENT"))))
+            .build();
+        mvc.perform(get("/api/me").with(jwt().jwt(token)
+                .authorities(List.of(new SimpleGrantedAuthority("ROLE_PATIENT")))))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.pacienteId").value(org.hamcrest.Matchers.nullValue()))
+            .andExpect(jsonPath("$.medicoId").value(org.hamcrest.Matchers.nullValue()))
+            .andExpect(jsonPath("$.clinicaId").value("00000000-0000-0000-0000-000000000001"));
     }
 
     @Test
