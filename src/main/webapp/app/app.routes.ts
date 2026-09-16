@@ -17,11 +17,11 @@ export const routes: Routes = [
       },
       {
         path: "patient",
-        data: { profile: "patient" },
+        title: "Meus atendimentos | MedFlow",
         canActivate: [requireRole("PATIENT")],
         loadComponent: () =>
-          import("./features/foundation/profile-foundation.component").then(
-            (m) => m.ProfileFoundationComponent,
+          import("./features/patient/patient-journey.component").then(
+            (m) => m.PatientJourneyComponent,
           ),
       },
       {
