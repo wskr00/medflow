@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: medflow_qa
+          POSTGRES_PASSWORD: medflow_qa
+          POSTGRES_DB: medflow_qa
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U medflow_qa -d medflow_qa"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      MEDFLOW_DB_URL: jdbc:postgresql://localhost:5432/medflow_qa
+      MEDFLOW_DB_USERNAME: medflow_qa
+      MEDFLOW_DB_PASSWORD: medflow_qa
+      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/medflow_qa
+      SPRING_DATASOURCE_USERNAME: medflow_qa
+      SPRING_DATASOURCE_PASSWORD: medflow_qa
+      SPRING_DOCKER_COMPOSE_ENABLED: "false"
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - name: Configurar Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Compilar e testar backend
+        run: ./gradlew build --no-daemon
+
+      - name: Arquivar relatórios de teste do backend
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-reports
+          path: |
+            build/reports/tests/test
+            build/test-results/test
+          if-no-files-found: warn
+          retention-days: 7
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Fixar versão do npm
+        run: npm install --global npm@11.17.0
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Executar testes frontend
+        run: npm test -- --watch=false
+
+      - name: Compilar frontend
+        run: npm run build
