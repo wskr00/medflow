@@ -42,7 +42,7 @@ O foco chega ao `<main>` no evento de ativação do `RouterOutlet`: tanto a rota
 
 ## Leituras e mutações
 
-Use `httpResource` para GETs dependentes de filtros/signals e chame `reload()` após mutação, conflito ou nova entrada em contexto. Use `HttpClient` explícito na API da feature para POST, PUT e transições, mantendo `expectedVersion` no payload quando o contrato exigir. A jornada do paciente também percorre todas as páginas dos catálogos ativos antes de montar os selects, porque os endpoints de catálogo não aceitam filtro por especialidade ou unidade; o filtro de profissionais usa somente os `especialidadeIds` retornados após essa leitura completa. As listas de agendamentos e histórico mantêm `page`, `size` e `totalElements` do contrato em sinais locais da feature, com navegação explícita entre páginas; não há agregação derivada de uma página parcial.
+Use `httpResource` para GETs dependentes de filtros/signals e chame `reload()` após mutação, conflito ou nova entrada em contexto. Use `HttpClient` explícito na API da feature para POST, PUT e transições, mantendo `expectedVersion` no payload quando o contrato exigir.
 
 Exemplo de estrutura para uma feature futura, não implementado nesta Issue:
 
