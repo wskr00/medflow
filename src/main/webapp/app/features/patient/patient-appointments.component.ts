@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output, si
 import { HlmAlertImports } from "@spartan-ng/helm/alert";
 import { HlmButtonImports } from "@spartan-ng/helm/button";
 import { HlmCardImports } from "@spartan-ng/helm/card";
-import { HlmDialogImports } from "@spartan-ng/helm/dialog";
+import { HlmDialog, HlmDialogImports } from "@spartan-ng/helm/dialog";
 import { HlmFieldImports } from "@spartan-ng/helm/field";
 import { HlmInputImports } from "@spartan-ng/helm/input";
 import { HlmSpinnerImports } from "@spartan-ng/helm/spinner";
@@ -11,8 +11,8 @@ import { finalize } from "rxjs";
 import { StatePanelComponent } from "../../shared/ui/state-panel.component";
 import { StatusBadgeComponent } from "../../shared/ui/status-badge.component";
 import { PatientAppointmentsApi, patientApiIssue } from "./patient-appointments.api";
-import { formatPatientDateTime } from "./patient-date-time";
-import { AvailabilitySlot, PatientAppointment, PatientFeedback } from "./patient.models";
+import { clinicDateFromInstant, formatPatientDateTime } from "./patient-date-time";
+import { AvailabilitySlot, PatientApiIssue, PatientAppointment, PatientFeedback } from "./patient.models";
 
 @Component({
   selector: "app-patient-appointments",
@@ -59,12 +59,15 @@ import { AvailabilitySlot, PatientAppointment, PatientFeedback } from "./patient
                 </dl>
                 @if (appointment.status === "AGENDADA") {
                   <div class="flex flex-wrap gap-3">
-                    <hlm-dialog>
+                    <hlm-dialog #rescheduleDialog="hlmDialog">
                       <button hlmDialogTrigger hlmBtn variant="outline" type="button" (click)="openReschedule(appointment)">Reagendar</button>
                       <hlm-dialog-content *hlmDialogPortal class="sm:max-w-2xl">
                         <hlm-dialog-header><h3 hlmDialogTitle>Reagendar atendimento</h3><p hlmDialogDescription>Escolha uma nova data e um horário oferecido pelo servidor para este agendamento.</p></hlm-dialog-header>
                         @if (rescheduleTarget(); as target) {
                           <div class="flex flex-col gap-4">
+                            @if (rescheduleIssue(); as issue) {
+                              <section hlmAlert [variant]="issue.isConflict ? 'default' : 'destructive'" aria-live="polite"><h4 hlmAlertTitle>{{ issue.title }}</h4><p hlmAlertDescription>{{ issue.description }}</p></section>
+                            }
                             <div hlmField><label hlmFieldLabel for="reschedule-date">Nova data</label><input hlmInput id="reschedule-date" type="date" [value]="rescheduleDate()" (input)="setRescheduleDate($event)" /></div>
                             @if (rescheduleAvailability.isLoading()) {
                               <app-state-panel state="loading" title="Consultando horários" description="Aguarde a disponibilidade vinculada a este atendimento." />
@@ -87,17 +90,20 @@ import { AvailabilitySlot, PatientAppointment, PatientFeedback } from "./patient
                         }
                         <hlm-dialog-footer>
                           <button hlmBtn variant="outline" type="button" hlmDialogClose>Voltar</button>
-                          <button hlmBtn type="button" [disabled]="!rescheduleSlot() || rescheduling()" (click)="confirmReschedule()">@if (rescheduling()) { <hlm-spinner /> } {{ rescheduling() ? "Confirmando..." : "Confirmar reagendamento" }}</button>
+                          <button hlmBtn type="button" [disabled]="!rescheduleSlot() || rescheduling()" (click)="confirmReschedule(rescheduleDialog)">@if (rescheduling()) { <hlm-spinner /> } {{ rescheduling() ? "Confirmando..." : "Confirmar reagendamento" }}</button>
                         </hlm-dialog-footer>
                       </hlm-dialog-content>
                     </hlm-dialog>
-                    <hlm-dialog>
-                      <button hlmDialogTrigger hlmBtn variant="destructive" type="button" (click)="cancellationTarget.set(appointment)">Cancelar</button>
+                    <hlm-dialog #cancellationDialog="hlmDialog">
+                      <button hlmDialogTrigger hlmBtn variant="destructive" type="button" (click)="openCancellation(appointment)">Cancelar</button>
                       <hlm-dialog-content *hlmDialogPortal>
                         <hlm-dialog-header><h3 hlmDialogTitle>Cancelar agendamento?</h3><p hlmDialogDescription>Esta ação será confirmada pelo servidor e não pode ser desfeita por esta tela.</p></hlm-dialog-header>
+                        @if (cancellationIssue(); as issue) {
+                          <section hlmAlert [variant]="issue.isConflict ? 'default' : 'destructive'" aria-live="polite"><h4 hlmAlertTitle>{{ issue.title }}</h4><p hlmAlertDescription>{{ issue.description }}</p></section>
+                        }
                         <hlm-dialog-footer>
                           <button hlmBtn variant="outline" type="button" hlmDialogClose>Manter agendamento</button>
-                          <button hlmBtn variant="destructive" type="button" [disabled]="cancelling()" (click)="confirmCancellation()">@if (cancelling()) { <hlm-spinner /> } {{ cancelling() ? "Cancelando..." : "Confirmar cancelamento" }}</button>
+                          <button hlmBtn variant="destructive" type="button" [disabled]="cancelling()" (click)="confirmCancellation(cancellationDialog)">@if (cancelling()) { <hlm-spinner /> } {{ cancelling() ? "Cancelando..." : "Confirmar cancelamento" }}</button>
                         </hlm-dialog-footer>
                       </hlm-dialog-content>
                     </hlm-dialog>
@@ -106,6 +112,11 @@ import { AvailabilitySlot, PatientAppointment, PatientFeedback } from "./patient
               </article>
             }
           </div>
+          <nav aria-label="Paginação dos agendamentos" class="flex flex-wrap items-center gap-3">
+            <button hlmBtn variant="outline" type="button" [disabled]="api.appointmentsPage() === 0" (click)="previousPage()">Página anterior</button>
+            <p class="text-muted-foreground text-sm" aria-live="polite">Página {{ api.appointmentsPage() + 1 }} de {{ totalPages() }} · {{ api.appointments.value()?.totalElements }} agendamentos</p>
+            <button hlmBtn variant="outline" type="button" [disabled]="api.appointmentsPage() + 1 >= totalPages()" (click)="nextPage()">Próxima página</button>
+          </nav>
         }
       </div>
     </section>
@@ -121,6 +132,8 @@ export class PatientAppointmentsComponent {
   protected readonly cancellationTarget = signal<PatientAppointment | null>(null);
   protected readonly rescheduleDate = signal("");
   protected readonly rescheduleSlot = signal<AvailabilitySlot | null>(null);
+  protected readonly rescheduleIssue = signal<PatientApiIssue | null>(null);
+  protected readonly cancellationIssue = signal<PatientApiIssue | null>(null);
   protected readonly rescheduleAvailability = this.api.rescheduleAvailability(
     computed(() => this.rescheduleTarget()?.id ?? null),
     this.rescheduleDate,
@@ -128,16 +141,18 @@ export class PatientAppointmentsComponent {
 
   protected openReschedule(appointment: PatientAppointment): void {
     this.rescheduleTarget.set(appointment);
-    this.rescheduleDate.set(appointment.inicio.slice(0, 10));
+    this.rescheduleDate.set(clinicDateFromInstant(appointment.inicio, this.timeZone()));
     this.rescheduleSlot.set(null);
+    this.rescheduleIssue.set(null);
   }
 
   protected setRescheduleDate(event: Event): void {
     this.rescheduleDate.set((event.target as HTMLInputElement).value);
     this.rescheduleSlot.set(null);
+    this.rescheduleIssue.set(null);
   }
 
-  protected confirmReschedule(): void {
+  protected confirmReschedule(dialog: HlmDialog): void {
     const appointment = this.rescheduleTarget();
     const slot = this.rescheduleSlot();
     if (!appointment || !slot) return;
@@ -147,25 +162,34 @@ export class PatientAppointmentsComponent {
       .subscribe({
         next: () => {
           this.feedback.emit({ kind: "success", title: "Agendamento reagendado", description: "O novo horário foi confirmado pelo servidor." });
-          this.rescheduleSlot.set(null);
+          dialog.close();
+          this.clearReschedule();
           this.api.appointments.reload();
         },
-        error: (error: unknown) => this.handleError(error),
+        error: (error: unknown) => this.handleRescheduleError(error),
       });
   }
 
-  protected confirmCancellation(): void {
+  protected openCancellation(appointment: PatientAppointment): void {
+    this.cancellationTarget.set(appointment);
+    this.cancellationIssue.set(null);
+  }
+
+  protected confirmCancellation(dialog: HlmDialog): void {
     const appointment = this.cancellationTarget();
     if (!appointment) return;
     this.cancelling.set(true);
+    this.cancellationIssue.set(null);
     this.api.cancel(appointment.id, appointment.version)
       .pipe(finalize(() => this.cancelling.set(false)))
       .subscribe({
         next: () => {
           this.feedback.emit({ kind: "success", title: "Agendamento cancelado", description: "O cancelamento foi confirmado pelo servidor." });
+          dialog.close();
+          this.cancellationTarget.set(null);
           this.api.appointments.reload();
         },
-        error: (error: unknown) => this.handleError(error),
+        error: (error: unknown) => this.handleCancellationError(error),
       });
   }
 
@@ -177,9 +201,40 @@ export class PatientAppointmentsComponent {
     return patientApiIssue(error);
   }
 
-  private handleError(error: unknown): void {
+  protected totalPages(): number {
+    const response = this.api.appointments.value();
+    return response ? Math.max(1, Math.ceil(response.totalElements / response.size)) : 1;
+  }
+
+  protected previousPage(): void {
+    this.api.setAppointmentsPage(this.api.appointmentsPage() - 1);
+  }
+
+  protected nextPage(): void {
+    this.api.setAppointmentsPage(this.api.appointmentsPage() + 1);
+  }
+
+  private handleRescheduleError(error: unknown): void {
     const issue = patientApiIssue(error);
+    this.rescheduleIssue.set(issue);
+    this.feedback.emit({ kind: issue.isConflict ? "conflict" : "error", title: issue.title, description: issue.description });
+    if (issue.code === "HORARIO_INDISPONIVEL") {
+      this.rescheduleSlot.set(null);
+      this.rescheduleAvailability.reload();
+    }
+    if (issue.isConflict) this.api.appointments.reload();
+  }
+
+  private handleCancellationError(error: unknown): void {
+    const issue = patientApiIssue(error);
+    this.cancellationIssue.set(issue);
     this.feedback.emit({ kind: issue.isConflict ? "conflict" : "error", title: issue.title, description: issue.description });
     if (issue.isConflict) this.api.appointments.reload();
+  }
+
+  private clearReschedule(): void {
+    this.rescheduleTarget.set(null);
+    this.rescheduleSlot.set(null);
+    this.rescheduleIssue.set(null);
   }
 }

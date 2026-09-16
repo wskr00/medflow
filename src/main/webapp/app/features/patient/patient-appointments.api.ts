@@ -35,11 +35,19 @@ function fieldErrors(error: ApiErrorBody): Readonly<Record<string, string>> {
 
 /** Traduz apenas os códigos contratuais desta jornada, sem depender de texto da API. */
 export function patientApiIssue(error: unknown): PatientApiIssue {
+  const status = error instanceof HttpErrorResponse ? error.status : undefined;
   const body =
-    error instanceof HttpErrorResponse && typeof error.error === "object"
+    error instanceof HttpErrorResponse && error.error !== null && typeof error.error === "object"
       ? (error.error as ApiErrorBody)
       : {};
-  const code = body.code ?? "ERRO_INTERNO";
+  const codeByStatus: Readonly<Record<number, string>> = {
+    0: "FALHA_DE_REDE",
+    400: "ENTRADA_INVALIDA",
+    401: "NAO_AUTENTICADO",
+    403: "ACESSO_NEGADO",
+    404: "RECURSO_NAO_ENCONTRADO",
+  };
+  const code = body.code ?? (status === undefined ? "ERRO_INTERNO" : (codeByStatus[status] ?? "ERRO_INTERNO"));
   const messages: Readonly<Record<string, readonly [string, string]>> = {
     HORARIO_INDISPONIVEL: [
       "Horário não disponível",
@@ -61,6 +69,18 @@ export function patientApiIssue(error: unknown): PatientApiIssue {
       "Acesso não permitido",
       "Não foi possível concluir esta ação no contexto atual.",
     ],
+    RECURSO_NAO_ENCONTRADO: [
+      "Recurso indisponível",
+      "Este agendamento não está disponível no contexto atual. Atualize a lista antes de continuar.",
+    ],
+    ENTRADA_INVALIDA: [
+      "Revise os dados informados",
+      "Algum dado não foi aceito. Corrija os campos indicados e tente novamente.",
+    ],
+    FALHA_DE_REDE: [
+      "Falha de conexão",
+      "Não foi possível alcançar o serviço. Verifique a conexão e tente novamente.",
+    ],
   };
   const [title, description] =
     messages[code] ?? [
@@ -80,15 +100,18 @@ export function patientApiIssue(error: unknown): PatientApiIssue {
 @Injectable()
 export class PatientAppointmentsApi {
   private readonly http = inject(HttpClient);
+  readonly pageSize = 20;
+  readonly appointmentsPage = signal(0);
+  readonly historyPage = signal(0);
 
   readonly units = signal<CatalogState<NamedResource>>({ items: [], loading: true, error: null });
   readonly specialties = signal<CatalogState<NamedResource>>({ items: [], loading: true, error: null });
   readonly doctors = signal<CatalogState<DoctorCatalogResource>>({ items: [], loading: true, error: null });
   readonly appointments = httpResource<PageResponse<PatientAppointment>>(
-    () => url("/me/agendamentos", { page: 0, size: 20 }),
+    () => url("/me/agendamentos", { page: this.appointmentsPage(), size: this.pageSize }),
   );
   readonly history = httpResource<PageResponse<PatientHistoryItem>>(
-    () => url("/me/historico", { page: 0, size: 20 }),
+    () => url("/me/historico", { page: this.historyPage(), size: this.pageSize }),
   );
 
   constructor() {
@@ -99,6 +122,14 @@ export class PatientAppointmentsApi {
     this.loadCatalog("/unidades", this.units);
     this.loadCatalog("/especialidades", this.specialties);
     this.loadCatalog("/medicos", this.doctors);
+  }
+
+  setAppointmentsPage(page: number): void {
+    if (page >= 0) this.appointmentsPage.set(page);
+  }
+
+  setHistoryPage(page: number): void {
+    if (page >= 0) this.historyPage.set(page);
   }
 
   availability(query: Signal<AvailabilityQuery | null>) {
