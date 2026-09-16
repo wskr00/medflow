@@ -108,14 +108,35 @@ public class Agendamento {
     checkInEm = agora;
   }
 
-  public void validarMutacao(Instant agora, long expectedVersion) {
-    if (version != expectedVersion) {
+  public void iniciarAtendimento(long expectedVersion) {
+    validarVersao(expectedVersion);
+    if (status != StatusAgendamento.EM_ESPERA) {
       throw new BusinessConflictException(
-          "VERSAO_DESATUALIZADA", "O recurso foi alterado por outra operação.");
+          "TRANSICAO_INVALIDA", "O agendamento não permite iniciar atendimento.");
     }
+    status = StatusAgendamento.EM_ATENDIMENTO;
+  }
+
+  public void finalizarAtendimento() {
+    if (status != StatusAgendamento.EM_ATENDIMENTO) {
+      throw new BusinessConflictException(
+          "TRANSICAO_INVALIDA", "O agendamento não permite finalizar atendimento.");
+    }
+    status = StatusAgendamento.FINALIZADA;
+  }
+
+  public void validarMutacao(Instant agora, long expectedVersion) {
+    validarVersao(expectedVersion);
     if (status != StatusAgendamento.AGENDADA || !agora.isBefore(inicio)) {
       throw new BusinessConflictException(
           "TRANSICAO_INVALIDA", "O agendamento não permite esta operação.");
+    }
+  }
+
+  private void validarVersao(long expectedVersion) {
+    if (version != expectedVersion) {
+      throw new BusinessConflictException(
+          "VERSAO_DESATUALIZADA", "O recurso foi alterado por outra operação.");
     }
   }
 }
