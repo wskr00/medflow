@@ -1,0 +1,215 @@
+{
+  "realm": "medflow",
+  "displayName": "MedFlow",
+  "enabled": true,
+  "sslRequired": "NONE",
+  "registrationAllowed": false,
+  "registrationEmailAsUsername": false,
+  "resetPasswordAllowed": false,
+  "rememberMe": false,
+  "verifyEmail": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "accessTokenLifespan": 300,
+  "clients": [
+    {
+      "id": "10000000-0000-0000-0000-000000000001",
+      "clientId": "medflow-web",
+      "name": "MedFlow Web",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "bearerOnly": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": true,
+      "redirectUris": [
+        "http://localhost:4200/*"
+      ],
+      "webOrigins": [
+        "http://localhost:4200"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:4200/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "medflow-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "medflow-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "false"
+          }
+        }
+      ]
+    },
+    {
+      "id": "10000000-0000-0000-0000-000000000002",
+      "clientId": "medflow-api",
+      "name": "MedFlow API",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "bearerOnly": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": true,
+      "redirectUris": [],
+      "webOrigins": []
+    },
+    {
+      "id": "10000000-0000-0000-0000-000000000003",
+      "clientId": "medflow-test",
+      "name": "MedFlow Test Client",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "bearerOnly": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "medflow-test-secret",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": true,
+      "redirectUris": [],
+      "webOrigins": [],
+      "protocolMappers": [
+        {
+          "name": "medflow-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "medflow-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "false"
+          }
+        }
+      ]
+    }
+  ],
+  "roles": {
+    "realm": [],
+    "client": {
+      "medflow-api": [
+        {
+          "name": "PATIENT",
+          "description": "Acesso de paciente",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "10000000-0000-0000-0000-000000000002"
+        },
+        {
+          "name": "RECEPTIONIST",
+          "description": "Acesso de recepcionista",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "10000000-0000-0000-0000-000000000002"
+        },
+        {
+          "name": "DOCTOR",
+          "description": "Acesso de médico",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "10000000-0000-0000-0000-000000000002"
+        },
+        {
+          "name": "ADMINISTRATOR",
+          "description": "Acesso de administrador",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "10000000-0000-0000-0000-000000000002"
+        }
+      ]
+    }
+  },
+  "users": [
+    {
+      "id": "20000000-0000-0000-0000-000000000001",
+      "username": "paciente",
+      "firstName": "Marina",
+      "lastName": "Alves",
+      "email": "paciente@medflow.local",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "paciente",
+          "temporary": false
+        }
+      ],
+      "clientRoles": {
+        "medflow-api": ["PATIENT"]
+      }
+    },
+    {
+      "id": "20000000-0000-0000-0000-000000000002",
+      "username": "recepcionista",
+      "firstName": "Rita",
+      "lastName": "Santos",
+      "email": "recepcionista@medflow.local",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "recepcionista",
+          "temporary": false
+        }
+      ],
+      "clientRoles": {
+        "medflow-api": ["RECEPTIONIST"]
+      }
+    },
+    {
+      "id": "20000000-0000-0000-0000-000000000003",
+      "username": "medico",
+      "firstName": "Camila",
+      "lastName": "Ramos",
+      "email": "medico@medflow.local",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "medico",
+          "temporary": false
+        }
+      ],
+      "clientRoles": {
+        "medflow-api": ["DOCTOR"]
+      }
+    },
+    {
+      "id": "20000000-0000-0000-0000-000000000004",
+      "username": "administrador",
+      "firstName": "Lucas",
+      "lastName": "Ferreira",
+      "email": "administrador@medflow.local",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "administrador",
+          "temporary": false
+        }
+      ],
+      "clientRoles": {
+        "medflow-api": ["ADMINISTRATOR"]
+      }
+    }
+  ]
+}
