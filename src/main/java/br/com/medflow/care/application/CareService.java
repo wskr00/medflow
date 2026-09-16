@@ -1,5 +1,8 @@
 package br.com.medflow.care.application;
 
+import br.com.medflow.audit.application.AuditSuccessWriter;
+import br.com.medflow.audit.domain.AuditAction;
+import br.com.medflow.audit.domain.AuditResourceType;
 import br.com.medflow.care.domain.Atendimento;
 import br.com.medflow.care.domain.RegistroClinico;
 import br.com.medflow.care.persistence.AtendimentoRepository;
@@ -35,14 +38,17 @@ public class CareService {
   private final AgendamentoRepository agendamentos;
   private final AtendimentoRepository atendimentos;
   private final Clock clock;
+  private final AuditSuccessWriter audit;
 
   public CareService(ClinicaRepository clinicas, MedicoRepository medicos,
-      AgendamentoRepository agendamentos, AtendimentoRepository atendimentos, Clock clock) {
+      AgendamentoRepository agendamentos, AtendimentoRepository atendimentos, Clock clock,
+      AuditSuccessWriter audit) {
     this.clinicas = clinicas;
     this.medicos = medicos;
     this.agendamentos = agendamentos;
     this.atendimentos = atendimentos;
     this.clock = clock;
+    this.audit = audit;
   }
 
   @Transactional(readOnly = true)
@@ -91,15 +97,19 @@ public class CareService {
     appointment.iniciarAtendimento(expectedVersion);
     Atendimento care = atendimentos.save(new Atendimento(appointment, clock.instant()));
     atendimentos.flush();
+    audit.record(clinic.id(), AuditAction.INICIAR_ATENDIMENTO,
+        AuditResourceType.AGENDAMENTO, appointment.id());
     return new StartResult(appointmentView(appointment), careView(care));
   }
 
-  @Transactional(readOnly = true)
+  @Transactional
   public CareView get(AuthenticatedActor actor, UUID id) {
     requireDoctor(actor);
     activeDoctor(actor, clinic(actor));
     Atendimento care = atendimentos.findByIdAndAgendamentoMedicoId(id, actor.medicoId())
         .orElseThrow(ResourceNotFoundException::new);
+    audit.record(actor.clinicaId(), AuditAction.LER_REGISTRO_CLINICO,
+        AuditResourceType.ATENDIMENTO, care.id());
     return careView(care);
   }
 
@@ -118,6 +128,8 @@ public class CareService {
     }
     care.salvarRegistro(new RegistroClinico(complaint, history, plan, notes), expectedVersion);
     atendimentos.flush();
+    audit.record(actor.clinicaId(), AuditAction.SALVAR_REGISTRO_CLINICO,
+        AuditResourceType.ATENDIMENTO, care.id());
     return careView(care, ZoneId.of(actor.timeZone()));
   }
 
@@ -138,6 +150,8 @@ public class CareService {
     care.finalizar(clock.instant(), expectedVersion);
     appointment.finalizarAtendimento();
     atendimentos.flush();
+    audit.record(clinic.id(), AuditAction.FINALIZAR_ATENDIMENTO,
+        AuditResourceType.ATENDIMENTO, care.id());
     return new FinishResult(appointmentView(appointment), careView(care));
   }
 
@@ -151,15 +165,18 @@ public class CareService {
     return agendamentos.findAll(specification, pageable).map(this::patientHistoryView);
   }
 
-  @Transactional(readOnly = true)
+  @Transactional
   public Page<DoctorHistoryItem> doctorHistory(
       AuthenticatedActor actor, UUID patientId, Pageable pageable) {
     requireDoctor(actor);
     activeDoctor(actor, clinic(actor));
-    return atendimentos
+    Page<DoctorHistoryItem> result = atendimentos
         .findByAgendamentoMedicoIdAndAgendamentoPacienteIdAndFinalizadoEmIsNotNull(
             actor.medicoId(), patientId, pageable)
         .map(this::doctorHistoryView);
+    audit.record(actor.clinicaId(), AuditAction.CONSULTAR_HISTORICO_CLINICO,
+        AuditResourceType.PACIENTE, patientId);
+    return result;
   }
 
   private static Specification<Agendamento> doctorSpecification(UUID doctorId) {

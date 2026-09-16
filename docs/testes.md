@@ -93,6 +93,24 @@ Execução isolada reproduzível:
 
 Essa evidência não inclui auditoria, frontend, validação clínica do conteúdo ou medição de desempenho.
 
+## Cobertura automatizada de auditoria (#14)
+
+`AuditHttpIntegrationTests` define cenários PostgreSQL/HTTP para sucessos das
+operações críticas, no-op de reagendamento, negação e conflito duráveis após
+rollback, correlação por `requestId`, falha da auditoria abortando mutação e
+leitura clínica, consulta administrativa escopada/paginada e sanitização de
+Bearer. O teste concorrente de reserva também verifica exatamente um evento de
+sucesso por rodada. `PersistentSanitizedAuditEventRepositoryTests` verifica,
+sem infraestrutura externa, a allowlist do adapter do Actuator e o descarte de
+`details`/mensagens livres.
+
+Nesta execução local, `clean compileTestJava` e os testes sem container
+passaram. A execução final dos cenários PostgreSQL não chegou ao contexto da
+aplicação: o Testcontainers não conseguiu conectar ao Ryuk publicado em
+`localhost`. Portanto esses cenários permanecem como cobertura implementada,
+mas não são registrados aqui como evidência aprovada; devem passar na CI em
+ambiente limpo antes da integração.
+
 ## Evidência e diagnóstico
 
 Uma falha deve registrar, conforme aplicável:

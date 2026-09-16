@@ -1,5 +1,8 @@
 package br.com.medflow.scheduling.application;
 
+import br.com.medflow.audit.application.AuditSuccessWriter;
+import br.com.medflow.audit.domain.AuditAction;
+import br.com.medflow.audit.domain.AuditResourceType;
 import br.com.medflow.clinic.domain.Clinica;
 import br.com.medflow.clinic.domain.Consultorio;
 import br.com.medflow.clinic.domain.Medico;
@@ -45,16 +48,18 @@ public class AppointmentService {
   private final BloqueioAgendaRepository bloqueios;
   private final AgendamentoRepository agendamentos;
   private final Clock clock;
+  private final AuditSuccessWriter audit;
 
   public AppointmentService(ClinicaRepository clinicas, PacienteRepository pacientes,
       RegraAgendaRepository regras, BloqueioAgendaRepository bloqueios,
-      AgendamentoRepository agendamentos, Clock clock) {
+      AgendamentoRepository agendamentos, Clock clock, AuditSuccessWriter audit) {
     this.clinicas = clinicas;
     this.pacientes = pacientes;
     this.regras = regras;
     this.bloqueios = bloqueios;
     this.agendamentos = agendamentos;
     this.clock = clock;
+    this.audit = audit;
   }
 
   @Transactional(readOnly = true)
@@ -85,7 +90,10 @@ public class AppointmentService {
     Oferta oferta = validarOferta(clinica, regraAgendaId, inicio, null);
     Agendamento agendamento = new Agendamento(clinica, paciente, oferta.regra().medico(),
         oferta.regra().especialidade(), oferta.regra().consultorio(), oferta.inicio(), oferta.fim());
-    return view(agendamentos.saveAndFlush(agendamento));
+    Agendamento saved = agendamentos.saveAndFlush(agendamento);
+    audit.record(clinica.id(), AuditAction.AGENDAR,
+        AuditResourceType.AGENDAMENTO, saved.id());
+    return view(saved);
   }
 
   @Transactional(readOnly = true)
@@ -129,6 +137,8 @@ public class AppointmentService {
     Agendamento agendamento = agendamentoAutorizadoDepoisDoLock(actor, id, clinica);
     agendamento.cancelar(clock.instant(), expectedVersion);
     agendamentos.flush();
+    audit.record(clinica.id(), AuditAction.CANCELAR,
+        AuditResourceType.AGENDAMENTO, agendamento.id());
     return view(agendamento);
   }
 
@@ -152,6 +162,8 @@ public class AppointmentService {
     atual.reagendar(destino.regra().consultorio(), destino.inicio(), destino.fim(),
         clock.instant(), expectedVersion);
     agendamentos.flush();
+    audit.record(clinica.id(), AuditAction.REAGENDAR,
+        AuditResourceType.AGENDAMENTO, atual.id());
     return view(atual);
   }
 
