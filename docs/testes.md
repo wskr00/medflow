@@ -1,6 +1,6 @@
 # Testes do MedFlow
 
-Este documento descreve a infraestrutura mínima de validação da Issue #23. Responsabilidade humana: João Vitor Lobo do Nascimento — qualidade, integração e validação. Os testes atuais cobrem apenas o bootstrap; cenários funcionais serão acrescentados nas Issues que implementarem os respectivos requisitos.
+Este documento descreve a infraestrutura mínima de validação da Issue #23. Responsabilidade humana: João Vitor Lobo do Nascimento — qualidade, integração e validação. Além do bootstrap, as Issues funcionais acrescentam os cenários dos requisitos que implementam.
 
 ## Comando local consolidado
 
@@ -40,7 +40,7 @@ Os dois testes frontend e o teste de contexto apenas comprovam que o bootstrap a
 | Camada                  | Objetivo                                                          | Momento de inclusão                              |
 | ----------------------- | ----------------------------------------------------------------- | ------------------------------------------------ |
 | Unidade/domínio         | Regras, estados e validações sem infraestrutura                   | Junto da Issue funcional correspondente          |
-| Persistência PostgreSQL | Migrations, constraints, queries, locks e rollback                | Quando #8/#10 introduzirem modelo e concorrência |
+| Persistência PostgreSQL | Migrations, constraints, queries, locks e rollback                | Introduzida por #8 e ampliada por #10             |
 | API                     | Status, payload, estado persistido, erros e `requestId`           | A partir de #27 e em cada API funcional          |
 | Segurança               | JWT controlado para matriz; smoke com Keycloak real               | Após integração de #9/#11                        |
 | Frontend                | Componentes, formulários, loading, vazio, conflito e erro         | Em #15–#18                                       |
@@ -53,7 +53,19 @@ Não foi adicionada regra ArchUnit vazia: ela deve nascer quando os módulos rea
 
 As Issues funcionais devem acrescentar testes para transições permitidas e proibidas, conflito por Médico e Consultório, disponibilidade obsoleta, cancelamento que libera horário, reagendamento que preserva a reserva anterior em caso de falha, fronteiras de autorização e auditoria sem texto clínico.
 
-A fixture de 20 pacientes pertence à validação de concorrência de #10/RNF004. Ela será criada quando existirem `Paciente`, `RegraAgenda` e `Agendamento` persistíveis, e será usada por um teste sincronizado contra PostgreSQL. Antecipá-la agora como seed sem consumidor real não provaria integridade e criaria contrato fictício.
+A #10 acrescenta a fixture consumida de 20 pacientes distintos e o teste sincronizado contra PostgreSQL real. Cada uma de três rodadas usa barreiras de prontidão/início, limite de tempo por `Future` e um slot válido diferente; o aceite automatizado exige exatamente uma confirmação e 19 conflitos esperados por rodada, sem falha inesperada.
+
+## Evidência automatizada de disponibilidade e agendamento (#10)
+
+Os testes `AppointmentPersistenceIntegrationTests` e `AppointmentHttpIntegrationTests` cobrem RF005–RF009 e a implementação inicial de RNF004. Usam relógio fixo, fuso `America/Belem`, dados sintéticos e PostgreSQL Testcontainers. Exercitam vigência inclusiva, estrutura ativa, bloqueio, conflito por médico e consultório, sobreposição parcial, adjacência, cancelamento, paginação/filtros próprios, versões, no-op, rollback de reagendamento, projeções e fronteiras `403`/`404`.
+
+Execução isolada reproduzível:
+
+```bash
+./gradlew test --tests 'br.com.medflow.scheduling.Appointment*IntegrationTests'
+```
+
+Essa evidência não substitui o ensaio integrado final da #25 nem mede RNF005.
 
 ## Evidência e diagnóstico
 
@@ -75,7 +87,7 @@ Relatórios locais do Gradle ficam em `build/reports/tests/test/`. Vitest imprim
 - #27 deve tornar health, erro comum, correlação, validação HTTP e datasource verificáveis.
 - #9 deve fornecer realm e contas sintéticas reproduzíveis, mais smoke de token válido/ausente/inválido/expirado.
 - #11 deve materializar a matriz contextual positiva e negativa.
-- #8 introduzirá migrations e configuração clínica; #10 permitirá provar concorrência real de agenda no PostgreSQL.
+- #8 introduziu migrations e configuração clínica; #10 acrescentou disponibilidade, reservas e concorrência real de agenda no PostgreSQL.
 - #24 executará o fluxo completo; #25 medirá RNF001–RNF009 sem substituir resultados ausentes por estimativas.
 
 Até essas integrações, a CI criada nesta Issue é uma base de regressão do bootstrap, não evidência de conclusão do MVP.
