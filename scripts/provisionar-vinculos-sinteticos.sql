@@ -1,3 +1,4 @@
+-- Dados exclusivamente sintéticos, idempotentes e separados do histórico Flyway.
 INSERT INTO unidade (id, clinica_id, nome, endereco, ativo, version)
 VALUES ('30000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'Unidade demonstração', 'Endereço sintético', TRUE, 0)
 ON CONFLICT (id) DO NOTHING;
