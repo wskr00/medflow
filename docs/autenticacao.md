@@ -41,6 +41,18 @@ smoke local automatizável. Ele habilita password grant para obter tokens sem
 navegador; não deve ser usado pelo frontend nem promovido como configuração de
 produção. Nenhuma credencial real deve ser colocada no realm.
 
+O smoke criptográfico versionado pode ser executado somente contra a stack local
+sintética, depois que Keycloak e backend estiverem prontos:
+
+```bash
+./scripts/smoke-autenticacao.sh
+```
+
+O script valida o health, 401 sem token, challenge Bearer, token válido, emissor
+ou audiência incorretos e expiração real. Para produzir o caso expirado ele muda
+temporariamente o lifespan do realm local e o restaura ao terminar, inclusive em
+falha. Por segurança, recusa URLs que não sejam `localhost` ou `127.0.0.1`.
+
 Inicialização local com portas alternativas:
 
 ```bash
@@ -83,7 +95,9 @@ Em ambiente isolado com dados sintéticos foram observados:
   e preservação do challenge `WWW-Authenticate` em 401;
 - frontend com 2 testes e build de produção sem falhas;
 - proxy de desenvolvimento encaminhando `/api/me` ao backend e preservando
-  status 401, envelope, challenge Bearer e `X-Request-Id`.
+  status 401, envelope, challenge Bearer e `X-Request-Id`;
+- login real da SPA no navegador por Authorization Code + PKCE S256, seguido da
+  exibição do contexto retornado por `/api/me` para o perfil `PATIENT`.
 
 Os testes com JWT injetado no MockMvc verificam contrato e conversão de roles;
 a validação criptográfica acima foi um smoke contra o Keycloak real. Ainda não
