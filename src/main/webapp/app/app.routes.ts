@@ -5,59 +5,19 @@ import { defaultWorkspaceRedirect, requireRole } from "./auth/role.guard";
 export const routes: Routes = [
   {
     path: "workspace",
-    loadComponent: () =>
-      import("./core/layout/workspace-shell.component").then(
-        (m) => m.WorkspaceShellComponent,
-      ),
+    pathMatch: "full",
+    redirectTo: defaultWorkspaceRedirect,
+  },
+  {
+    path: "workspace/patient",
+    canActivate: [requireRole("PATIENT")],
+    loadComponent: () => import("./features/patient/patient-shell.component").then((m) => m.PatientShellComponent),
     children: [
-      {
-        path: "",
-        pathMatch: "full",
-        redirectTo: defaultWorkspaceRedirect,
-      },
-      {
-        path: "patient",
-        data: { profile: "patient" },
-        canActivate: [requireRole("PATIENT")],
-        loadComponent: () =>
-          import("./features/foundation/profile-foundation.component").then(
-            (m) => m.ProfileFoundationComponent,
-          ),
-      },
-      {
-        path: "reception",
-        data: { profile: "reception" },
-        canActivate: [requireRole("RECEPTIONIST")],
-        loadComponent: () =>
-          import("./features/foundation/profile-foundation.component").then(
-            (m) => m.ProfileFoundationComponent,
-          ),
-      },
-      {
-        path: "doctor",
-        data: { profile: "doctor" },
-        canActivate: [requireRole("DOCTOR")],
-        loadComponent: () =>
-          import("./features/foundation/profile-foundation.component").then(
-            (m) => m.ProfileFoundationComponent,
-          ),
-      },
-      {
-        path: "administrator",
-        data: { profile: "administrator" },
-        canActivate: [requireRole("ADMINISTRATOR")],
-        loadComponent: () =>
-          import("./features/foundation/profile-foundation.component").then(
-            (m) => m.ProfileFoundationComponent,
-          ),
-      },
-      {
-        path: "reference-form",
-        loadComponent: () =>
-          import("./features/reference-form/reference-form.component").then(
-            (m) => m.ReferenceFormComponent,
-          ),
-      },
+      { path: "", pathMatch: "full", redirectTo: "consultas" },
+      { path: "consultas", title: "Consultas | MedFlow", loadComponent: () => import("./features/patient/patient-appointments.component").then((m) => m.PatientAppointmentsComponent) },
+      { path: "agendar", title: "Agendar consulta | MedFlow", loadComponent: () => import("./features/patient/patient-booking.component").then((m) => m.PatientBookingComponent) },
+      { path: "historico", title: "Histórico | MedFlow", loadComponent: () => import("./features/patient/patient-history.component").then((m) => m.PatientHistoryComponent) },
+      { path: "consultas/:id/reagendar", title: "Reagendar consulta | MedFlow", loadComponent: () => import("./features/patient/patient-reschedule.component").then((m) => m.PatientRescheduleComponent) },
     ],
   },
   {

@@ -50,6 +50,21 @@
       ],
       "@spartan-ng/helm/skeleton": [
         "./src/main/webapp/shared/ui/helm/skeleton/src/index.ts"
+      ],
+      "@spartan-ng/helm/calendar": [
+        "./src/main/webapp/shared/ui/helm/calendar/src/index.ts"
+      ],
+      "@spartan-ng/helm/select": [
+        "./src/main/webapp/shared/ui/helm/select/src/index.ts"
+      ],
+      "@spartan-ng/helm/native-select": [
+        "./src/main/webapp/shared/ui/helm/native-select/src/index.ts"
+      ],
+      "@spartan-ng/helm/spinner": [
+        "./src/main/webapp/shared/ui/helm/spinner/src/index.ts"
+      ],
+      "@spartan-ng/helm/dialog": [
+        "./src/main/webapp/shared/ui/helm/dialog/src/index.ts"
       ]
     }
   },
