@@ -22,3 +22,10 @@ spring:
 medflow:
     security:
         time-zone: ${MEDFLOW_TIME_ZONE:America/Belem}
+
+management:
+    auditevents:
+        enabled: false
+    endpoint:
+        auditevents:
+            access: none

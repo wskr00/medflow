@@ -1,5 +1,8 @@
 package br.com.medflow.reception.application;
 
+import br.com.medflow.audit.application.AuditSuccessWriter;
+import br.com.medflow.audit.domain.AuditAction;
+import br.com.medflow.audit.domain.AuditResourceType;
 import br.com.medflow.clinic.domain.Clinica;
 import br.com.medflow.clinic.persistence.ClinicaRepository;
 import br.com.medflow.clinic.persistence.MedicoRepository;
@@ -32,14 +35,17 @@ public class ReceptionService {
   private final MedicoRepository medicos;
   private final AgendamentoRepository agendamentos;
   private final Clock clock;
+  private final AuditSuccessWriter audit;
 
   public ReceptionService(ClinicaRepository clinicas, UnidadeRepository unidades,
-      MedicoRepository medicos, AgendamentoRepository agendamentos, Clock clock) {
+      MedicoRepository medicos, AgendamentoRepository agendamentos, Clock clock,
+      AuditSuccessWriter audit) {
     this.clinicas = clinicas;
     this.unidades = unidades;
     this.medicos = medicos;
     this.agendamentos = agendamentos;
     this.clock = clock;
+    this.audit = audit;
   }
 
   @Transactional(readOnly = true)
@@ -85,6 +91,8 @@ public class ReceptionService {
     if (!appointment.clinica().id().equals(clinica.id())) throw new ResourceNotFoundException();
     appointment.checkIn(clock.instant(), ZoneId.of(clinica.timeZone()), expectedVersion);
     agendamentos.flush();
+    audit.record(clinica.id(), AuditAction.REALIZAR_CHECK_IN,
+        AuditResourceType.AGENDAMENTO, appointment.id());
     return view(appointment);
   }
 

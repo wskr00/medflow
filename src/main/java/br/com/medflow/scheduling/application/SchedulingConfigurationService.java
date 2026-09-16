@@ -1,5 +1,8 @@
 package br.com.medflow.scheduling.application;
 
+import br.com.medflow.audit.application.AuditSuccessWriter;
+import br.com.medflow.audit.domain.AuditAction;
+import br.com.medflow.audit.domain.AuditResourceType;
 import br.com.medflow.clinic.domain.Clinica;
 import br.com.medflow.clinic.domain.Consultorio;
 import br.com.medflow.clinic.domain.Especialidade;
@@ -40,11 +43,12 @@ public class SchedulingConfigurationService {
   private final BloqueioAgendaRepository bloqueios;
   private final AgendamentoRepository agendamentos;
   private final Clock clock;
+  private final AuditSuccessWriter audit;
 
   public SchedulingConfigurationService(ClinicaRepository clinicas, MedicoRepository medicos,
       EspecialidadeRepository especialidades, ConsultorioRepository consultorios,
       RegraAgendaRepository regras, BloqueioAgendaRepository bloqueios,
-      AgendamentoRepository agendamentos, Clock clock) {
+      AgendamentoRepository agendamentos, Clock clock, AuditSuccessWriter audit) {
     this.clinicas = clinicas;
     this.medicos = medicos;
     this.especialidades = especialidades;
@@ -53,6 +57,7 @@ public class SchedulingConfigurationService {
     this.bloqueios = bloqueios;
     this.agendamentos = agendamentos;
     this.clock = clock;
+    this.audit = audit;
   }
 
   @Transactional(readOnly = true)
@@ -67,7 +72,10 @@ public class SchedulingConfigurationService {
     Clinica clinica = lockClinica();
     RegraAgenda regra = novaRegra(clinica, command);
     validarConflitoRegra(regra, null);
-    return regras.saveAndFlush(regra);
+    RegraAgenda saved = regras.saveAndFlush(regra);
+    audit.record(clinica.id(), AuditAction.CRIAR_REGRA_AGENDA,
+        AuditResourceType.REGRA_AGENDA, saved.id());
+    return saved;
   }
 
   @Transactional
@@ -94,6 +102,8 @@ public class SchedulingConfigurationService {
     }
     validarConflitoRegra(regra, regra.id());
     regras.flush();
+    audit.record(clinica.id(), AuditAction.ALTERAR_REGRA_AGENDA,
+        AuditResourceType.REGRA_AGENDA, regra.id());
     return regra;
   }
 
@@ -112,7 +122,10 @@ public class SchedulingConfigurationService {
     BloqueioAgenda bloqueio = new BloqueioAgenda(clinica, medico, command.inicio(), command.fim(), command.ativo());
     validarReservasDoBloqueio(bloqueio);
     validarConflitoBloqueio(bloqueio, null);
-    return bloqueios.saveAndFlush(bloqueio);
+    BloqueioAgenda saved = bloqueios.saveAndFlush(bloqueio);
+    audit.record(clinica.id(), AuditAction.CRIAR_BLOQUEIO_AGENDA,
+        AuditResourceType.BLOQUEIO_AGENDA, saved.id());
+    return saved;
   }
 
   @Transactional
@@ -128,6 +141,8 @@ public class SchedulingConfigurationService {
     validarReservasDoBloqueio(bloqueio);
     validarConflitoBloqueio(bloqueio, bloqueio.id());
     bloqueios.flush();
+    audit.record(clinica.id(), AuditAction.ALTERAR_BLOQUEIO_AGENDA,
+        AuditResourceType.BLOQUEIO_AGENDA, bloqueio.id());
     return bloqueio;
   }
 

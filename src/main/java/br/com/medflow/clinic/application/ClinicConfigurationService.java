@@ -1,5 +1,8 @@
 package br.com.medflow.clinic.application;
 
+import br.com.medflow.audit.application.AuditSuccessWriter;
+import br.com.medflow.audit.domain.AuditAction;
+import br.com.medflow.audit.domain.AuditResourceType;
 import br.com.medflow.clinic.domain.Clinica;
 import br.com.medflow.clinic.domain.Consultorio;
 import br.com.medflow.clinic.domain.Especialidade;
@@ -32,16 +35,19 @@ public class ClinicConfigurationService {
   private final EspecialidadeRepository especialidades;
   private final MedicoRepository medicos;
   private final FutureAppointmentGuard futureAppointments;
+  private final AuditSuccessWriter audit;
 
   public ClinicConfigurationService(ClinicaRepository clinicas, UnidadeRepository unidades,
       ConsultorioRepository consultorios, EspecialidadeRepository especialidades,
-      MedicoRepository medicos, FutureAppointmentGuard futureAppointments) {
+      MedicoRepository medicos, FutureAppointmentGuard futureAppointments,
+      AuditSuccessWriter audit) {
     this.clinicas = clinicas;
     this.unidades = unidades;
     this.consultorios = consultorios;
     this.especialidades = especialidades;
     this.medicos = medicos;
     this.futureAppointments = futureAppointments;
+    this.audit = audit;
   }
 
   @Transactional(readOnly = true)
@@ -57,6 +63,8 @@ public class ClinicConfigurationService {
     }
     clinica.alterar(nome, normalizedTimeZone, ativo);
     clinicas.flush();
+    audit.record(clinica.id(), AuditAction.ALTERAR_CLINICA,
+        AuditResourceType.CLINICA, clinica.id());
     return clinica;
   }
 
@@ -69,7 +77,11 @@ public class ClinicConfigurationService {
 
   @Transactional
   public Unidade criarUnidade(String nome, String endereco, boolean ativo) {
-    return unidades.saveAndFlush(new Unidade(lockClinica(), nome, endereco, ativo));
+    Clinica clinica = lockClinica();
+    Unidade unidade = unidades.saveAndFlush(new Unidade(clinica, nome, endereco, ativo));
+    audit.record(clinica.id(), AuditAction.CRIAR_UNIDADE,
+        AuditResourceType.UNIDADE, unidade.id());
+    return unidade;
   }
 
   @Transactional
@@ -82,6 +94,8 @@ public class ClinicConfigurationService {
     }
     unidade.alterar(nome, endereco, ativo);
     unidades.flush();
+    audit.record(clinica.id(), AuditAction.ALTERAR_UNIDADE,
+        AuditResourceType.UNIDADE, unidade.id());
     return unidade;
   }
 
@@ -99,7 +113,10 @@ public class ClinicConfigurationService {
     if (ativo && !unidade.ativo()) {
       throw configurationConflict("Consultório ativo exige unidade ativa.");
     }
-    return consultorios.saveAndFlush(new Consultorio(unidade, nome, ativo));
+    Consultorio consultorio = consultorios.saveAndFlush(new Consultorio(unidade, nome, ativo));
+    audit.record(clinica.id(), AuditAction.CRIAR_CONSULTORIO,
+        AuditResourceType.CONSULTORIO, consultorio.id());
+    return consultorio;
   }
 
   @Transactional
@@ -118,6 +135,8 @@ public class ClinicConfigurationService {
     }
     consultorio.alterar(nome, ativo);
     consultorios.flush();
+    audit.record(clinica.id(), AuditAction.ALTERAR_CONSULTORIO,
+        AuditResourceType.CONSULTORIO, consultorio.id());
     return consultorio;
   }
 
@@ -130,7 +149,11 @@ public class ClinicConfigurationService {
 
   @Transactional
   public Especialidade criarEspecialidade(String nome, boolean ativo) {
-    return especialidades.saveAndFlush(new Especialidade(lockClinica(), nome, ativo));
+    Clinica clinica = lockClinica();
+    Especialidade especialidade = especialidades.saveAndFlush(new Especialidade(clinica, nome, ativo));
+    audit.record(clinica.id(), AuditAction.CRIAR_ESPECIALIDADE,
+        AuditResourceType.ESPECIALIDADE, especialidade.id());
+    return especialidade;
   }
 
   @Transactional
@@ -143,6 +166,8 @@ public class ClinicConfigurationService {
     }
     especialidade.alterar(nome, ativo);
     especialidades.flush();
+    audit.record(clinica.id(), AuditAction.ALTERAR_ESPECIALIDADE,
+        AuditResourceType.ESPECIALIDADE, especialidade.id());
     return especialidade;
   }
 
@@ -162,7 +187,11 @@ public class ClinicConfigurationService {
       throw configurationConflict("Médico ativo exige especialidades ativas.");
     }
     validarCrmDisponivel(clinica, crmNumero, crmUf, null);
-    return medicos.saveAndFlush(new Medico(clinica, nome, crmNumero, crmUf, vinculos, ativo));
+    Medico medico = medicos.saveAndFlush(
+        new Medico(clinica, nome, crmNumero, crmUf, vinculos, ativo));
+    audit.record(clinica.id(), AuditAction.CRIAR_MEDICO,
+        AuditResourceType.MEDICO, medico.id());
+    return medico;
   }
 
   @Transactional
@@ -186,6 +215,8 @@ public class ClinicConfigurationService {
     validarCrmDisponivel(clinica, crmNumero, crmUf, medico.id());
     medico.alterar(nome, crmNumero, crmUf, vinculos, ativo);
     medicos.flush();
+    audit.record(clinica.id(), AuditAction.ALTERAR_MEDICO,
+        AuditResourceType.MEDICO, medico.id());
     return medico;
   }
 

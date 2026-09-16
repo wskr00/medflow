@@ -4,6 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import br.com.medflow.PostgresTestConfiguration;
+import br.com.medflow.audit.domain.AuditAction;
+import br.com.medflow.audit.domain.AuditResult;
+import br.com.medflow.audit.persistence.AuditJpaRepository;
 import br.com.medflow.clinic.application.ClinicConfigurationService;
 import br.com.medflow.clinic.application.PatientProvisioningService;
 import br.com.medflow.clinic.persistence.ConsultorioRepository;
@@ -56,6 +59,7 @@ class AppointmentPersistenceIntegrationTests {
   @Autowired private PatientProvisioningService provisioning;
   @Autowired private SchedulingConfigurationService configuration;
   @Autowired private AppointmentService appointments;
+  @Autowired private AuditJpaRepository auditEvents;
   @Autowired private AgendamentoRepository appointmentRepository;
   @Autowired private BloqueioAgendaRepository blockRepository;
   @Autowired private RegraAgendaRepository ruleRepository;
@@ -326,6 +330,8 @@ class AppointmentPersistenceIntegrationTests {
     var executor = Executors.newFixedThreadPool(20);
     try {
       for (int round = 0; round < 3; round++) {
+        long successesBefore = auditEvents.countByActionAndResult(
+            AuditAction.AGENDAR, AuditResult.SUCESSO);
         OffsetDateTime target = offset(8 + round, 0);
         CountDownLatch ready = new CountDownLatch(20);
         CountDownLatch start = new CountDownLatch(1);
@@ -365,6 +371,8 @@ class AppointmentPersistenceIntegrationTests {
         assertThat(persisted.getFirst().status()).isNotEqualTo(StatusAgendamento.CANCELADA);
         assertThat(persisted.getFirst().inicio()).isEqualTo(targetStart);
         assertThat(persisted.getFirst().fim()).isEqualTo(targetEnd);
+        assertThat(auditEvents.countByActionAndResult(
+            AuditAction.AGENDAR, AuditResult.SUCESSO) - successesBefore).isEqualTo(1);
       }
     } finally {
       executor.shutdownNow();
