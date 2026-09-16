@@ -1,9 +1,26 @@
 services:
   postgres:
-    image: 'postgres:latest'
-    environment:
-      - 'POSTGRES_DB=mydatabase'
-      - 'POSTGRES_PASSWORD=secret'
-      - 'POSTGRES_USER=myuser'
+    image: postgres:18
+    container_name: medflow-postgres
     ports:
-      - '5432'
+      - "5432:5432"
+    environment:
+      TZ: America/Belem
+      POSTGRES_USER: medflow
+      POSTGRES_PASSWORD: medflow
+      POSTGRES_DB: medflow
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.7.3
+    container_name: medflow-keycloak
+    environment:
+      TZ: America/Belem
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_HTTP_PORT: 8085
+    command:
+      - start-dev
+    #   - "--import-realm"
+    # volumes:
+    #   - ./docker/keycloak/realm.json:/opt/keycloak/data/import/realm.json
+    ports:
+      - "8085:8085"
