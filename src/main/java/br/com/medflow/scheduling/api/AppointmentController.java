@@ -2,6 +2,7 @@ package br.com.medflow.scheduling.api;
 
 import br.com.medflow.common.auth.AuthenticatedActor;
 import br.com.medflow.scheduling.application.AppointmentService;
+import br.com.medflow.scheduling.application.PatientAppointmentSection;
 import br.com.medflow.scheduling.domain.StatusAgendamento;
 import br.com.medflow.security.AuthenticatedContextService;
 import jakarta.validation.Valid;
@@ -16,6 +17,8 @@ import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
@@ -62,15 +65,24 @@ public class AppointmentController {
 
   @GetMapping("/me/agendamentos")
   @PreAuthorize("hasRole('PATIENT')")
+  @Operation(summary = "Lista os próprios agendamentos", description = "`q` aceita somente os aliases "
+      + "status, inicio, medicoId, especialidadeId e unidadeId. O recorte temporal e a ordem "
+      + "são definidos pelo servidor no fuso da clínica.")
   SchedulingApi.PageResponse<SchedulingApi.PatientAppointmentResponse> proprios(
       Authentication authentication,
       @RequestParam(defaultValue = "0") @PositiveOrZero int page,
       @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
+      @Parameter(description = "Filtro RSQL com os aliases documentados.")
+      @RequestParam(required = false) String q,
+      @RequestParam(required = false) PatientAppointmentSection recorte,
       @RequestParam(required = false) StatusAgendamento status,
       @RequestParam(required = false) LocalDate dataDe,
       @RequestParam(required = false) LocalDate dataAte) {
-    return SchedulingApi.patientPage(service.proprios(actor(authentication), status, dataDe, dataAte,
-        PageRequest.of(page, size, Sort.by(Sort.Order.desc("inicio"), Sort.Order.asc("id")))));
+    Sort.Direction direction = recorte == PatientAppointmentSection.UPCOMING
+        ? Sort.Direction.ASC : Sort.Direction.DESC;
+    return SchedulingApi.patientPage(service.proprios(actor(authentication), recorte, q, status, dataDe,
+        dataAte, PageRequest.of(page, size, Sort.by(new Sort.Order(direction, "inicio"),
+            new Sort.Order(Sort.Direction.ASC, "id")))));
   }
 
   @GetMapping("/agendamentos/{id}")

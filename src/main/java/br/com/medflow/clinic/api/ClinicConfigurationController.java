@@ -49,9 +49,10 @@ public class ClinicConfigurationController {
   @PreAuthorize("@contextAuthorization.canReadSelectionCatalog(authentication, #incluirInativas)")
   Object unidades(Authentication authentication,
       @RequestParam(defaultValue = "false") boolean incluirInativas,
+      @RequestParam(required = false) String q,
       @RequestParam(defaultValue = "0") @PositiveOrZero int page,
       @RequestParam(defaultValue = "20") @jakarta.validation.constraints.Min(1) @jakarta.validation.constraints.Max(100) int size) {
-    var values = service.unidades(incluirInativas, PageRequest.of(page, size, Sort.by("nome")));
+    var values = service.unidades(incluirInativas, q, PageRequest.of(page, size, Sort.by("nome", "id")));
     return isAdmin(authentication) ? page(values, ConfigurationApi::unidade) : page(values, ConfigurationApi::catalogo);
   }
 
@@ -91,9 +92,10 @@ public class ClinicConfigurationController {
   @PreAuthorize("@contextAuthorization.canReadSelectionCatalog(authentication, #incluirInativas)")
   Object especialidades(Authentication authentication,
       @RequestParam(defaultValue = "false") boolean incluirInativas,
+      @RequestParam(required = false) String q,
       @RequestParam(defaultValue = "0") @PositiveOrZero int page,
       @RequestParam(defaultValue = "20") @jakarta.validation.constraints.Min(1) @jakarta.validation.constraints.Max(100) int size) {
-    var values = service.especialidades(incluirInativas, PageRequest.of(page, size, Sort.by("nome")));
+    var values = service.especialidades(incluirInativas, q, PageRequest.of(page, size, Sort.by("nome", "id")));
     return isAdmin(authentication) ? page(values, ConfigurationApi::especialidade) : page(values, ConfigurationApi::catalogo);
   }
 
@@ -113,9 +115,10 @@ public class ClinicConfigurationController {
   @PreAuthorize("@contextAuthorization.canReadSelectionCatalog(authentication, #incluirInativas)")
   Object medicos(Authentication authentication,
       @RequestParam(defaultValue = "false") boolean incluirInativas,
+      @RequestParam(required = false) String q,
       @RequestParam(defaultValue = "0") @PositiveOrZero int page,
       @RequestParam(defaultValue = "20") @jakarta.validation.constraints.Min(1) @jakarta.validation.constraints.Max(100) int size) {
-    var values = service.medicos(incluirInativas, PageRequest.of(page, size, Sort.by("nome")));
+    var values = service.medicos(incluirInativas, q, PageRequest.of(page, size, Sort.by("nome", "id")));
     return isAdmin(authentication) ? page(values, ConfigurationApi::medico) : page(values, ConfigurationApi::catalogo);
   }
 

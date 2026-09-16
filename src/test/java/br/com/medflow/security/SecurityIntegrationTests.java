@@ -122,6 +122,14 @@ class SecurityIntegrationTests {
                 .andExpect(jsonPath("$.items[0].crmNumero").doesNotExist());
             mvc.perform(get("/api/especialidades?incluirInativas=true").with(principal))
                 .andExpect(status().isForbidden());
+            mvc.perform(get("/api/medicos").param("q", "especialidadeId==" + specialty.id())
+                    .with(principal))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.items[0].especialidadeIds[0]").value(specialty.id().toString()));
+            mvc.perform(get("/api/medicos").param("q", "crmNumero==88888").with(principal))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("ENTRADA_INVALIDA"));
         }
         var admin = jwt().jwt(tokenWithRoles("ADMINISTRATOR"))
             .authorities(new SimpleGrantedAuthority("ROLE_ADMINISTRATOR"));
