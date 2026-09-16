@@ -46,7 +46,7 @@ public class ClinicConfigurationController {
   }
 
   @GetMapping("/unidades")
-  @PreAuthorize("hasRole('ADMINISTRATOR') or (!#incluirInativas and hasAnyRole('PATIENT','RECEPTIONIST'))")
+  @PreAuthorize("@contextAuthorization.canReadSelectionCatalog(authentication, #incluirInativas)")
   Object unidades(Authentication authentication,
       @RequestParam(defaultValue = "false") boolean incluirInativas,
       @RequestParam(defaultValue = "0") @PositiveOrZero int page,
@@ -88,7 +88,7 @@ public class ClinicConfigurationController {
   }
 
   @GetMapping("/especialidades")
-  @PreAuthorize("hasRole('ADMINISTRATOR') or (!#incluirInativas and hasAnyRole('PATIENT','RECEPTIONIST'))")
+  @PreAuthorize("@contextAuthorization.canReadSelectionCatalog(authentication, #incluirInativas)")
   Object especialidades(Authentication authentication,
       @RequestParam(defaultValue = "false") boolean incluirInativas,
       @RequestParam(defaultValue = "0") @PositiveOrZero int page,
@@ -110,7 +110,7 @@ public class ClinicConfigurationController {
   }
 
   @GetMapping("/medicos")
-  @PreAuthorize("hasRole('ADMINISTRATOR') or (!#incluirInativas and hasAnyRole('PATIENT','RECEPTIONIST'))")
+  @PreAuthorize("@contextAuthorization.canReadSelectionCatalog(authentication, #incluirInativas)")
   Object medicos(Authentication authentication,
       @RequestParam(defaultValue = "false") boolean incluirInativas,
       @RequestParam(defaultValue = "0") @PositiveOrZero int page,
