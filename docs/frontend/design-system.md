@@ -50,6 +50,32 @@ O conjunto é intencionalmente pequeno e foi instalado pelo CLI Spartan:
 
 Erros de `fieldErrors` da resposta contratada devem ser associados ao campo correspondente. Erros sem campo são exibidos em `app-state-panel`/`hlmAlert`. Um `409 VERSAO_DESATUALIZADA` ou conflito de transição não sobrescreve texto local: comunica o conflito e oferece recarregar o recurso.
 
+## Fronteira de reutilização
+
+O design system unifica linguagem, tokens e comportamento acessível; ele não
+uniformiza as jornadas. Paciente, Recepção, Médico e Administrador têm tarefas,
+densidades e decisões distintas, portanto podem e devem ter composição de
+layout, navegação interna e componentes de domínio próprios.
+
+Compartilhar por padrão:
+
+- tokens, tipografia, foco, movimento e breakpoints;
+- primitives Brain e componentes Helm;
+- sessão, guards, shell técnico, skip link e tratamento base de erros;
+- padrões de loading, vazio e feedback somente quando a semântica for igual.
+
+Manter na feature do perfil:
+
+- layout operacional, rotas e navegação secundária;
+- tabelas, cartões, filtros, ações e formulários da jornada;
+- recuperação de conflitos e componentes com vocabulário de domínio.
+
+Não criar `Dashboard`, `AppointmentCard`, editor genérico de entidades ou
+painel universal de ações apenas porque duas telas têm aparência semelhante.
+Uma abstração compartilhada exige pelo menos dois consumidores reais e a mesma
+semântica, comportamento e requisitos de acessibilidade. Sem isso, a pequena
+duplicação visual é preferível ao acoplamento entre jornadas.
+
 ## Acessibilidade e responsividade
 
 O shell contém skip link, `<nav>` nomeado, `<main>` focalizável e foco no conteúdo após a ativação de rota. A `sheet` fornece navegação móvel com título; não são usados `z-index` manuais. Estados carregando usam `aria-busy`; erros usam alertas semânticos.

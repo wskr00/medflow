@@ -45,6 +45,25 @@ Componentes compartilhados das jornadas:
 - aviso de alterações não salvas;
 - botões e controles nativos com alvo mínimo de 44 px.
 
+Essa lista define fundações, não uma composição universal. Elementos com
+responsabilidade diferente permanecem específicos da jornada, mesmo quando
+tenham aparência parecida. Em especial, não há dashboard, cartão de
+agendamento, editor de entidade ou painel de ações genérico entre os quatro
+perfis.
+
+## Arquitetura de informação por perfil
+
+| Perfil | Prioridade do usuário | Navegação e composição |
+|---|---|---|
+| Paciente | encontrar, confirmar e acompanhar uma consulta com pouca carga cognitiva | fluxo guiado por agendar, meus agendamentos e histórico; cartões e listas de baixa densidade |
+| Recepção | localizar rapidamente o próximo caso e executar transições sem perder a fila | agenda densa e filtros persistentes, ações por consulta e fila sempre contextualizada |
+| Médico | atender um paciente por vez sem perder contexto clínico nem alterações digitadas | triagem separada da rota de atendimento; contexto, registro clínico e histórico autorizado; fila secundária |
+| Administrador | configurar estrutura e agenda com relações e conflitos visíveis | áreas por domínio, diretórios e editores próprios; master/detail em desktop e rotas/etapas empilhadas em tablet |
+
+Componentes devem receber nomes e contratos ligados à tarefa, como
+`ReceptionAgendaTable`, `ClinicalRecordForm` ou `ScheduleRuleEditor`. A
+semelhança visual isolada não justifica mover um componente para `shared`.
+
 ## Paciente — disponibilidade e agendamento
 
 Requisitos relacionados: RF005, RF006, RF007, RF008, RF009 e RF017.
