@@ -273,6 +273,36 @@ class SecurityIntegrationTests {
     }
 
     @Test
+    void activeLinkedDoctorReceivesOnlyDoctorContext() throws Exception {
+        var specialty = clinic.criarEspecialidade("Contexto médico isolado", true);
+        var doctor = clinic.criarMedico(
+            "Médico com contexto isolado", "55555", "PA", List.of(specialty.id()), true);
+        clinic.provisionarSubjectMedico(doctor.id(), "doctor-only-subject");
+        Jwt token = tokenWithSubjectAndRoles("doctor-only-subject", "DOCTOR");
+
+        mvc.perform(get("/api/me").with(jwt().jwt(token)
+                .authorities(new SecurityConfiguration.MedflowApiRolesConverter().convert(token))))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.roles.length()").value(1))
+            .andExpect(jsonPath("$.roles[0]").value("DOCTOR"))
+            .andExpect(jsonPath("$.medicoId").value(doctor.id().toString()))
+            .andExpect(jsonPath("$.pacienteId").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    @Test
+    void receptionistReceivesContextWithoutLocalLink() throws Exception {
+        Jwt token = tokenWithSubjectAndRoles("receptionist-only-subject", "RECEPTIONIST");
+
+        mvc.perform(get("/api/me").with(jwt().jwt(token)
+                .authorities(new SecurityConfiguration.MedflowApiRolesConverter().convert(token))))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.roles.length()").value(1))
+            .andExpect(jsonPath("$.roles[0]").value("RECEPTIONIST"))
+            .andExpect(jsonPath("$.pacienteId").value(org.hamcrest.Matchers.nullValue()))
+            .andExpect(jsonPath("$.medicoId").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    @Test
     void unknownSubjectDoesNotCreateLocalIdentityLink() throws Exception {
         Jwt token = Jwt.withTokenValue("synthetic")
             .header("alg", "none")
