@@ -1,7 +1,0 @@
-dist
-coverage
-target
-node_modules
-.angular
-.serema
-.vscode

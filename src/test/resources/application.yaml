@@ -1,9 +1,0 @@
-spring:
-  datasource:
-    url: jdbc:tc:postgresql:18:///medflow_test
-    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
-  jpa:
-    hibernate:
-      ddl-auto: none
-  flyway:
-    enabled: false
