@@ -15,7 +15,7 @@ src/main/webapp/app/
 
 ## Rotas e identidade
 
-As rotas são standalone e lazy. A rota vazia de `/workspace` usa um `RedirectFunction` do Router para escolher a primeira área disponível na ordem explícita `PATIENT`, `RECEPTIONIST`, `DOCTOR`, `ADMINISTRATOR`; assim, uma conta multi-role tem destino determinístico. As rotas diretas de perfil usam `createAuthGuard` do `keycloak-angular`, que verifica os claims já gerenciados pela sessão e retorna `UrlTree` para acesso negado quando necessário. Isso limita a navegação, mas o backend continua sendo a autoridade de autorização.
+As rotas são standalone e lazy. A rota vazia de `/workspace` usa um `RedirectFunction` do Router para escolher a primeira área disponível na ordem explícita `PATIENT`, `RECEPTIONIST`, `DOCTOR`, `ADMINISTRATOR`; assim, uma conta multi-role tem destino determinístico. As rotas diretas de perfil usam `createAuthGuard` do `keycloak-angular`, que verifica exclusivamente as client roles de `medflow-api` já gerenciadas pela sessão e retorna `UrlTree` para acesso negado quando necessário. Realm roles ou roles de outros clients não liberam navegação. Isso limita a navegação, mas o backend continua sendo a autoridade de autorização.
 
 `IdentityService.identity` usa `httpResource` para `GET /api/me`. Isso mantém a leitura reativa e passa pelo `HttpClient` já configurado pelo `keycloak-angular`. Um `401` nessa leitura volta ao fluxo de login do Keycloak; não há interceptor bearer, refresh manual ou nova fonte de roles. `withComponentInputBinding()` entrega o `profile` da rota diretamente ao componente de referência, sem leitura manual de `ActivatedRoute.snapshot`.
 
@@ -44,7 +44,7 @@ Não encapsular essas chamadas atrás de uma camada genérica sem consumidor. `4
 
 ## Formulários
 
-`ReferenceFormComponent` é uma implementação pequena para validar a composição Signal Forms + Helm antes das jornadas. `FormRoot` executa a submissão declarada no Signal Form, marca campos inválidos como tocados e demonstra label associado, descrição, erro local e ponto de exibição para erro de servidor; não envia uma mutação fictícia. A API de cada jornada fará a mutação real com `HttpClient` explícito e mapeará o `fieldErrors` retornado.
+`ReferenceFormComponent` é uma implementação pequena para validar a composição Signal Forms + Helm antes das jornadas. `FormRoot` executa a submissão declarada no Signal Form, marca campos inválidos como tocados e demonstra label associado, descrição e sucesso local; não envia uma mutação fictícia. A apresentação de erro de servidor é uma ação de demonstração explícita e local, separada da submissão válida. A API de cada jornada fará a mutação real com `HttpClient` explícito e mapeará o `fieldErrors` retornado.
 
 ## Dependência das jornadas
 

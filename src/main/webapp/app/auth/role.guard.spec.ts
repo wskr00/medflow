@@ -10,11 +10,26 @@ import Keycloak from "keycloak-js";
 
 import { defaultWorkspaceRedirect, requireRole } from "./role.guard";
 
-function keycloakWithRoles(roles: string[], authenticated = true): Keycloak {
+interface KeycloakRoleFixture {
+  readonly medflowApiRoles?: string[];
+  readonly realmRoles?: string[];
+  readonly otherClientRoles?: string[];
+  readonly authenticated?: boolean;
+}
+
+function keycloakWithRoles({
+  medflowApiRoles = [],
+  realmRoles = [],
+  otherClientRoles = [],
+  authenticated = true,
+}: KeycloakRoleFixture): Keycloak {
   return {
     authenticated,
-    realmAccess: { roles },
-    resourceAccess: { "medflow-api": { roles } },
+    realmAccess: { roles: realmRoles },
+    resourceAccess: {
+      "medflow-api": { roles: medflowApiRoles },
+      "medflow-web": { roles: otherClientRoles },
+    },
   } as unknown as Keycloak;
 }
 
@@ -23,7 +38,10 @@ describe("MedFlow role routing", () => {
     await TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
-        { provide: Keycloak, useValue: keycloakWithRoles(["DOCTOR"]) },
+        {
+          provide: Keycloak,
+          useValue: keycloakWithRoles({ medflowApiRoles: ["DOCTOR"] }),
+        },
       ],
     }).compileComponents();
 
@@ -41,7 +59,10 @@ describe("MedFlow role routing", () => {
     await TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
-        { provide: Keycloak, useValue: keycloakWithRoles(["PATIENT"]) },
+        {
+          provide: Keycloak,
+          useValue: keycloakWithRoles({ medflowApiRoles: ["PATIENT"] }),
+        },
       ],
     }).compileComponents();
 
@@ -62,7 +83,9 @@ describe("MedFlow role routing", () => {
         provideRouter([]),
         {
           provide: Keycloak,
-          useValue: keycloakWithRoles(["ADMINISTRATOR", "DOCTOR"]),
+          useValue: keycloakWithRoles({
+            medflowApiRoles: ["ADMINISTRATOR", "DOCTOR"],
+          }),
         },
       ],
     }).compileComponents();
@@ -82,7 +105,53 @@ describe("MedFlow role routing", () => {
         provideRouter([]),
         {
           provide: Keycloak,
-          useValue: keycloakWithRoles(["PATIENT"], false),
+          useValue: keycloakWithRoles({
+            medflowApiRoles: ["PATIENT"],
+            authenticated: false,
+          }),
+        },
+      ],
+    }).compileComponents();
+
+    const redirect = TestBed.runInInjectionContext(() =>
+      defaultWorkspaceRedirect({} as never),
+    );
+
+    expect(TestBed.inject(Router).serializeUrl(redirect as UrlTree)).toBe(
+      "/access-denied",
+    );
+  });
+
+  it("does not authorize an isolated realm role", async () => {
+    await TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        {
+          provide: Keycloak,
+          useValue: keycloakWithRoles({ realmRoles: ["DOCTOR"] }),
+        },
+      ],
+    }).compileComponents();
+
+    const result = await TestBed.runInInjectionContext(() =>
+      requireRole("DOCTOR")(
+        {} as ActivatedRouteSnapshot,
+        {} as RouterStateSnapshot,
+      ),
+    );
+
+    expect(TestBed.inject(Router).serializeUrl(result as UrlTree)).toBe(
+      "/access-denied",
+    );
+  });
+
+  it("does not authorize a role granted by another client", async () => {
+    await TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        {
+          provide: Keycloak,
+          useValue: keycloakWithRoles({ otherClientRoles: ["DOCTOR"] }),
         },
       ],
     }).compileComponents();

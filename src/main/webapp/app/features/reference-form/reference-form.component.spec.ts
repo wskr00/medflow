@@ -52,6 +52,24 @@ describe("ReferenceFormComponent", () => {
     fixture.detectChanges();
 
     expect(host.textContent).toContain("Referência validada");
+    expect(host.textContent).not.toContain("Exemplo de erro do servidor");
+  });
+
+  it("shows a server-error presentation only through its explicit local demonstration action", async () => {
+    await TestBed.configureTestingModule({
+      imports: [ReferenceFormComponent],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(ReferenceFormComponent);
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    const button = Array.from(host.querySelectorAll("button")).find((element) =>
+      element.textContent?.includes("Demonstrar erro de servidor"),
+    );
+    (button as HTMLButtonElement).click();
+    fixture.detectChanges();
+
     expect(host.textContent).toContain("Exemplo de erro do servidor");
+    expect(host.textContent).not.toContain("Referência validada");
   });
 });
