@@ -67,6 +67,18 @@ Execução isolada reproduzível:
 
 Essa evidência não substitui o ensaio integrado final da #25 nem mede RNF005.
 
+## Evidência automatizada de recepção e fila (#12)
+
+`ReceptionPersistenceIntegrationTests` e `ReceptionHttpIntegrationTests` exercitam RF010–RF012 com relógio fixo, fuso `America/Belem`, dados sintéticos e PostgreSQL Testcontainers. A cobertura inclui agenda diária paginada e filtrada, check-in somente na data local, preservação do primeiro instante, repetição e transições inválidas, fila derivada ordenada e pendência de dia anterior explicitamente indicada. As corridas check-in×check-in e check-in×cancelamento usam barreiras sem `sleep`, consultam estado, versão e `check_in_em` persistidos e exigem exatamente uma mutação confirmada. Um cenário adicional mantém o comando aguardando o lock real da Clínica e comprova a revalidação do estado após o lock.
+
+Execução isolada reproduzível:
+
+```bash
+./gradlew test --tests 'br.com.medflow.reception.*IntegrationTests'
+```
+
+Os testes HTTP verificam paginação, filtros escopados, `404` uniforme, projeção operacional sem conteúdo clínico e negação de Paciente, Médico e Administração. Essa evidência não inclui atendimento, auditoria, frontend ou medição de desempenho.
+
 ## Evidência e diagnóstico
 
 Uma falha deve registrar, conforme aplicável:
