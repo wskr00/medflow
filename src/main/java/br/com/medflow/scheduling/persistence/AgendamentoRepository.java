@@ -8,8 +8,10 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import jakarta.persistence.LockModeType;
 
 public interface AgendamentoRepository
     extends JpaRepository<Agendamento, UUID>, JpaSpecificationExecutor<Agendamento> {
@@ -17,6 +19,12 @@ public interface AgendamentoRepository
   boolean existsByIdAndPacienteId(UUID id, UUID pacienteId);
 
   boolean existsByIdAndClinicaId(UUID id, UUID clinicaId);
+
+  boolean existsByIdAndMedicoId(UUID id, UUID medicoId);
+
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query("select a from Agendamento a where a.id = :id")
+  java.util.Optional<Agendamento> findByIdForUpdate(@Param("id") UUID id);
 
   @Query("""
       select a from Agendamento a
