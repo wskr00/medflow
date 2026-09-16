@@ -11,7 +11,7 @@ Inspeção em 16 de setembro de 2026, vinculada à Issue #7.
 - Na conferência final, `main` já continha o commit externo à rodada `f0d3365` (`docs: adiciona documentação`), que versionou os artefatos originais e ajustou `.gitignore`. `develop` continuava em `55a96d6`. O PR documental desta rodada tem base em `develop`; o commit de `main` foi preservado, sem reset ou alteração do checkout principal.
 - O Project MedFlow — 2026.2 contém #7–#19 e #23–#25. #7, #8, #9 e #23 estavam em Ready; as demais em Backlog. Esse estado administrativo não comprova critérios técnicos satisfeitos.
 - Na leitura inicial, #20–#22 estavam fechadas com motivo `duplicate`; correspondiam a #17–#19 e não representavam funcionalidades concluídas. Na atualização final, deixaram de aparecer na listagem; #20 também retornou HTTP 410. Essas entradas são evidência histórica, não tarefas a recriar.
-- #1 está fechada, mas o código atual não demonstra todos os seus critérios: não há controller `/api/health`, contrato global de erros, request ID ou rota de exemplo com validação.
+- #1 está fechada, mas o código atual não demonstra todos os seus critérios: o Actuator já fornece `/actuator/health`, porém ainda faltam validação documentada do endpoint, contrato global de erros, request ID e uma verificação HTTP de validação.
 - Atualização durante a rodada: a consulta posterior da #1 retornou HTTP 410, indicando exclusão no GitHub. A #27 foi criada para recuperar os critérios faltantes; a exclusão não foi realizada nesta rodada. A observação inicial acima é preservada como evidência temporal.
 - Os runs recentes retornados pelo GitHub são execuções históricas de assistência de código, não evidência de CI do MVP atual.
 
