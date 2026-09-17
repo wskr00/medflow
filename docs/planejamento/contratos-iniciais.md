@@ -68,20 +68,20 @@ Os operadores e valores são interpretados pelo starter RSQL; `q` pode combinar 
 |---|---|
 | `GET /api/recepcao/agenda` | `data`, `unidadeId?`, `medicoId?`, `status?`; somente visão operacional no contexto autorizado |
 | `GET /api/recepcao/fila` | `unidadeId?`, `medicoId?`; somente `EM_ESPERA`, ordem `inicio`, `checkInEm`, `id`, incluindo espera pendente de dia anterior claramente identificada |
-| `GET /api/medico/agenda`, `/api/medico/fila` | Médico derivado da identidade, sem parâmetro que permita trocar o profissional; agenda por data, fila em espera |
+| `GET /api/medico/agenda`, `/api/medico/fila` | Médico derivado da identidade, sem parâmetro que permita trocar o profissional; agenda por data, fila em espera; projeção inclui `atendimentoId?` e `allowedActions:{canStart,canResume}` calculadas no servidor |
 | `POST /api/agendamentos/{id}/check-in` | `expectedVersion`; somente data local da consulta; 200 altera `AGENDADA` para `EM_ESPERA`; repetição 409, preserva primeiro timestamp e não duplica sucesso de auditoria |
-| `POST /api/agendamentos/{id}/atendimento` | `expectedVersion`; 201 cria um único Atendimento e muda para `EM_ATENDIMENTO` atomicamente |
-| `GET /api/atendimentos/{id}` | Médico autorizado; `id`, `agendamentoId`, `version`, `iniciadoEm`, `finalizadoEm?`, `registroClinico` |
-| `PUT /api/atendimentos/{id}/registro-clinico` | `expectedVersion`, `queixaPrincipal`, `resumoAnamnese`, `conduta`, `observacoes`; 200 retorna nova versão; rascunho incompleto permitido |
-| `POST /api/atendimentos/{id}/finalizacao` | `expectedVersion`; valida versão e registro persistido; 200 grava término e `FINALIZADA` na mesma transação |
+| `POST /api/agendamentos/{id}/atendimento` | `expectedVersion`; 201 cria um único Atendimento e muda para `EM_ATENDIMENTO` atomicamente; retorna workspace contextual |
+| `GET /api/atendimentos/{id}` | Médico autorizado; retorna workspace contextual para reload/link direto |
+| `PUT /api/atendimentos/{id}/registro-clinico` | `expectedVersion`, `queixaPrincipal`, `resumoAnamnese`, `conduta`, `observacoes`; 200 retorna workspace com nova versão; rascunho incompleto permitido |
+| `POST /api/atendimentos/{id}/finalizacao` | `expectedVersion`; valida versão e registro persistido; 200 grava término e `FINALIZADA` na mesma transação, retornando workspace |
 | `GET /api/me/historico` | Finalizadas próprias, somente projeção operacional, sem texto clínico |
-| `GET /api/medico/pacientes/{id}/historico` | Somente atendimentos finalizados desse paciente realizados pelo médico autenticado, com quatro campos clínicos; lista vazia uniforme quando não existem registros autorizados |
+| `GET /api/medico/pacientes/{id}/historico` | Somente atendimentos finalizados desse paciente realizados pelo médico autenticado, em workspaces contextuais com os quatro campos clínicos; lista vazia uniforme quando não existem registros autorizados |
 
 Finalização exige queixa, resumo/anamnese e conduta não vazios após trim; observações opcionais. Limites técnicos acordados: queixa até 2.000 caracteres, resumo e conduta até 10.000 cada, observações até 5.000; frontend e backend usam os mesmos limites. Não são validações de conteúdo médico.
 
-Criação/reagendamento/cancelamento/check-in retornam a projeção operacional com versão atual. Início retorna `{agendamento,atendimento}`; salvar registro retorna o Atendimento com nova versão; finalização retorna `{agendamento,atendimento}` com versões atuais e término preenchido. Agenda/fila usam a mesma projeção operacional em envelope paginado; histórico médico usa o Atendimento finalizado e referências operacionais. Agenda ordena por início/id, históricos por início decrescente/id. Sem indicador agregado calculado apenas sobre a página atual: a UI usa `totalElements` da consulta correspondente ou omite o contador.
+Criação/reagendamento/cancelamento/check-in retornam a projeção operacional com versão atual. O workspace médico de início, GET, salvamento e finalização é `{agendamento,atendimento}`: `agendamento` contém paciente `{id,nome}`, médico, especialidade, unidade, consultório, horário, status, versão, `atendimentoId` e ações calculadas; `atendimento` contém id, `agendamentoId`, versão, início, término opcional e registro. Agenda/fila usam esta projeção operacional sem conteúdo clínico em envelope paginado; `canStart` é verdadeiro somente em `EM_ESPERA` sem Atendimento e `canResume` somente em `EM_ATENDIMENTO` com Atendimento. Histórico médico usa o mesmo workspace para fornecer contexto permitido. Agenda ordena por início/id, históricos por início decrescente/id. Sem indicador agregado calculado apenas sobre a página atual: a UI usa `totalElements` da consulta correspondente ou omite o contador.
 
-UI salva explicitamente o rascunho. Havendo alterações locais, deve salvar com sucesso antes de finalizar e usar a versão retornada. Falha de salvamento bloqueia a finalização; falha de finalização mantém o rascunho persistido e permite recuperação do estado pelo GET. Depois de finalizado, nenhuma edição pelo fluxo normal.
+UI salva explicitamente o rascunho. Havendo alterações locais, deve salvar com sucesso antes de finalizar e usar a versão retornada. Após reload, a UI informa que o rascunho foi persistido; o MVP não registra um timestamp adicional de salvamento. Falha de salvamento bloqueia a finalização; falha de finalização mantém o rascunho persistido e permite recuperação do estado pelo GET. Depois de finalizado, nenhuma edição pelo fluxo normal.
 
 ## Erros
 

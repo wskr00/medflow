@@ -87,6 +87,9 @@ class CareHttpIntegrationTests {
         .andExpect(jsonPath("$.items[0].id").value(first.id().toString()))
         .andExpect(jsonPath("$.items[1].id").value(second.id().toString()))
         .andExpect(jsonPath("$.items[0].paciente.id").value(fixture.patient().pacienteId().toString()))
+        .andExpect(jsonPath("$.items[0].atendimentoId").value(org.hamcrest.Matchers.nullValue()))
+        .andExpect(jsonPath("$.items[0].allowedActions.canStart").value(true))
+        .andExpect(jsonPath("$.items[0].allowedActions.canResume").value(false))
         .andExpect(jsonPath("$.items[0].registroClinico").doesNotExist());
     mvc.perform(get("/api/medico/agenda?data=2026-09-16&status=EM_ESPERA&page=1&size=2")
             .with(doctor))
@@ -99,6 +102,8 @@ class CareHttpIntegrationTests {
         .andExpect(jsonPath("$.totalElements").value(3))
         .andExpect(jsonPath("$.items[0].id").value(first.id().toString()))
         .andExpect(jsonPath("$.items[1].id").value(second.id().toString()))
+        .andExpect(jsonPath("$.items[0].allowedActions.canStart").value(true))
+        .andExpect(jsonPath("$.items[0].allowedActions.canResume").value(false))
         .andExpect(jsonPath("$.items[0].registroClinico").doesNotExist());
 
     mvc.perform(post("/api/agendamentos/" + first.id() + "/atendimento").with(doctor)
@@ -107,22 +112,41 @@ class CareHttpIntegrationTests {
         .andExpect(header().exists("Location"))
         .andExpect(jsonPath("$.agendamento.status").value("EM_ATENDIMENTO"))
         .andExpect(jsonPath("$.agendamento.version").value(2))
+        .andExpect(jsonPath("$.agendamento.atendimentoId").exists())
+        .andExpect(jsonPath("$.agendamento.allowedActions.canStart").value(false))
+        .andExpect(jsonPath("$.agendamento.allowedActions.canResume").value(true))
         .andExpect(jsonPath("$.atendimento.version").value(0))
         .andExpect(jsonPath("$.atendimento.registroClinico.queixaPrincipal").value(""));
     UUID careId = careRepository.findByAgendamentoId(first.id()).orElseThrow().id();
 
+    mvc.perform(get("/api/medico/agenda?data=2026-09-16&status=EM_ATENDIMENTO").with(doctor))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.items[0].id").value(first.id().toString()))
+        .andExpect(jsonPath("$.items[0].atendimentoId").value(careId.toString()))
+        .andExpect(jsonPath("$.items[0].allowedActions.canStart").value(false))
+        .andExpect(jsonPath("$.items[0].allowedActions.canResume").value(true));
+
     mvc.perform(get("/api/atendimentos/" + careId).with(doctor))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.agendamentoId").value(first.id().toString()));
+        .andExpect(jsonPath("$.agendamento.id").value(first.id().toString()))
+        .andExpect(jsonPath("$.agendamento.paciente.id").value(fixture.patient().pacienteId().toString()))
+        .andExpect(jsonPath("$.atendimento.id").value(careId.toString()))
+        .andExpect(jsonPath("$.atendimento.version").value(0));
     mvc.perform(put("/api/atendimentos/" + careId + "/registro-clinico").with(doctor)
             .contentType(MediaType.APPLICATION_JSON).content("""
                 {"expectedVersion":0,"queixaPrincipal":"  Dor  ",
                  "resumoAnamnese":"","conduta":null,"observacoes":"  nota  "}
                 """))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.version").value(1))
-        .andExpect(jsonPath("$.registroClinico.queixaPrincipal").value("Dor"))
-        .andExpect(jsonPath("$.registroClinico.observacoes").value("nota"));
+        .andExpect(jsonPath("$.agendamento.id").value(first.id().toString()))
+        .andExpect(jsonPath("$.atendimento.version").value(1))
+        .andExpect(jsonPath("$.atendimento.registroClinico.queixaPrincipal").value("Dor"))
+        .andExpect(jsonPath("$.atendimento.registroClinico.observacoes").value("nota"));
+    mvc.perform(get("/api/atendimentos/" + careId).with(doctor))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.agendamento.id").value(first.id().toString()))
+        .andExpect(jsonPath("$.atendimento.version").value(1))
+        .andExpect(jsonPath("$.atendimento.registroClinico.queixaPrincipal").value("Dor"));
     mvc.perform(post("/api/atendimentos/" + careId + "/finalizacao").with(doctor)
             .contentType(MediaType.APPLICATION_JSON).content("{\"expectedVersion\":1}"))
         .andExpect(status().isConflict())
@@ -133,7 +157,7 @@ class CareHttpIntegrationTests {
                  "resumoAnamnese":"Resumo","conduta":"Conduta","observacoes":"Nota"}
                 """))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.version").value(2));
+        .andExpect(jsonPath("$.atendimento.version").value(2));
     mvc.perform(post("/api/atendimentos/" + careId + "/finalizacao").with(doctor)
             .contentType(MediaType.APPLICATION_JSON).content("{\"expectedVersion\":2}"))
         .andExpect(status().isOk())
@@ -145,7 +169,9 @@ class CareHttpIntegrationTests {
             + "/historico?page=0&size=10").with(doctor))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.totalElements").value(1))
-        .andExpect(jsonPath("$.items[0].registroClinico.queixaPrincipal").value("Dor"));
+        .andExpect(jsonPath("$.items[0].agendamento.id").value(first.id().toString()))
+        .andExpect(jsonPath("$.items[0].agendamento.paciente.id").value(fixture.patient().pacienteId().toString()))
+        .andExpect(jsonPath("$.items[0].atendimento.registroClinico.queixaPrincipal").value("Dor"));
     mvc.perform(get("/api/me/historico?page=0&size=10")
             .with(principal(fixture.patient().subject(), "PATIENT")))
         .andExpect(status().isOk())
@@ -280,10 +306,10 @@ class CareHttpIntegrationTests {
         .andExpect(jsonPath("$.page").value(0))
         .andExpect(jsonPath("$.size").value(2))
         .andExpect(jsonPath("$.totalElements").value(4))
-        .andExpect(jsonPath("$.items[0].agendamentoId").value(newest.toString()))
-        .andExpect(jsonPath("$.items[0].registroClinico.queixaPrincipal").value("own-newest"))
-        .andExpect(jsonPath("$.items[1].agendamentoId").value(lowerIdTie.toString()))
-        .andExpect(jsonPath("$.items[1].registroClinico.queixaPrincipal").value("own-lower-id"))
+        .andExpect(jsonPath("$.items[0].agendamento.id").value(newest.toString()))
+        .andExpect(jsonPath("$.items[0].atendimento.registroClinico.queixaPrincipal").value("own-newest"))
+        .andExpect(jsonPath("$.items[1].agendamento.id").value(lowerIdTie.toString()))
+        .andExpect(jsonPath("$.items[1].atendimento.registroClinico.queixaPrincipal").value("own-lower-id"))
         .andExpect(content().string(not(containsString("other-doctor-secret"))))
         .andExpect(content().string(not(containsString("unfinished-secret"))));
     mvc.perform(get(path + "?page=1&size=2").with(doctor))
@@ -291,10 +317,10 @@ class CareHttpIntegrationTests {
         .andExpect(jsonPath("$.page").value(1))
         .andExpect(jsonPath("$.size").value(2))
         .andExpect(jsonPath("$.totalElements").value(4))
-        .andExpect(jsonPath("$.items[0].agendamentoId").value(higherIdTie.toString()))
-        .andExpect(jsonPath("$.items[0].registroClinico.queixaPrincipal").value("own-higher-id"))
-        .andExpect(jsonPath("$.items[1].agendamentoId").value(oldest.toString()))
-        .andExpect(jsonPath("$.items[1].registroClinico.queixaPrincipal").value("own-oldest"))
+        .andExpect(jsonPath("$.items[0].agendamento.id").value(higherIdTie.toString()))
+        .andExpect(jsonPath("$.items[0].atendimento.registroClinico.queixaPrincipal").value("own-higher-id"))
+        .andExpect(jsonPath("$.items[1].agendamento.id").value(oldest.toString()))
+        .andExpect(jsonPath("$.items[1].atendimento.registroClinico.queixaPrincipal").value("own-oldest"))
         .andExpect(content().string(not(containsString("other-doctor-secret"))))
         .andExpect(content().string(not(containsString("unfinished-secret"))));
   }
@@ -368,7 +394,7 @@ class CareHttpIntegrationTests {
     var otherStarted = care.start(other.doctor(), otherWaiting.id(), otherWaiting.version());
     var otherDraft = care.saveDraft(other.doctor(), otherStarted.atendimento().id(), 0,
         "queixa alheia", "resumo alheio", "conduta alheia", "observação alheia");
-    care.finish(other.doctor(), otherDraft.id(), otherDraft.version());
+    care.finish(other.doctor(), otherDraft.atendimento().id(), otherDraft.atendimento().version());
     var ownDoctor = principal(own.doctor().subject(), "DOCTOR");
     UUID missing = UUID.randomUUID();
     String version = "{\"expectedVersion\":0}";

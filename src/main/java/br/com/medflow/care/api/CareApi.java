@@ -13,7 +13,8 @@ final class CareApi {
   static AppointmentResponse appointment(CareService.OperationalAppointment value) {
     return new AppointmentResponse(value.id(), value.version(), value.inicio(), value.fim(),
         value.status(), value.checkInEm(), named(value.medico()), named(value.especialidade()),
-        named(value.unidade()), named(value.consultorio()), named(value.paciente()));
+        named(value.unidade()), named(value.consultorio()), named(value.paciente()),
+        value.atendimentoId(), allowedActions(value.allowedActions()));
   }
 
   static CareResponse care(CareService.CareView value) {
@@ -21,25 +22,14 @@ final class CareApi {
         value.finalizadoEm(), clinicalRecord(value.registroClinico()));
   }
 
-  static StartResponse start(CareService.StartResult value) {
-    return new StartResponse(appointment(value.agendamento()), care(value.atendimento()));
-  }
-
-  static FinishResponse finish(CareService.FinishResult value) {
-    return new FinishResponse(appointment(value.agendamento()), care(value.atendimento()));
+  static WorkspaceResponse workspace(CareService.Workspace value) {
+    return new WorkspaceResponse(appointment(value.agendamento()), care(value.atendimento()));
   }
 
   static PatientHistoryResponse patientHistory(CareService.PatientHistoryItem value) {
     return new PatientHistoryResponse(value.id(), value.inicio(), value.fim(), value.status(),
         named(value.medico()), named(value.especialidade()), named(value.unidade()),
         named(value.consultorio()));
-  }
-
-  static DoctorHistoryResponse doctorHistory(CareService.DoctorHistoryItem value) {
-    return new DoctorHistoryResponse(value.atendimentoId(), value.agendamentoId(), value.inicio(),
-        value.fim(), value.iniciadoEm(), value.finalizadoEm(), named(value.paciente()),
-        named(value.especialidade()), named(value.unidade()), named(value.consultorio()),
-        clinicalRecord(value.registroClinico()));
   }
 
   static PageResponse<AppointmentResponse> appointmentPage(
@@ -52,9 +42,8 @@ final class CareApi {
     return page(source.map(CareApi::patientHistory));
   }
 
-  static PageResponse<DoctorHistoryResponse> doctorHistoryPage(
-      Page<CareService.DoctorHistoryItem> source) {
-    return page(source.map(CareApi::doctorHistory));
+  static PageResponse<WorkspaceResponse> workspacePage(Page<CareService.Workspace> source) {
+    return page(source.map(CareApi::workspace));
   }
 
   private static <T> PageResponse<T> page(Page<T> source) {
@@ -71,12 +60,19 @@ final class CareApi {
         value.conduta(), value.observacoes());
   }
 
+  private static AllowedActionsResponse allowedActions(CareService.AllowedActions value) {
+    return new AllowedActionsResponse(value.canStart(), value.canResume());
+  }
+
   record NamedResponse(UUID id, String nome) { }
 
   record AppointmentResponse(UUID id, long version, OffsetDateTime inicio,
       OffsetDateTime fim, StatusAgendamento status, OffsetDateTime checkInEm,
       NamedResponse medico, NamedResponse especialidade, NamedResponse unidade,
-      NamedResponse consultorio, NamedResponse paciente) { }
+      NamedResponse consultorio, NamedResponse paciente, UUID atendimentoId,
+      AllowedActionsResponse allowedActions) { }
+
+  record AllowedActionsResponse(boolean canStart, boolean canResume) { }
 
   record ClinicalRecordResponse(String queixaPrincipal, String resumoAnamnese,
       String conduta, String observacoes) { }
@@ -85,18 +81,11 @@ final class CareApi {
       OffsetDateTime iniciadoEm, OffsetDateTime finalizadoEm,
       ClinicalRecordResponse registroClinico) { }
 
-  record StartResponse(AppointmentResponse agendamento, CareResponse atendimento) { }
-
-  record FinishResponse(AppointmentResponse agendamento, CareResponse atendimento) { }
+  record WorkspaceResponse(AppointmentResponse agendamento, CareResponse atendimento) { }
 
   record PatientHistoryResponse(UUID id, OffsetDateTime inicio, OffsetDateTime fim,
       StatusAgendamento status, NamedResponse medico, NamedResponse especialidade,
       NamedResponse unidade, NamedResponse consultorio) { }
-
-  record DoctorHistoryResponse(UUID atendimentoId, UUID agendamentoId,
-      OffsetDateTime inicio, OffsetDateTime fim, OffsetDateTime iniciadoEm,
-      OffsetDateTime finalizadoEm, NamedResponse paciente, NamedResponse especialidade,
-      NamedResponse unidade, NamedResponse consultorio, ClinicalRecordResponse registroClinico) { }
 
   record PageResponse<T>(List<T> items, int page, int size, long totalElements) { }
 }
