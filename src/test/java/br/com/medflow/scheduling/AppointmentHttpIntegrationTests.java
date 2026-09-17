@@ -105,6 +105,10 @@ class AppointmentHttpIntegrationTests {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.paciente.id").value(fixture.patientId().toString()))
         .andExpect(jsonPath("$.paciente.nome").value("Paciente " + fixture.suffix()))
+        .andExpect(jsonPath("$.allowedActions.canCheckIn").value(false))
+        .andExpect(jsonPath("$.allowedActions.canReschedule").value(true))
+        .andExpect(jsonPath("$.allowedActions.canCancel").value(true))
+        .andExpect(jsonPath("$.pendenteDeDiaAnterior").value(false))
         .andExpect(jsonPath("$.medico.crmNumero").doesNotExist())
         .andExpect(jsonPath("$.registroClinico").doesNotExist());
 
@@ -201,6 +205,9 @@ class AppointmentHttpIntegrationTests {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.version").value(1))
         .andExpect(jsonPath("$.consultorio.id").value(room.id().toString()))
+        .andExpect(jsonPath("$.allowedActions.canCheckIn").value(false))
+        .andExpect(jsonPath("$.allowedActions.canReschedule").value(true))
+        .andExpect(jsonPath("$.allowedActions.canCancel").value(true))
         .andExpect(jsonPath("$.paciente.id").value(fixture.patientId().toString()));
     mvc.perform(post(location + "/cancelamento")
             .with(principal("mutations-reception", "RECEPTIONIST"))
@@ -208,6 +215,9 @@ class AppointmentHttpIntegrationTests {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.version").value(2))
         .andExpect(jsonPath("$.status").value("CANCELADA"))
+        .andExpect(jsonPath("$.allowedActions.canCheckIn").value(false))
+        .andExpect(jsonPath("$.allowedActions.canReschedule").value(false))
+        .andExpect(jsonPath("$.allowedActions.canCancel").value(false))
         .andExpect(jsonPath("$.paciente.id").value(fixture.patientId().toString()));
 
     var patientCreated = mvc.perform(post("/api/agendamentos")

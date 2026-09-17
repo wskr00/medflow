@@ -192,6 +192,44 @@
       }
     },
     {
+      "id": "20000000-0000-0000-0000-000000000005",
+      "username": "paciente.helena",
+      "firstName": "Helena",
+      "lastName": "Rocha",
+      "email": "helena@medflow.local",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "paciente",
+          "temporary": false
+        }
+      ],
+      "clientRoles": {
+        "medflow-api": ["PATIENT"]
+      }
+    },
+    {
+      "id": "20000000-0000-0000-0000-000000000006",
+      "username": "paciente.caio",
+      "firstName": "Caio",
+      "lastName": "Duarte",
+      "email": "caio@medflow.local",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "paciente",
+          "temporary": false
+        }
+      ],
+      "clientRoles": {
+        "medflow-api": ["PATIENT"]
+      }
+    },
+    {
       "id": "20000000-0000-0000-0000-000000000003",
       "username": "medico",
       "firstName": "Camila",

@@ -34,7 +34,10 @@ export const defaultWorkspaceRedirect: RedirectFunction = () => {
   const keycloak = inject(Keycloak);
   if (!keycloak.authenticated) return router.parseUrl("/access-denied");
 
-  return router.parseUrl(rolesFrom(keycloak).includes("PATIENT") ? "/workspace/patient" : "/access-denied");
+  const roles = rolesFrom(keycloak);
+  if (roles.includes("PATIENT")) return router.parseUrl("/workspace/patient");
+  if (roles.includes("RECEPTIONIST")) return router.parseUrl("/workspace/reception");
+  return router.parseUrl("/access-denied");
 };
 
 /** O frontend limita a navegação; o backend permanece a autoridade de autorização. */

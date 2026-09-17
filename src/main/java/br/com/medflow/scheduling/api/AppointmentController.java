@@ -4,6 +4,8 @@ import br.com.medflow.common.auth.AuthenticatedActor;
 import br.com.medflow.scheduling.application.AppointmentService;
 import br.com.medflow.scheduling.application.PatientAppointmentSection;
 import br.com.medflow.scheduling.domain.StatusAgendamento;
+import br.com.medflow.reception.api.ReceptionApi;
+import br.com.medflow.reception.application.ReceptionService;
 import br.com.medflow.security.AuthenticatedContextService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -36,10 +38,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class AppointmentController {
 
   private final AppointmentService service;
+  private final ReceptionService reception;
   private final AuthenticatedContextService contexts;
 
-  public AppointmentController(AppointmentService service, AuthenticatedContextService contexts) {
+  public AppointmentController(AppointmentService service, ReceptionService reception,
+      AuthenticatedContextService contexts) {
     this.service = service;
+    this.reception = reception;
     this.contexts = contexts;
   }
 
@@ -87,9 +92,12 @@ public class AppointmentController {
 
   @GetMapping("/agendamentos/{id}")
   @PreAuthorize("hasAnyRole('PATIENT','RECEPTIONIST')")
+  @Operation(summary = "Consulta um agendamento",
+      description = "Recepção recebe a projeção operacional completa, com paciente, ações "
+          + "recalculadas e indicação de pendência; a projeção do Paciente é restrita.")
   Object obter(Authentication authentication, @PathVariable UUID id) {
     AuthenticatedActor actor = actor(authentication);
-    return response(actor, service.obter(actor, id));
+    return response(actor, id, service.obter(actor, id));
   }
 
   @GetMapping("/agendamentos/{id}/disponibilidades")
@@ -102,28 +110,35 @@ public class AppointmentController {
 
   @PostMapping("/agendamentos/{id}/reagendamento")
   @PreAuthorize("hasAnyRole('PATIENT','RECEPTIONIST')")
+  @Operation(summary = "Reagenda um agendamento",
+      description = "Revalida autorização, versão, estado AGENDADA e horário futuro. A resposta "
+          + "da Recepção usa a projeção operacional atualizada.")
   Object reagendar(Authentication authentication, @PathVariable UUID id,
       @Valid @RequestBody RescheduleInput input) {
     AuthenticatedActor actor = actor(authentication);
-    return response(actor, service.reagendar(actor, id, input.regraAgendaId(),
-        input.inicio(), input.expectedVersion()));
+    var result = service.reagendar(actor, id, input.regraAgendaId(), input.inicio(),
+        input.expectedVersion());
+    return response(actor, id, result);
   }
 
   @PostMapping("/agendamentos/{id}/cancelamento")
   @PreAuthorize("hasAnyRole('PATIENT','RECEPTIONIST')")
+  @Operation(summary = "Cancela um agendamento",
+      description = "Revalida autorização, versão, estado AGENDADA e horário futuro. A resposta "
+          + "da Recepção usa a projeção operacional atualizada.")
   Object cancelar(Authentication authentication, @PathVariable UUID id,
       @Valid @RequestBody VersionInput input) {
     AuthenticatedActor actor = actor(authentication);
-    return response(actor, service.cancelar(actor, id, input.expectedVersion()));
+    return response(actor, id, service.cancelar(actor, id, input.expectedVersion()));
   }
 
   private AuthenticatedActor actor(Authentication authentication) {
     return contexts.resolve(authentication);
   }
 
-  private static Object response(AuthenticatedActor actor, AppointmentService.AppointmentView value) {
+  private Object response(AuthenticatedActor actor, UUID id, AppointmentService.AppointmentView value) {
     return actor.hasRole("RECEPTIONIST")
-        ? SchedulingApi.reception(value) : SchedulingApi.patient(value);
+        ? ReceptionApi.appointment(reception.obter(actor, id)) : SchedulingApi.patient(value);
   }
 
   record CreateInput(@NotNull UUID regraAgendaId, @NotNull OffsetDateTime inicio) { }

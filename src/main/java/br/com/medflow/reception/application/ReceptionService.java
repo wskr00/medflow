@@ -78,6 +78,16 @@ public class ReceptionService {
     return agendamentos.findAll(specification, pageable).map(this::view);
   }
 
+  /** Returns the same minimal operational projection used by agenda and queue. */
+  @Transactional(readOnly = true)
+  public OperationalAppointment obter(AuthenticatedActor actor, UUID id) {
+    requireReceptionist(actor);
+    if (!agendamentos.existsByIdAndClinicaId(id, actor.clinicaId())) {
+      throw new ResourceNotFoundException();
+    }
+    return view(agendamentos.findById(id).orElseThrow(ResourceNotFoundException::new));
+  }
+
   @Transactional(isolation = Isolation.READ_COMMITTED)
   public OperationalAppointment checkIn(
       AuthenticatedActor actor, UUID id, long expectedVersion) {
@@ -135,6 +145,9 @@ public class ReceptionService {
   private OperationalAppointment view(Agendamento value) {
     ZoneId zone = ZoneId.of(value.clinica().timeZone());
     LocalDate today = clock.instant().atZone(zone).toLocalDate();
+    boolean canCheckIn = value.status() == StatusAgendamento.AGENDADA
+        && value.inicio().atZone(zone).toLocalDate().equals(today);
+    boolean canChange = value.permiteAlteracao(clock.instant());
     return new OperationalAppointment(value.id(), value.version(),
         value.inicio().atZone(zone).toOffsetDateTime(),
         value.fim().atZone(zone).toOffsetDateTime(), value.status(),
@@ -144,6 +157,7 @@ public class ReceptionService {
         new NamedResource(value.consultorio().unidade().id(), value.consultorio().unidade().nome()),
         new NamedResource(value.consultorio().id(), value.consultorio().nome()),
         new NamedResource(value.paciente().id(), value.paciente().nome()),
+        canCheckIn, canChange, canChange,
         value.status() == StatusAgendamento.EM_ESPERA
             && value.inicio().atZone(zone).toLocalDate().isBefore(today));
   }
@@ -159,5 +173,6 @@ public class ReceptionService {
   public record OperationalAppointment(UUID id, long version, OffsetDateTime inicio,
       OffsetDateTime fim, StatusAgendamento status, OffsetDateTime checkInEm,
       NamedResource medico, NamedResource especialidade, NamedResource unidade,
-      NamedResource consultorio, NamedResource paciente, boolean pendenteDeDiaAnterior) { }
+      NamedResource consultorio, NamedResource paciente, boolean canCheckIn,
+      boolean canReschedule, boolean canCancel, boolean pendenteDeDiaAnterior) { }
 }

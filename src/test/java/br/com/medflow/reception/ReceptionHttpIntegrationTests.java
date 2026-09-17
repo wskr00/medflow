@@ -72,6 +72,9 @@ class ReceptionHttpIntegrationTests {
         .andExpect(jsonPath("$.totalElements").value(2))
         .andExpect(jsonPath("$.items[0].id").value(first.id().toString()))
         .andExpect(jsonPath("$.items[0].paciente.id").value(fixture.patientId().toString()))
+        .andExpect(jsonPath("$.items[0].allowedActions.canCheckIn").value(true))
+        .andExpect(jsonPath("$.items[0].allowedActions.canReschedule").value(true))
+        .andExpect(jsonPath("$.items[0].allowedActions.canCancel").value(true))
         .andExpect(jsonPath("$.items[0].medico.crmNumero").doesNotExist())
         .andExpect(jsonPath("$.items[0].registroClinico").doesNotExist());
 
@@ -81,6 +84,9 @@ class ReceptionHttpIntegrationTests {
         .andExpect(jsonPath("$.status").value("EM_ESPERA"))
         .andExpect(jsonPath("$.version").value(1))
         .andExpect(jsonPath("$.checkInEm").value("2026-09-16T09:00:00-03:00"))
+        .andExpect(jsonPath("$.allowedActions.canCheckIn").value(false))
+        .andExpect(jsonPath("$.allowedActions.canReschedule").value(false))
+        .andExpect(jsonPath("$.allowedActions.canCancel").value(false))
         .andExpect(jsonPath("$.pendenteDeDiaAnterior").value(false));
     mvc.perform(post("/api/agendamentos/" + first.id() + "/check-in").with(reception)
             .contentType(MediaType.APPLICATION_JSON).content("{\"expectedVersion\":1}"))
@@ -93,6 +99,7 @@ class ReceptionHttpIntegrationTests {
         .andExpect(jsonPath("$.totalElements").value(2))
         .andExpect(jsonPath("$.items[0].id").value(previous.toString()))
         .andExpect(jsonPath("$.items[0].pendenteDeDiaAnterior").value(true))
+        .andExpect(jsonPath("$.items[0].allowedActions.canCheckIn").value(false))
         .andExpect(jsonPath("$.items[1].id").value(first.id().toString()))
         .andExpect(jsonPath("$.items[1].pendenteDeDiaAnterior").value(false));
   }
