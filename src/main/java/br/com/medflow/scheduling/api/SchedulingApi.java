@@ -23,12 +23,6 @@ final class SchedulingApi {
         named(value.unidade()), named(value.consultorio()), allowedActions(value));
   }
 
-  static ReceptionAppointmentResponse reception(AppointmentService.AppointmentView value) {
-    return new ReceptionAppointmentResponse(value.id(), value.version(), value.inicio(), value.fim(),
-        value.status(), value.checkInEm(), named(value.medico()), named(value.especialidade()),
-        named(value.unidade()), named(value.consultorio()), named(value.paciente()), allowedActions(value));
-  }
-
   static PageResponse<PatientAppointmentResponse> patientPage(
       Page<AppointmentService.AppointmentView> source) {
     return new PageResponse<>(source.getContent().stream().map(SchedulingApi::patient).toList(),
@@ -57,11 +51,6 @@ final class SchedulingApi {
       OffsetDateTime fim, StatusAgendamento status, OffsetDateTime checkInEm,
       NamedResponse medico, NamedResponse especialidade, NamedResponse unidade,
       NamedResponse consultorio, AllowedActionsResponse allowedActions) { }
-
-  record ReceptionAppointmentResponse(UUID id, long version, OffsetDateTime inicio,
-      OffsetDateTime fim, StatusAgendamento status, OffsetDateTime checkInEm,
-      NamedResponse medico, NamedResponse especialidade, NamedResponse unidade,
-      NamedResponse consultorio, NamedResponse paciente, AllowedActionsResponse allowedActions) { }
 
   record PageResponse<T>(List<T> items, int page, int size, long totalElements) { }
 }

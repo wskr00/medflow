@@ -10,6 +10,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 import java.time.LocalDate;
 import java.util.UUID;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -38,6 +39,8 @@ public class ReceptionController {
   }
 
   @GetMapping("/recepcao/agenda")
+  @Operation(summary = "Agenda operacional da recepção",
+      description = "Filtros explícitos no escopo da clínica; cada item traz as ações recalculadas pelo servidor.")
   ReceptionApi.PageResponse<ReceptionApi.AppointmentResponse> agenda(
       Authentication authentication,
       @RequestParam @NotNull LocalDate data,
@@ -52,6 +55,8 @@ public class ReceptionController {
   }
 
   @GetMapping("/recepcao/fila")
+  @Operation(summary = "Fila de espera operacional",
+      description = "Retorna somente EM_ESPERA em ordem inicio, checkInEm, id e identifica pendências de dias anteriores.")
   ReceptionApi.PageResponse<ReceptionApi.AppointmentResponse> queue(
       Authentication authentication,
       @RequestParam(required = false) UUID unidadeId,
@@ -64,6 +69,8 @@ public class ReceptionController {
   }
 
   @PostMapping("/agendamentos/{id}/check-in")
+  @Operation(summary = "Realiza check-in",
+      description = "Revalida versão, estado AGENDADA e a data local da clínica; retorna a projeção operacional atual.")
   ReceptionApi.AppointmentResponse checkIn(Authentication authentication, @PathVariable UUID id,
       @Valid @RequestBody VersionInput input) {
     return ReceptionApi.appointment(service.checkIn(
