@@ -1,10 +1,11 @@
 import { ChangeDetectionStrategy, Component } from "@angular/core";
-import { RouterOutlet } from "@angular/router";
+import { RouterLink, RouterOutlet } from "@angular/router";
+import { SessionActionsComponent } from "../../shared/ui/session-actions.component";
 
 @Component({
   selector: "app-reception-shell",
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet],
+  imports: [RouterLink, RouterOutlet, SessionActionsComponent],
   host: { class: "block min-h-dvh" },
   template: `
     <a
@@ -14,13 +15,24 @@ import { RouterOutlet } from "@angular/router";
       Ir para o conteúdo
     </a>
     <header class="border-border bg-card border-b">
-      <div class="mx-auto flex min-h-16 max-w-[90rem] items-center justify-between gap-4 px-4 sm:px-6">
-        <div class="flex items-center gap-3">
-          <span class="bg-primary text-primary-foreground grid size-8 place-items-center rounded-lg font-bold" aria-hidden="true">+</span>
+      <div
+        class="mx-auto flex min-h-16 max-w-[90rem] items-center justify-between gap-4 px-4 sm:px-6"
+      >
+        <a
+          routerLink="/workspace/reception"
+          class="flex shrink-0 items-center gap-3"
+        >
+          <span
+            class="bg-primary text-primary-foreground grid size-8 place-items-center rounded-lg font-bold"
+            aria-hidden="true"
+            >+</span
+          >
           <span class="text-lg font-semibold tracking-tight">MedFlow</span>
-          <span class="text-muted-foreground hidden text-sm sm:inline">Recepção</span>
-        </div>
-        <span class="text-muted-foreground text-sm">Operação da clínica</span>
+          <span class="text-muted-foreground hidden text-sm sm:inline"
+            >Recepção</span
+          >
+        </a>
+        <app-session-actions />
       </div>
     </header>
     <router-outlet />

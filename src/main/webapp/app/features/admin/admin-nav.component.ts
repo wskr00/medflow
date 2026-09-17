@@ -12,37 +12,37 @@ import { RouterLink, RouterLinkActive } from "@angular/router";
     <a
       routerLink="/workspace/admin/clinica"
       routerLinkActive="bg-accent text-accent-foreground"
-      class="min-h-11 rounded-md px-3 py-2 text-sm font-medium"
+      class="flex min-h-11 items-center justify-start rounded-md px-3 py-2 text-left text-sm font-medium"
       (click)="navigated.emit()"
       >Clínica</a
     ><a
       routerLink="/workspace/admin/estrutura"
       routerLinkActive="bg-accent text-accent-foreground"
-      class="min-h-11 rounded-md px-3 py-2 text-sm font-medium"
+      class="flex min-h-11 items-center justify-start rounded-md px-3 py-2 text-left text-sm font-medium"
       (click)="navigated.emit()"
       >Estrutura</a
     ><a
       routerLink="/workspace/admin/profissionais"
       routerLinkActive="bg-accent text-accent-foreground"
-      class="min-h-11 rounded-md px-3 py-2 text-sm font-medium"
+      class="flex min-h-11 items-center justify-start rounded-md px-3 py-2 text-left text-sm font-medium"
       (click)="navigated.emit()"
       >Profissionais</a
     ><a
       routerLink="/workspace/admin/especialidades"
       routerLinkActive="bg-accent text-accent-foreground"
-      class="min-h-11 rounded-md px-3 py-2 text-sm font-medium"
+      class="flex min-h-11 items-center justify-start rounded-md px-3 py-2 text-left text-sm font-medium"
       (click)="navigated.emit()"
       >Especialidades</a
     ><a
       routerLink="/workspace/admin/agenda"
       routerLinkActive="bg-accent text-accent-foreground"
-      class="min-h-11 rounded-md px-3 py-2 text-sm font-medium"
+      class="flex min-h-11 items-center justify-start rounded-md px-3 py-2 text-left text-sm font-medium"
       (click)="navigated.emit()"
       >Agenda semanal</a
     ><a
       routerLink="/workspace/admin/bloqueios"
       routerLinkActive="bg-accent text-accent-foreground"
-      class="min-h-11 rounded-md px-3 py-2 text-sm font-medium"
+      class="flex min-h-11 items-center justify-start rounded-md px-3 py-2 text-left text-sm font-medium"
       (click)="navigated.emit()"
       >Bloqueios</a
     >
