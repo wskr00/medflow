@@ -95,7 +95,7 @@ describe("MedFlow role routing", () => {
     );
 
     expect(TestBed.inject(Router).serializeUrl(redirect as UrlTree)).toBe(
-      "/workspace/doctor",
+      "/workspace/doctor/triagem",
     );
   });
 
@@ -113,7 +113,27 @@ describe("MedFlow role routing", () => {
       defaultWorkspaceRedirect({} as never),
     );
     expect(TestBed.inject(Router).serializeUrl(redirect as UrlTree)).toBe(
-      "/workspace/admin",
+      "/workspace/admin/estrutura",
+    );
+  });
+
+  it("routes a patient directly to appointments instead of the workspace root", async () => {
+    await TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        {
+          provide: Keycloak,
+          useValue: keycloakWithRoles({ medflowApiRoles: ["PATIENT"] }),
+        },
+      ],
+    }).compileComponents();
+
+    const redirect = TestBed.runInInjectionContext(() =>
+      defaultWorkspaceRedirect({} as never),
+    );
+
+    expect(TestBed.inject(Router).serializeUrl(redirect as UrlTree)).toBe(
+      "/workspace/patient/consultas",
     );
   });
 

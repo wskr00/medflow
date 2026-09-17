@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component } from "@angular/core";
 import { RouterLink, RouterLinkActive, RouterOutlet } from "@angular/router";
 import { HlmButtonImports } from "@spartan-ng/helm/button";
 import { HlmSheetImports } from "@spartan-ng/helm/sheet";
+import { SessionActionsComponent } from "../../shared/ui/session-actions.component";
 
 @Component({
   selector: "app-doctor-shell",
@@ -12,6 +13,7 @@ import { HlmSheetImports } from "@spartan-ng/helm/sheet";
     RouterOutlet,
     HlmButtonImports,
     HlmSheetImports,
+    SessionActionsComponent,
   ],
   template: `
     <a
@@ -29,7 +31,7 @@ import { HlmSheetImports } from "@spartan-ng/helm/sheet";
             <span class="text-muted-foreground font-normal">· Médico</span></a
           >
           <nav
-            class="hidden items-center gap-1 md:flex"
+            class="hidden flex-1 items-center justify-center gap-1 md:flex"
             aria-label="Jornada médica"
           >
             <a
@@ -39,43 +41,46 @@ import { HlmSheetImports } from "@spartan-ng/helm/sheet";
               >Minha agenda</a
             >
           </nav>
-          <hlm-sheet side="right"
-            ><button
-              hlmSheetTrigger
-              hlmBtn
-              variant="outline"
-              type="button"
-              class="min-h-11 md:hidden"
-            >
-              Menu</button
-            ><hlm-sheet-content *hlmSheetPortal
-              ><hlm-sheet-header
-                ><h2 hlmSheetTitle>Jornada médica</h2>
-                <p hlmSheetDescription>
-                  Acesse sua agenda e seus atendimentos.
-                </p></hlm-sheet-header
-              >
-              <nav class="flex flex-col gap-2">
-                <a
-                  hlmSheetClose
-                  hlmBtn
-                  variant="ghost"
-                  routerLink="triagem"
-                  class="min-h-11 justify-start"
-                  >Minha agenda</a
-                >
-              </nav>
-              <button
-                hlmSheetClose
+          <div class="ml-auto flex items-center gap-2">
+            <app-session-actions />
+            <hlm-sheet side="right"
+              ><button
+                hlmSheetTrigger
                 hlmBtn
                 variant="outline"
                 type="button"
-                class="min-h-11"
+                class="min-h-11 md:hidden"
               >
-                Fechar menu
-              </button></hlm-sheet-content
-            ></hlm-sheet
-          >
+                Menu</button
+              ><hlm-sheet-content *hlmSheetPortal
+                ><hlm-sheet-header
+                  ><h2 hlmSheetTitle>Jornada médica</h2>
+                  <p hlmSheetDescription>
+                    Acesse sua agenda e seus atendimentos.
+                  </p></hlm-sheet-header
+                >
+                <nav class="flex flex-col gap-2">
+                  <a
+                    hlmSheetClose
+                    hlmBtn
+                    variant="ghost"
+                    routerLink="triagem"
+                    class="min-h-11 justify-start"
+                    >Minha agenda</a
+                  >
+                </nav>
+                <button
+                  hlmSheetClose
+                  hlmBtn
+                  variant="outline"
+                  type="button"
+                  class="min-h-11"
+                >
+                  Fechar menu
+                </button></hlm-sheet-content
+              ></hlm-sheet
+            >
+          </div>
         </div>
       </header>
       <main
