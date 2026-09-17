@@ -78,7 +78,7 @@ import { AdminIssue, Page, Specialty } from "./admin.models";
               @for (value of values.value()?.items ?? []; track value.id) {
                 <button
                   type="button"
-                  class="bg-muted min-h-16 rounded-md p-3 text-left"
+                  class="bg-muted hover:bg-accent focus-visible:ring-ring/50 min-h-16 rounded-md p-3 text-left outline-none transition-colors focus-visible:ring-3"
                   (click)="edit(value)"
                 >
                   <span class="block font-medium">{{ value.nome }}</span

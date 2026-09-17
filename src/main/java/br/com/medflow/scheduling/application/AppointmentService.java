@@ -85,6 +85,32 @@ public class AppointmentService {
   }
 
   @Transactional(readOnly = true)
+  public AvailableDates datasDisponiveis(AuthenticatedActor actor, LocalDate dataDe,
+      LocalDate dataAte, UUID unidadeId, UUID especialidadeId, UUID medicoId) {
+    requireAvailabilityRole(actor);
+    if (dataDe == null || dataAte == null || unidadeId == null || especialidadeId == null
+        || dataAte.isBefore(dataDe) || ChronoUnit.DAYS.between(dataDe, dataAte) > 62) {
+      throw new IllegalArgumentException("intervalo de disponibilidade inválido");
+    }
+    Clinica clinica = clinicaDoAtor(actor);
+    ZoneId zone = ZoneId.of(clinica.timeZone());
+    Instant intervaloInicio = dataDe.atStartOfDay(zone).toInstant();
+    Instant intervaloFim = dataAte.plusDays(1).atStartOfDay(zone).toInstant();
+    List<RegraAgenda> regrasAtivas = regras
+        .findByClinicaIdAndAtivoTrue(clinica.id(), Pageable.unpaged()).getContent();
+    List<BloqueioAgenda> bloqueiosNoIntervalo =
+        bloqueios.findAtivosNoIntervalo(clinica.id(), intervaloInicio, intervaloFim);
+    List<Agendamento> ocupacoesNoIntervalo =
+        agendamentos.findOcupacoes(clinica.id(), intervaloInicio, intervaloFim);
+
+    List<LocalDate> datas = dataDe.datesUntil(dataAte.plusDays(1))
+        .filter(data -> !calcularDisponibilidade(clinica, data, unidadeId, especialidadeId,
+            medicoId, null, regrasAtivas, bloqueiosNoIntervalo, ocupacoesNoIntervalo).items().isEmpty())
+        .toList();
+    return new AvailableDates(datas, clinica.timeZone());
+  }
+
+  @Transactional(readOnly = true)
   public Availability disponibilidadeReagendamento(AuthenticatedActor actor, UUID id, LocalDate data) {
     requireAppointmentOperator(actor);
     Agendamento atual = agendamentoAutorizado(actor, id);
@@ -179,18 +205,27 @@ public class AppointmentService {
     ZoneId zone = ZoneId.of(clinica.timeZone());
     Instant diaInicio = data.atStartOfDay(zone).toInstant();
     Instant diaFim = data.plusDays(1).atStartOfDay(zone).toInstant();
-    Instant agora = clock.instant();
-    List<BloqueioAgenda> bloqueiosDoDia = bloqueios.findAtivosNoIntervalo(clinica.id(), diaInicio, diaFim);
-    List<Agendamento> ocupacoes = agendamentos.findOcupacoes(clinica.id(), diaInicio, diaFim);
+    return calcularDisponibilidade(clinica, data, unidadeId, especialidadeId, medicoId,
+        agendamentoIgnorado,
+        regras.findByClinicaIdAndAtivoTrue(clinica.id(), Pageable.unpaged()).getContent(),
+        bloqueios.findAtivosNoIntervalo(clinica.id(), diaInicio, diaFim),
+        agendamentos.findOcupacoes(clinica.id(), diaInicio, diaFim));
+  }
 
-    List<Slot> slots = regras.findByClinicaIdAndAtivoTrue(clinica.id(), Pageable.unpaged()).stream()
+  private Availability calcularDisponibilidade(Clinica clinica, LocalDate data,
+      UUID unidadeId, UUID especialidadeId, UUID medicoId, UUID agendamentoIgnorado,
+      List<RegraAgenda> regrasAtivas, List<BloqueioAgenda> bloqueiosDoIntervalo,
+      List<Agendamento> ocupacoesDoIntervalo) {
+    ZoneId zone = ZoneId.of(clinica.timeZone());
+    Instant agora = clock.instant();
+    List<Slot> slots = regrasAtivas.stream()
         .filter(regra -> regraDisponivel(regra, data, unidadeId, especialidadeId, medicoId))
         .flatMap(regra -> slotsDaRegra(regra, data, zone).stream())
         .filter(slot -> slot.inicio().isAfter(agora))
-        .filter(slot -> bloqueiosDoDia.stream().noneMatch(bloqueio ->
+        .filter(slot -> bloqueiosDoIntervalo.stream().noneMatch(bloqueio ->
             bloqueio.medico().id().equals(slot.medicoId())
                 && sobrepoe(slot.inicio(), slot.fim(), bloqueio.inicio(), bloqueio.fim())))
-        .filter(slot -> ocupacoes.stream()
+        .filter(slot -> ocupacoesDoIntervalo.stream()
             .filter(ocupacao -> !ocupacao.id().equals(agendamentoIgnorado))
             .noneMatch(ocupacao -> conflito(slot, ocupacao)))
         .sorted(Comparator.comparing(Slot::inicio)
@@ -381,6 +416,8 @@ public class AppointmentService {
   }
 
   public record Availability(List<Slot> items, String timeZone) { }
+
+  public record AvailableDates(List<LocalDate> items, String timeZone) { }
 
   public record AppointmentView(UUID id, long version, OffsetDateTime inicio,
       OffsetDateTime fim, StatusAgendamento status, OffsetDateTime checkInEm,

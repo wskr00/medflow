@@ -88,7 +88,7 @@ import { AdminIssue, Page, Professional, ScheduleBlock } from "./admin.models";
               @for (block of blocks.value()?.items ?? []; track block.id) {
                 <button
                   type="button"
-                  class="bg-muted min-h-16 rounded-md p-3 text-left"
+                  class="bg-muted hover:bg-accent focus-visible:ring-ring/50 min-h-16 rounded-md p-3 text-left outline-none transition-colors focus-visible:ring-3"
                   (click)="edit(block)"
                 >
                   <span class="block font-medium">{{ block.medico.nome }}</span

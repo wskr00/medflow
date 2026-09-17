@@ -3,6 +3,7 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from "@angular/router";
 import { HlmButtonImports } from "@spartan-ng/helm/button";
 import { HlmSheetImports } from "@spartan-ng/helm/sheet";
 import { SessionActionsComponent } from "../../shared/ui/session-actions.component";
+import { MedflowBrandComponent } from "../../shared/ui/medflow-brand.component";
 
 @Component({
   selector: "app-doctor-shell",
@@ -14,6 +15,7 @@ import { SessionActionsComponent } from "../../shared/ui/session-actions.compone
     HlmButtonImports,
     HlmSheetImports,
     SessionActionsComponent,
+    MedflowBrandComponent,
   ],
   template: `
     <a
@@ -26,10 +28,9 @@ import { SessionActionsComponent } from "../../shared/ui/session-actions.compone
         <div
           class="mx-auto flex min-h-16 w-full max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8"
         >
-          <a routerLink="triagem" class="font-semibold tracking-tight"
-            >MedFlow
-            <span class="text-muted-foreground font-normal">· Médico</span></a
-          >
+          <a routerLink="triagem"
+            ><app-medflow-brand context="Área médica"
+          /></a>
           <nav
             class="hidden flex-1 items-center justify-center gap-1 md:flex"
             aria-label="Jornada médica"

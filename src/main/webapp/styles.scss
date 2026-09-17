@@ -8,3 +8,9 @@ body {
 body {
   margin: 0;
 }
+
+button:not(:disabled),
+a[href],
+[role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
