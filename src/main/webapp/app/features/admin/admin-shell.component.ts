@@ -30,7 +30,7 @@ import { AdminNavComponent } from "./admin-nav.component";
             <span class="text-muted-foreground font-normal"
               >· Configuração administrativa</span
             ></a
-          ><hlm-sheet side="left"
+          ><hlm-sheet #menu="hlmSheet" side="left"
             ><button
               hlmSheetTrigger
               hlmBtn
@@ -44,7 +44,7 @@ import { AdminNavComponent } from "./admin-nav.component";
                 <p hlmSheetDescription>
                   Estrutura e regras da clínica.
                 </p></hlm-sheet-header
-              ><app-admin-nav /></hlm-sheet-content
+              ><app-admin-nav (navigated)="menu.close()" /></hlm-sheet-content
           ></hlm-sheet>
         </div>
       </header>
