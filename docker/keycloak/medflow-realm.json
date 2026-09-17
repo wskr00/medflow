@@ -230,6 +230,50 @@
       }
     },
     {
+      "id": "20000000-0000-0000-0000-000000000007",
+      "username": "paciente.beatriz",
+      "firstName": "Beatriz",
+      "lastName": "Nascimento",
+      "email": "beatriz@medflow.local",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "paciente", "temporary": false }],
+      "clientRoles": { "medflow-api": ["PATIENT"] }
+    },
+    {
+      "id": "20000000-0000-0000-0000-000000000008",
+      "username": "paciente.daniel",
+      "firstName": "Daniel",
+      "lastName": "Costa",
+      "email": "daniel@medflow.local",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "paciente", "temporary": false }],
+      "clientRoles": { "medflow-api": ["PATIENT"] }
+    },
+    {
+      "id": "20000000-0000-0000-0000-000000000009",
+      "username": "paciente.elisa",
+      "firstName": "Elisa",
+      "lastName": "Monteiro",
+      "email": "elisa@medflow.local",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "paciente", "temporary": false }],
+      "clientRoles": { "medflow-api": ["PATIENT"] }
+    },
+    {
+      "id": "20000000-0000-0000-0000-000000000010",
+      "username": "paciente.felipe",
+      "firstName": "Felipe",
+      "lastName": "Araújo",
+      "email": "felipe@medflow.local",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "paciente", "temporary": false }],
+      "clientRoles": { "medflow-api": ["PATIENT"] }
+    },
+    {
       "id": "20000000-0000-0000-0000-000000000003",
       "username": "medico",
       "firstName": "Camila",
@@ -247,6 +291,83 @@
       "clientRoles": {
         "medflow-api": ["DOCTOR"]
       }
+    },
+    {
+      "id": "20000000-0000-0000-0000-000000000011",
+      "username": "medico.ana",
+      "firstName": "Ana",
+      "lastName": "Paes",
+      "email": "ana.paes@medflow.local",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "medico", "temporary": false }],
+      "clientRoles": { "medflow-api": ["DOCTOR"] }
+    },
+    {
+      "id": "20000000-0000-0000-0000-000000000012",
+      "username": "medico.luiz",
+      "firstName": "Luiz",
+      "lastName": "Moura",
+      "email": "luiz.moura@medflow.local",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "medico", "temporary": false }],
+      "clientRoles": { "medflow-api": ["DOCTOR"] }
+    },
+    {
+      "id": "20000000-0000-0000-0000-000000000013",
+      "username": "medico.sofia",
+      "firstName": "Sofia",
+      "lastName": "Lima",
+      "email": "sofia.lima@medflow.local",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "medico", "temporary": false }],
+      "clientRoles": { "medflow-api": ["DOCTOR"] }
+    },
+    {
+      "id": "20000000-0000-0000-0000-000000000014",
+      "username": "medico.rafael",
+      "firstName": "Rafael",
+      "lastName": "Tavares",
+      "email": "rafael.tavares@medflow.local",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "medico", "temporary": false }],
+      "clientRoles": { "medflow-api": ["DOCTOR"] }
+    },
+    {
+      "id": "20000000-0000-0000-0000-000000000015",
+      "username": "recepcionista.julia",
+      "firstName": "Júlia",
+      "lastName": "Mendes",
+      "email": "julia.mendes@medflow.local",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "recepcionista", "temporary": false }],
+      "clientRoles": { "medflow-api": ["RECEPTIONIST"] }
+    },
+    {
+      "id": "20000000-0000-0000-0000-000000000016",
+      "username": "recepcionista.pedro",
+      "firstName": "Pedro",
+      "lastName": "Sales",
+      "email": "pedro.sales@medflow.local",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "recepcionista", "temporary": false }],
+      "clientRoles": { "medflow-api": ["RECEPTIONIST"] }
+    },
+    {
+      "id": "20000000-0000-0000-0000-000000000017",
+      "username": "administrador.marina",
+      "firstName": "Marina",
+      "lastName": "Queiroz",
+      "email": "marina.queiroz@medflow.local",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "administrador", "temporary": false }],
+      "clientRoles": { "medflow-api": ["ADMINISTRATOR"] }
     },
     {
       "id": "20000000-0000-0000-0000-000000000004",
