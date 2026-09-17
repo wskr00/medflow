@@ -3,6 +3,7 @@ import { RouterLink, RouterOutlet } from "@angular/router";
 import { HlmButtonImports } from "@spartan-ng/helm/button";
 import { HlmSheetImports } from "@spartan-ng/helm/sheet";
 import { AdminNavComponent } from "./admin-nav.component";
+import { SessionActionsComponent } from "../../shared/ui/session-actions.component";
 
 @Component({
   selector: "app-admin-shell",
@@ -13,6 +14,7 @@ import { AdminNavComponent } from "./admin-nav.component";
     HlmButtonImports,
     HlmSheetImports,
     AdminNavComponent,
+    SessionActionsComponent,
   ],
   template: `
     <a
@@ -30,29 +32,32 @@ import { AdminNavComponent } from "./admin-nav.component";
             <span class="text-muted-foreground font-normal"
               >· Configuração administrativa</span
             ></a
-          ><hlm-sheet #menu="hlmSheet" side="left"
-            ><button
-              hlmSheetTrigger
-              hlmBtn
-              variant="outline"
-              class="min-h-11 lg:hidden"
-            >
-              Menu</button
-            ><hlm-sheet-content *hlmSheetPortal
-              ><hlm-sheet-header
-                ><h2 hlmSheetTitle>Configuração</h2>
-                <p hlmSheetDescription>
-                  Estrutura e regras da clínica.
-                </p></hlm-sheet-header
-              ><app-admin-nav (navigated)="menu.close()" /></hlm-sheet-content
-          ></hlm-sheet>
+          >
+          <div class="ml-auto flex items-center gap-2">
+            <app-session-actions /><hlm-sheet #menu="hlmSheet" side="left"
+              ><button
+                hlmSheetTrigger
+                hlmBtn
+                variant="outline"
+                class="min-h-11 lg:hidden"
+              >
+                Menu</button
+              ><hlm-sheet-content *hlmSheetPortal
+                ><hlm-sheet-header
+                  ><h2 hlmSheetTitle>Configuração</h2>
+                  <p hlmSheetDescription>
+                    Estrutura e regras da clínica.
+                  </p></hlm-sheet-header
+                ><app-admin-nav (navigated)="menu.close()" /></hlm-sheet-content
+            ></hlm-sheet>
+          </div>
         </div>
       </header>
       <div
         class="mx-auto grid max-w-[90rem] lg:grid-cols-[13rem_minmax(0,1fr)]"
       >
         <aside
-          class="border-border hidden min-h-[calc(100dvh-4rem)] border-r bg-background p-3 lg:block"
+          class="border-border hidden min-h-[calc(100dvh-4rem)] self-start border-r bg-background p-3 lg:block"
         >
           <app-admin-nav />
         </aside>

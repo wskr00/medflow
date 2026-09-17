@@ -34,12 +34,14 @@ export const defaultWorkspaceRedirect: RedirectFunction = () => {
   if (!keycloak.authenticated) return router.parseUrl("/access-denied");
 
   const roles = rolesFrom(keycloak);
-  if (roles.includes("PATIENT")) return router.parseUrl("/workspace/patient");
+  if (roles.includes("PATIENT"))
+    return router.parseUrl("/workspace/patient/consultas");
   if (roles.includes("RECEPTIONIST"))
     return router.parseUrl("/workspace/reception");
-  if (roles.includes("DOCTOR")) return router.parseUrl("/workspace/doctor");
+  if (roles.includes("DOCTOR"))
+    return router.parseUrl("/workspace/doctor/triagem");
   if (roles.includes("ADMINISTRATOR"))
-    return router.parseUrl("/workspace/admin");
+    return router.parseUrl("/workspace/admin/estrutura");
   return router.parseUrl("/access-denied");
 };
 

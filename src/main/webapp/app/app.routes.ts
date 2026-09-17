@@ -179,7 +179,7 @@ export const routes: Routes = [
         (m) => m.AccessDeniedComponent,
       ),
   },
-  { path: "", pathMatch: "full", redirectTo: "workspace" },
+  { path: "", pathMatch: "full", redirectTo: defaultWorkspaceRedirect },
   {
     path: "**",
     loadComponent: () =>
