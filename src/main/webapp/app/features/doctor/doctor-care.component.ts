@@ -53,13 +53,7 @@ const recordKey = (record: ClinicalRecord) => JSON.stringify(record);
     StatePanelComponent,
   ],
   template: `
-    @if (workspace.isLoading()) {
-      <app-state-panel
-        state="loading"
-        title="Carregando atendimento"
-        description="Recuperando o contexto do atendimento."
-      />
-    } @else if (workspace.error()) {
+    @if (workspace.error()) {
       <section class="space-y-4">
         <app-state-panel
           state="error"
@@ -73,6 +67,12 @@ const recordKey = (record: ClinicalRecord) => JSON.stringify(record);
           >Voltar para a agenda</a
         >
       </section>
+    } @else if (workspace.isLoading()) {
+      <app-state-panel
+        state="loading"
+        title="Carregando atendimento"
+        description="Recuperando o contexto do atendimento."
+      />
     } @else if (workspace.value(); as data) {
       <section class="mx-auto max-w-5xl space-y-6">
         <a
@@ -88,7 +88,11 @@ const recordKey = (record: ClinicalRecord) => JSON.stringify(record);
               <p
                 class="text-primary text-xs font-semibold tracking-widest uppercase"
               >
-                Atendimento em curso
+                {{
+                  data.atendimento.finalizadoEm
+                    ? "Atendimento finalizado"
+                    : "Atendimento em curso"
+                }}
               </p>
               <h1 class="text-3xl font-semibold tracking-tight">
                 {{ data.agendamento.paciente.nome }}
@@ -189,68 +193,75 @@ const recordKey = (record: ClinicalRecord) => JSON.stringify(record);
           </section>
         } @else {
           <form
-            class="space-y-5"
+            class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start"
             (submit)="$event.preventDefault(); save(data)"
           >
-            <section aria-labelledby="record-title" class="space-y-1">
-              <h2 id="record-title" class="text-xl font-semibold">
-                Registro clínico
-              </h2>
-              <p class="text-muted-foreground text-sm">
-                Salve o rascunho quando quiser. Os três primeiros campos são
-                necessários somente para finalizar.
-              </p>
-            </section>
-            <div hlmField>
-              <label hlmFieldLabel for="complaint">Queixa principal</label
-              ><textarea
-                hlmTextarea
-                id="complaint"
-                class="min-h-28"
-                maxlength="2000"
-                [value]="draft().queixaPrincipal"
-                (input)="setField('queixaPrincipal', $any($event.target).value)"
-              ></textarea>
-              <p hlmFieldDescription>Obrigatória para finalizar.</p>
+            <div class="space-y-5">
+              <section aria-labelledby="record-title" class="space-y-1">
+                <h2 id="record-title" class="text-xl font-semibold">
+                  Registro clínico
+                </h2>
+                <p class="text-muted-foreground text-sm">
+                  Salve o rascunho quando quiser. Os três primeiros campos são
+                  necessários somente para finalizar.
+                </p>
+              </section>
+              <div hlmField>
+                <label hlmFieldLabel for="complaint">Queixa principal</label
+                ><textarea
+                  hlmTextarea
+                  id="complaint"
+                  class="min-h-28"
+                  maxlength="2000"
+                  [value]="draft().queixaPrincipal"
+                  (input)="
+                    setField('queixaPrincipal', $any($event.target).value)
+                  "
+                ></textarea>
+                <p hlmFieldDescription>Obrigatória para finalizar.</p>
+              </div>
+              <div hlmField>
+                <label hlmFieldLabel for="history">Resumo da anamnese</label
+                ><textarea
+                  hlmTextarea
+                  id="history"
+                  class="min-h-36"
+                  maxlength="10000"
+                  [value]="draft().resumoAnamnese"
+                  (input)="
+                    setField('resumoAnamnese', $any($event.target).value)
+                  "
+                ></textarea>
+                <p hlmFieldDescription>Obrigatório para finalizar.</p>
+              </div>
+              <div hlmField>
+                <label hlmFieldLabel for="plan">Conduta</label
+                ><textarea
+                  hlmTextarea
+                  id="plan"
+                  class="min-h-36"
+                  maxlength="10000"
+                  [value]="draft().conduta"
+                  (input)="setField('conduta', $any($event.target).value)"
+                ></textarea>
+                <p hlmFieldDescription>Obrigatória para finalizar.</p>
+              </div>
+              <div hlmField>
+                <label hlmFieldLabel for="notes">Observações</label
+                ><textarea
+                  hlmTextarea
+                  id="notes"
+                  class="min-h-28"
+                  maxlength="5000"
+                  [value]="draft().observacoes"
+                  (input)="setField('observacoes', $any($event.target).value)"
+                ></textarea>
+                <p hlmFieldDescription>Opcional.</p>
+              </div>
             </div>
-            <div hlmField>
-              <label hlmFieldLabel for="history">Resumo da anamnese</label
-              ><textarea
-                hlmTextarea
-                id="history"
-                class="min-h-36"
-                maxlength="10000"
-                [value]="draft().resumoAnamnese"
-                (input)="setField('resumoAnamnese', $any($event.target).value)"
-              ></textarea>
-              <p hlmFieldDescription>Obrigatório para finalizar.</p>
-            </div>
-            <div hlmField>
-              <label hlmFieldLabel for="plan">Conduta</label
-              ><textarea
-                hlmTextarea
-                id="plan"
-                class="min-h-36"
-                maxlength="10000"
-                [value]="draft().conduta"
-                (input)="setField('conduta', $any($event.target).value)"
-              ></textarea>
-              <p hlmFieldDescription>Obrigatória para finalizar.</p>
-            </div>
-            <div hlmField>
-              <label hlmFieldLabel for="notes">Observações</label
-              ><textarea
-                hlmTextarea
-                id="notes"
-                class="min-h-28"
-                maxlength="5000"
-                [value]="draft().observacoes"
-                (input)="setField('observacoes', $any($event.target).value)"
-              ></textarea>
-              <p hlmFieldDescription>Opcional.</p>
-            </div>
-            <div
-              class="border-border flex flex-col gap-3 border-t pt-5 sm:flex-row sm:items-center sm:justify-between"
+            <aside
+              aria-label="Ações do atendimento"
+              class="border-border bg-card flex flex-col gap-4 rounded-xl border p-4 lg:sticky lg:top-4"
             >
               <p class="text-muted-foreground text-sm">
                 @if (dirty()) {
@@ -260,15 +271,16 @@ const recordKey = (record: ClinicalRecord) => JSON.stringify(record);
                   {{ data.atendimento.version }}.
                 }
               </p>
-              <div class="flex flex-col gap-2 sm:flex-row">
-                <hlm-sheet side="right"
+              <div class="flex flex-col gap-2">
+                <hlm-sheet
+                  side="right"
+                  (stateChanged)="onHistorySheetState($event)"
                   ><button
                     hlmSheetTrigger
                     hlmBtn
                     variant="outline"
                     type="button"
                     class="min-h-11"
-                    (click)="loadHistory()"
                   >
                     Histórico do paciente</button
                   ><hlm-sheet-content *hlmSheetPortal
@@ -370,7 +382,7 @@ const recordKey = (record: ClinicalRecord) => JSON.stringify(record);
                   ></hlm-dialog
                 >
               </div>
-            </div>
+            </aside>
           </form>
         }
       </section>
@@ -387,10 +399,9 @@ export class DoctorCareComponent {
   );
   private readonly historyRequested = signal(false);
   protected readonly history = httpResource<Page<DoctorWorkspace>>(() => {
-    const patientId = this.workspace.value()?.agendamento.paciente.id;
-    return this.historyRequested() && patientId
-      ? this.api.history(patientId)
-      : undefined;
+    if (!this.historyRequested() || !this.workspace.hasValue())
+      return undefined;
+    return this.api.history(this.workspace.value().agendamento.paciente.id);
   });
   protected readonly draft = signal<ClinicalRecord>(emptyRecord);
   protected readonly saved = signal<ClinicalRecord>(emptyRecord);
@@ -409,8 +420,9 @@ export class DoctorCareComponent {
   );
   constructor() {
     effect(() => {
+      if (!this.workspace.hasValue()) return;
       const data = this.workspace.value();
-      if (data && this.seededSessionId() !== data.atendimento.id) {
+      if (this.seededSessionId() !== data.atendimento.id) {
         this.seededSessionId.set(data.atendimento.id);
         this.saved.set(data.atendimento.registroClinico);
         this.draft.set(data.atendimento.registroClinico);
@@ -451,8 +463,8 @@ export class DoctorCareComponent {
     this.workspace.reload();
     this.notice.set(null);
   }
-  protected loadHistory() {
-    this.historyRequested.set(true);
+  protected onHistorySheetState(state: "open" | "closed") {
+    if (state === "open") this.historyRequested.set(true);
   }
   protected issue(error: unknown) {
     return doctorIssue(error);
