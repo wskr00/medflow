@@ -6,7 +6,7 @@ Contrato de planejamento da Issue #7, revisado entre Produto, Backend, Frontend,
 
 Instantes usam ISO 8601 com offset; recorrências usam data/hora local e fuso IANA da clínica. Respostas de disponibilidade incluem `timeZone`. O backend determina o instante atual e os horários derivados, nunca o relógio do navegador.
 
-Listas operacionais usam `items`, `page` (zero inicial), `size`, `totalElements`; padrão 20, máximo 100. Disponibilidade usa uma data por consulta e retorna `items` e `timeZone`, sem paginação de slots. Catálogos são filtrados por `unidadeId`, `especialidadeId` e/ou `medicoId` quando pertinente. Não expor consultas RSQL arbitrárias nem entidades persistidas.
+Listas operacionais usam `items`, `page` (zero inicial), `size`, `totalElements`; padrão 20, máximo 100. Disponibilidade usa uma data por consulta e retorna `items` e `timeZone`, sem paginação de slots. Catálogos e a lista própria de agendamentos aceitam `q` em RSQL somente pelos aliases documentados para cada endpoint; o servidor rejeita qualquer seletor fora da lista, aplica o escopo autorizado antes do filtro e não expõe a navegação do modelo JPA. Disponibilidade não aceita RSQL: seus filtros continuam explícitos e sua regra é calculada pelo domínio.
 
 Recursos mutáveis possuem `version` inteiro. Alterações recebem `expectedVersion`; divergência retorna `409 VERSAO_DESATUALIZADA`, sem sobrescrever dados. A versão não substitui locks para conflito entre reservas diferentes.
 
@@ -38,16 +38,29 @@ Consultas GET de catálogos por Paciente/Recepção retornam projeção mínima 
 |---|---|---|
 | `GET /api/disponibilidades` | `data`, `unidadeId`, `especialidadeId`, `medicoId?` | `items[{regraAgendaId,medicoId,especialidadeId,consultorioId,inicio,fim}]`, `timeZone`; consulta não reserva horário |
 | `POST /api/agendamentos` | `regraAgendaId`, `inicio` | 201, agendamento confirmado; servidor deriva paciente, fim e demais vínculos, revalidando disponibilidade |
-| `GET /api/me/agendamentos` | `page`, `size`, `status?`, `dataDe?`, `dataAte?` | Somente próprios, incluindo futuros/passados; dados operacionais |
+| `GET /api/me/agendamentos` | `page`, `size`, `recorte?`, `q?`, `status?`, `dataDe?`, `dataAte?` | Somente próprios, incluindo futuros/passados; dados operacionais |
 | `GET /api/agendamentos/{id}` | id | Projeção operacional autorizada; sem registro clínico |
 | `POST /api/agendamentos/{id}/reagendamento` | `regraAgendaId`, `inicio`, `expectedVersion` | 200, mesmo id e `AGENDADA`; falha mantém integralmente reserva anterior |
 | `POST /api/agendamentos/{id}/cancelamento` | `expectedVersion` | 200, `CANCELADA`, somente a partir de `AGENDADA` |
 
-Projeção operacional: `id`, `version`, `inicio`, `fim`, `status`, `checkInEm` (null antes da chegada), `medico`, `especialidade`, `unidade`, `consultorio` (cada um `{id,nome}`). `paciente:{id,nome}` só aparece nas visões operacionais autorizadas da recepção e médico. Nenhum texto clínico integra essa projeção. Disponibilidade inclui também esses objetos de exibição, além dos IDs de seleção, evitando requisições individuais por slot.
+Projeção operacional: `id`, `version`, `inicio`, `fim`, `status`, `checkInEm` (null antes da chegada), `medico`, `especialidade`, `unidade`, `consultorio` (cada um `{id,nome}`) e `allowedActions:{canReschedule,canCancel}`. As duas ações são calculadas pelo backend a partir do estado atual e do relógio da clínica; a UI não as infere pelo seu próprio relógio. `paciente:{id,nome}` só aparece nas visões operacionais autorizadas da recepção e médico. Nenhum texto clínico integra essa projeção. Disponibilidade inclui também esses objetos de exibição, além dos IDs de seleção, evitando requisições individuais por slot.
 
-RF008 e RF009 autorizam também Recepcionista na clínica. Para reagendar, usa `GET /api/agendamentos/{id}/disponibilidades?data=`, que valida acesso ao agendamento e restringe a oferta a seu médico, especialidade e unidade. A API de criação permanece exclusiva do Paciente. Reagendamento mantém paciente, médico, especialidade e unidade; consultório pode mudar para outra oferta válida da mesma unidade. Cancelamento/reagendamento exigem `AGENDADA` e instante atual anterior ao início.
+RF008 e RF009 autorizam também Recepcionista na clínica. Para reagendar, usa `GET /api/agendamentos/{id}/disponibilidades?data=`, que valida acesso e, antes de revelar slots, rejeita `409 TRANSICAO_INVALIDA` se o agendamento não estiver `AGENDADA` ou já tiver iniciado. Quando válida, a oferta é restrita a seu médico, especialidade e unidade. A API de criação permanece exclusiva do Paciente. Reagendamento mantém paciente, médico, especialidade e unidade; consultório pode mudar para outra oferta válida da mesma unidade. Cancelamento/reagendamento exigem `AGENDADA` e instante atual anterior ao início.
 
 Disponibilidade de reagendamento exclui a própria reserva do cálculo, mas não outras reservas; a confirmação repete essa regra atomicamente. Selecionar exatamente a oferta atual é operação sem alteração: retorna a representação atual, sem incrementar versão nem gerar segundo evento de mutação.
+
+### Filtros RSQL da jornada do paciente
+
+Os operadores e valores são interpretados pelo starter RSQL; `q` pode combinar predicados com `;` (E) e `,` (OU). Não há `sort` recebido do cliente para estas listas.
+
+| Endpoint | Aliases RSQL aceitos | Recorte e ordem do servidor |
+|---|---|---|
+| `GET /api/unidades` | `id`, `nome` | catálogo ativo para Paciente/Recepção; `nome,id` crescente |
+| `GET /api/especialidades` | `id`, `nome` | catálogo ativo para Paciente/Recepção; `nome,id` crescente |
+| `GET /api/medicos` | `id`, `nome`, `especialidadeId` | catálogo ativo para Paciente/Recepção; `nome,id` crescente |
+| `GET /api/me/agendamentos` | `status`, `inicio`, `medicoId`, `especialidadeId`, `unidadeId` | `recorte=UPCOMING`: AGENDADA futura, início/id crescente; `PAST`: não cancelada já iniciada, início decrescente/id crescente; `CANCELLED`: cancelada, início decrescente/id crescente |
+
+`status`, `dataDe` e `dataAte` permanecem temporariamente aceitos em `GET /api/me/agendamentos`; o backend os combina ao `q` antes da consulta. O novo frontend deve preferir `recorte` e `q` quando precisar de filtros combináveis.
 
 ## Recepção e atendimento
 
