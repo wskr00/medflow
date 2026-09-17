@@ -32,6 +32,8 @@ realm são exclusivamente sintéticos:
 | Usuário | Senha local | Perfil |
 |---|---|---|
 | `paciente` | `paciente` | `PATIENT` |
+| `paciente.helena` | `paciente` | `PATIENT` |
+| `paciente.caio` | `paciente` | `PATIENT` |
 | `recepcionista` | `recepcionista` | `RECEPTIONIST` |
 | `medico` | `medico` | `DOCTOR` |
 | `administrador` | `administrador` | `ADMINISTRATOR` |
@@ -40,6 +42,21 @@ O client confidencial `medflow-test` e seu segredo versionado servem somente ao
 smoke local automatizável. Ele habilita password grant para obter tokens sem
 navegador; não deve ser usado pelo frontend nem promovido como configuração de
 produção. Nenhuma credencial real deve ser colocada no realm.
+
+### Massa rica de demonstração
+
+Para validar as quatro jornadas com listas, estados e histórico preenchidos,
+habilite a localização Flyway exclusiva de demonstração ao iniciar o backend:
+
+```bash
+export MEDFLOW_FLYWAY_LOCATIONS=classpath:db/migration,classpath:db/demo
+```
+
+`db/demo/R__synthetic_demo_data.sql` cria somente pessoas, estrutura, agenda,
+consultas e registros inequivocamente fictícios. A localização não faz parte do
+valor padrão da aplicação e não deve ser habilitada fora de desenvolvimento,
+demonstração ou QA local. Os `subject` dos três pacientes e do médico concordam
+com o realm versionado; recepção e administração não dependem de vínculo local.
 
 O smoke criptográfico versionado pode ser executado somente contra a stack local
 sintética, depois que Keycloak e backend estiverem prontos:
