@@ -1,6 +1,7 @@
 import { Routes } from "@angular/router";
 
 import { defaultWorkspaceRedirect, requireRole } from "./auth/role.guard";
+import { preventDoctorCareLoss } from "./features/doctor/doctor-care.guard";
 
 export const routes: Routes = [
   {
@@ -11,13 +12,44 @@ export const routes: Routes = [
   {
     path: "workspace/patient",
     canActivate: [requireRole("PATIENT")],
-    loadComponent: () => import("./features/patient/patient-shell.component").then((m) => m.PatientShellComponent),
+    loadComponent: () =>
+      import("./features/patient/patient-shell.component").then(
+        (m) => m.PatientShellComponent,
+      ),
     children: [
       { path: "", pathMatch: "full", redirectTo: "consultas" },
-      { path: "consultas", title: "Consultas | MedFlow", loadComponent: () => import("./features/patient/patient-appointments.component").then((m) => m.PatientAppointmentsComponent) },
-      { path: "agendar", title: "Agendar consulta | MedFlow", loadComponent: () => import("./features/patient/patient-booking.component").then((m) => m.PatientBookingComponent) },
-      { path: "historico", title: "Histórico | MedFlow", loadComponent: () => import("./features/patient/patient-history.component").then((m) => m.PatientHistoryComponent) },
-      { path: "consultas/:id/reagendar", title: "Reagendar consulta | MedFlow", loadComponent: () => import("./features/patient/patient-reschedule.component").then((m) => m.PatientRescheduleComponent) },
+      {
+        path: "consultas",
+        title: "Consultas | MedFlow",
+        loadComponent: () =>
+          import("./features/patient/patient-appointments.component").then(
+            (m) => m.PatientAppointmentsComponent,
+          ),
+      },
+      {
+        path: "agendar",
+        title: "Agendar consulta | MedFlow",
+        loadComponent: () =>
+          import("./features/patient/patient-booking.component").then(
+            (m) => m.PatientBookingComponent,
+          ),
+      },
+      {
+        path: "historico",
+        title: "Histórico | MedFlow",
+        loadComponent: () =>
+          import("./features/patient/patient-history.component").then(
+            (m) => m.PatientHistoryComponent,
+          ),
+      },
+      {
+        path: "consultas/:id/reagendar",
+        title: "Reagendar consulta | MedFlow",
+        loadComponent: () =>
+          import("./features/patient/patient-reschedule.component").then(
+            (m) => m.PatientRescheduleComponent,
+          ),
+      },
     ],
   },
   {
@@ -42,6 +74,34 @@ export const routes: Routes = [
         loadComponent: () =>
           import("./features/reception/reception-reschedule.component").then(
             (m) => m.ReceptionRescheduleComponent,
+          ),
+      },
+    ],
+  },
+  {
+    path: "workspace/doctor",
+    canActivate: [requireRole("DOCTOR")],
+    loadComponent: () =>
+      import("./features/doctor/doctor-shell.component").then(
+        (m) => m.DoctorShellComponent,
+      ),
+    children: [
+      { path: "", pathMatch: "full", redirectTo: "triagem" },
+      {
+        path: "triagem",
+        title: "Minha agenda | MedFlow",
+        loadComponent: () =>
+          import("./features/doctor/doctor-triage.component").then(
+            (m) => m.DoctorTriageComponent,
+          ),
+      },
+      {
+        path: "atendimentos/:id",
+        title: "Atendimento | MedFlow",
+        canDeactivate: [preventDoctorCareLoss],
+        loadComponent: () =>
+          import("./features/doctor/doctor-care.component").then(
+            (m) => m.DoctorCareComponent,
           ),
       },
     ],

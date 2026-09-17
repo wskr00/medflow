@@ -14,7 +14,6 @@ const navigationOrder: readonly MedflowRole[] = [
 ];
 const medflowApiClient = "medflow-api";
 
-
 function hasRole(authData: AuthGuardData, requiredRole: MedflowRole): boolean {
   return (
     authData.grantedRoles.resourceRoles[medflowApiClient]?.includes(
@@ -36,7 +35,9 @@ export const defaultWorkspaceRedirect: RedirectFunction = () => {
 
   const roles = rolesFrom(keycloak);
   if (roles.includes("PATIENT")) return router.parseUrl("/workspace/patient");
-  if (roles.includes("RECEPTIONIST")) return router.parseUrl("/workspace/reception");
+  if (roles.includes("RECEPTIONIST"))
+    return router.parseUrl("/workspace/reception");
+  if (roles.includes("DOCTOR")) return router.parseUrl("/workspace/doctor");
   return router.parseUrl("/access-denied");
 };
 

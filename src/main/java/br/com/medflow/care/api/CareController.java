@@ -13,6 +13,7 @@ import jakarta.validation.constraints.Size;
 import java.net.URI;
 import java.time.LocalDate;
 import java.util.UUID;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
@@ -43,6 +44,8 @@ public class CareController {
 
   @GetMapping("/medico/agenda")
   @PreAuthorize("hasRole('DOCTOR')")
+  @Operation(summary = "Agenda operacional do médico",
+      description = "Retorna atendimentoId opcional e ações de iniciar ou retomar calculadas no servidor.")
   CareApi.PageResponse<CareApi.AppointmentResponse> agenda(
       Authentication authentication,
       @RequestParam @NotNull LocalDate data,
@@ -55,6 +58,8 @@ public class CareController {
 
   @GetMapping("/medico/fila")
   @PreAuthorize("hasRole('DOCTOR')")
+  @Operation(summary = "Fila operacional do médico",
+      description = "Retorna somente consultas EM_ESPERA com ação de início calculada no servidor.")
   CareApi.PageResponse<CareApi.AppointmentResponse> queue(
       Authentication authentication,
       @RequestParam(defaultValue = "0") @PositiveOrZero int page,
@@ -66,9 +71,10 @@ public class CareController {
 
   @PostMapping("/agendamentos/{id}/atendimento")
   @PreAuthorize("hasRole('DOCTOR')")
-  ResponseEntity<CareApi.StartResponse> start(Authentication authentication,
+  @Operation(summary = "Inicia atendimento", description = "Retorna o workspace clínico autorizado para retomada segura.")
+  ResponseEntity<CareApi.WorkspaceResponse> start(Authentication authentication,
       @PathVariable UUID id, @Valid @RequestBody VersionInput input) {
-    var response = CareApi.start(service.start(
+    var response = CareApi.workspace(service.start(
         contexts.resolve(authentication), id, input.expectedVersion()));
     return ResponseEntity.created(URI.create("/api/atendimentos/" + response.atendimento().id()))
         .body(response);
@@ -76,24 +82,27 @@ public class CareController {
 
   @GetMapping("/atendimentos/{id}")
   @PreAuthorize("hasRole('DOCTOR')")
-  CareApi.CareResponse get(Authentication authentication, @PathVariable UUID id) {
-    return CareApi.care(service.get(contexts.resolve(authentication), id));
+  @Operation(summary = "Retoma atendimento", description = "Retorna o workspace clínico autorizado, inclusive contexto operacional e versões.")
+  CareApi.WorkspaceResponse get(Authentication authentication, @PathVariable UUID id) {
+    return CareApi.workspace(service.get(contexts.resolve(authentication), id));
   }
 
   @PutMapping("/atendimentos/{id}/registro-clinico")
   @PreAuthorize("hasRole('DOCTOR')")
-  CareApi.CareResponse saveDraft(Authentication authentication, @PathVariable UUID id,
+  @Operation(summary = "Salva rascunho clínico", description = "Retorna o workspace com a versão persistida; não implica autosave nem timestamp adicional.")
+  CareApi.WorkspaceResponse saveDraft(Authentication authentication, @PathVariable UUID id,
       @Valid @RequestBody ClinicalRecordInput input) {
-    return CareApi.care(service.saveDraft(contexts.resolve(authentication), id,
+    return CareApi.workspace(service.saveDraft(contexts.resolve(authentication), id,
         input.expectedVersion(), input.queixaPrincipal(), input.resumoAnamnese(),
         input.conduta(), input.observacoes()));
   }
 
   @PostMapping("/atendimentos/{id}/finalizacao")
   @PreAuthorize("hasRole('DOCTOR')")
-  CareApi.FinishResponse finish(Authentication authentication, @PathVariable UUID id,
+  @Operation(summary = "Finaliza atendimento", description = "Retorna o workspace finalizado, somente leitura para novos salvamentos.")
+  CareApi.WorkspaceResponse finish(Authentication authentication, @PathVariable UUID id,
       @Valid @RequestBody VersionInput input) {
-    return CareApi.finish(service.finish(
+    return CareApi.workspace(service.finish(
         contexts.resolve(authentication), id, input.expectedVersion()));
   }
 
@@ -109,11 +118,12 @@ public class CareController {
 
   @GetMapping("/medico/pacientes/{id}/historico")
   @PreAuthorize("hasRole('DOCTOR')")
-  CareApi.PageResponse<CareApi.DoctorHistoryResponse> doctorHistory(
+  @Operation(summary = "Histórico clínico permitido", description = "Retorna somente atendimentos finalizados do médico autenticado, em workspace contextual.")
+  CareApi.PageResponse<CareApi.WorkspaceResponse> doctorHistory(
       Authentication authentication, @PathVariable UUID id,
       @RequestParam(defaultValue = "0") @PositiveOrZero int page,
       @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
-    return CareApi.doctorHistoryPage(service.doctorHistory(contexts.resolve(authentication), id,
+    return CareApi.workspacePage(service.doctorHistory(contexts.resolve(authentication), id,
         PageRequest.of(page, size, Sort.by(Sort.Order.desc("agendamento.inicio"),
             Sort.Order.asc("id")))));
   }
