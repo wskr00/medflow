@@ -34,9 +34,20 @@ realm são exclusivamente sintéticos:
 | `paciente` | `paciente` | `PATIENT` |
 | `paciente.helena` | `paciente` | `PATIENT` |
 | `paciente.caio` | `paciente` | `PATIENT` |
+| `paciente.beatriz` | `paciente` | `PATIENT` |
+| `paciente.daniel` | `paciente` | `PATIENT` |
+| `paciente.elisa` | `paciente` | `PATIENT` |
+| `paciente.felipe` | `paciente` | `PATIENT` |
 | `recepcionista` | `recepcionista` | `RECEPTIONIST` |
+| `recepcionista.julia` | `recepcionista` | `RECEPTIONIST` |
+| `recepcionista.pedro` | `recepcionista` | `RECEPTIONIST` |
 | `medico` | `medico` | `DOCTOR` |
+| `medico.ana` | `medico` | `DOCTOR` |
+| `medico.luiz` | `medico` | `DOCTOR` |
+| `medico.sofia` | `medico` | `DOCTOR` |
+| `medico.rafael` | `medico` | `DOCTOR` |
 | `administrador` | `administrador` | `ADMINISTRATOR` |
+| `administrador.marina` | `administrador` | `ADMINISTRATOR` |
 
 O client confidencial `medflow-test` e seu segredo versionado servem somente ao
 smoke local automatizável. Ele habilita password grant para obter tokens sem
@@ -53,10 +64,13 @@ export MEDFLOW_FLYWAY_LOCATIONS=classpath:db/migration,classpath:db/demo
 ```
 
 `db/demo/R__synthetic_demo_data.sql` cria somente pessoas, estrutura, agenda,
-consultas e registros inequivocamente fictícios. A localização não faz parte do
-valor padrão da aplicação e não deve ser habilitada fora de desenvolvimento,
-demonstração ou QA local. Os `subject` dos três pacientes e do médico concordam
-com o realm versionado; recepção e administração não dependem de vínculo local.
+consultas e registros inequivocamente fictícios. A massa inclui quatro unidades,
+dez consultórios, oito especialidades, seis médicos, dezesseis pacientes,
+regras semanais, bloqueios e consultas distribuídas por todos os estados do
+ciclo de vida. A localização não faz parte do valor padrão da aplicação e não
+deve ser habilitada fora de desenvolvimento, demonstração ou QA local. Os
+`subject` dos pacientes e dos médicos autenticáveis concordam com o realm
+versionado; recepção e administração não dependem de vínculo local.
 
 O smoke criptográfico versionado pode ser executado somente contra a stack local
 sintética, depois que Keycloak e backend estiverem prontos:
