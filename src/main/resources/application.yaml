@@ -11,6 +11,7 @@ spring:
         open-in-view: false
     flyway:
         enabled: true
+        locations: ${MEDFLOW_FLYWAY_LOCATIONS:classpath:db/migration}
     security:
         oauth2:
             resourceserver:
