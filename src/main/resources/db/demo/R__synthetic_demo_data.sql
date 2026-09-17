@@ -1,5 +1,5 @@
 -- Massa exclusivamente sintética para demonstração e QA local.
--- Ative com MEDFLOW_FLYWAY_LOCATIONS=classpath:db/migration,classpath:db/demo.
+-- Carregada por padrão no ambiente acadêmico do MedFlow.
 
 INSERT INTO unidade (id, clinica_id, nome, endereco, ativo, version) VALUES
 ('31000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'Unidade Central', 'Av. Exemplo, 100 — Belém/PA', TRUE, 0),
