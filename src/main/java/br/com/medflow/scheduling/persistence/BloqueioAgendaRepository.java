@@ -3,14 +3,25 @@ package br.com.medflow.scheduling.persistence;
 import br.com.medflow.scheduling.domain.BloqueioAgenda;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface BloqueioAgendaRepository extends JpaRepository<BloqueioAgenda, UUID> {
+public interface BloqueioAgendaRepository extends JpaRepository<BloqueioAgenda, UUID>,
+    JpaSpecificationExecutor<BloqueioAgenda> {
+  @Override
+  @EntityGraph(attributePaths = {"clinica", "medico"})
+  Optional<BloqueioAgenda> findById(UUID id);
+  @Override
+  @EntityGraph(attributePaths = {"clinica", "medico"})
+  Page<BloqueioAgenda> findAll(Specification<BloqueioAgenda> specification, Pageable pageable);
   Page<BloqueioAgenda> findByClinicaIdAndAtivoTrue(UUID clinicaId, Pageable pageable);
   Page<BloqueioAgenda> findByClinicaId(UUID clinicaId, Pageable pageable);
 
