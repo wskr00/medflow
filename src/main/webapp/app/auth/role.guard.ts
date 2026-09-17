@@ -38,6 +38,8 @@ export const defaultWorkspaceRedirect: RedirectFunction = () => {
   if (roles.includes("RECEPTIONIST"))
     return router.parseUrl("/workspace/reception");
   if (roles.includes("DOCTOR")) return router.parseUrl("/workspace/doctor");
+  if (roles.includes("ADMINISTRATOR"))
+    return router.parseUrl("/workspace/admin");
   return router.parseUrl("/access-denied");
 };
 

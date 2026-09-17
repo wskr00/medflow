@@ -99,6 +99,24 @@ describe("MedFlow role routing", () => {
     );
   });
 
+  it("routes an administrator to the dedicated configuration journey", async () => {
+    await TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        {
+          provide: Keycloak,
+          useValue: keycloakWithRoles({ medflowApiRoles: ["ADMINISTRATOR"] }),
+        },
+      ],
+    }).compileComponents();
+    const redirect = TestBed.runInInjectionContext(() =>
+      defaultWorkspaceRedirect({} as never),
+    );
+    expect(TestBed.inject(Router).serializeUrl(redirect as UrlTree)).toBe(
+      "/workspace/admin",
+    );
+  });
+
   it("does not choose a workspace area for an unauthenticated Keycloak session", async () => {
     await TestBed.configureTestingModule({
       providers: [
