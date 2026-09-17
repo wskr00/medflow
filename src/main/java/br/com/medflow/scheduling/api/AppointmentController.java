@@ -59,6 +59,19 @@ public class AppointmentController {
         actor(authentication), data, unidadeId, especialidadeId, medicoId));
   }
 
+  @GetMapping("/disponibilidades/datas")
+  @PreAuthorize("hasAnyRole('PATIENT','ADMINISTRATOR')")
+  @Operation(summary = "Lista dias com ao menos um horário disponível")
+  SchedulingApi.AvailableDatesResponse datasDisponiveis(Authentication authentication,
+      @RequestParam @NotNull LocalDate dataDe,
+      @RequestParam @NotNull LocalDate dataAte,
+      @RequestParam @NotNull UUID unidadeId,
+      @RequestParam @NotNull UUID especialidadeId,
+      @RequestParam(required = false) UUID medicoId) {
+    return SchedulingApi.availableDates(service.datasDisponiveis(actor(authentication),
+        dataDe, dataAte, unidadeId, especialidadeId, medicoId));
+  }
+
   @PostMapping("/agendamentos")
   @PreAuthorize("hasRole('PATIENT')")
   ResponseEntity<SchedulingApi.PatientAppointmentResponse> criar(Authentication authentication,

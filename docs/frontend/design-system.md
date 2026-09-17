@@ -42,8 +42,10 @@ O conjunto é intencionalmente pequeno e foi instalado pelo CLI Spartan:
 
 - `app-page-header`: sobrancelha de perfil, título e contexto da tarefa.
 - `app-status-badge`: traduz somente os status contratuais de agendamento em rótulos e variantes Helm. Não inventa novos status nem regra de transição.
+- `app-medflow-brand`: assinatura visual compartilhada dos cabeçalhos autenticados; o contexto textual é opcional e não substitui a navegação específica de cada perfil.
 - `app-state-panel`: loading, vazio, erro, conflito e sucesso. A tela da jornada fornece texto contextual e a ação de recuperação.
 - Formulários: `form()`/Signal Forms com `FormRoot`, `FormField`, `hlmField`, label associado por `for`/`id`, descrição e `hlm-field-error`. Validação local é de formato/obrigatoriedade; regras de negócio continuam no backend.
+- Escolhas múltiplas pequenas usam `hlm-toggle-group`; `hlm-native-select` permanece adequado para escolha única em formulários quando a semântica nativa é suficiente. Elementos acionáveis expõem cursor, foco e hover; cards meramente informativos não simulam clique.
 
 Erros de `fieldErrors` da resposta contratada devem ser associados ao campo correspondente. Erros sem campo são exibidos em `app-state-panel`/`hlmAlert`. Um `409 VERSAO_DESATUALIZADA` ou conflito de transição não sobrescreve texto local: comunica o conflito e oferece recarregar o recurso.
 

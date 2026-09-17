@@ -65,6 +65,12 @@
       ],
       "@spartan-ng/helm/dialog": [
         "./src/main/webapp/shared/ui/helm/dialog/src/index.ts"
+      ],
+      "@spartan-ng/helm/toggle-group": [
+        "./src/main/webapp/shared/ui/helm/toggle-group/src/index.ts"
+      ],
+      "@spartan-ng/helm/toggle": [
+        "./src/main/webapp/shared/ui/helm/toggle/src/index.ts"
       ]
     }
   },

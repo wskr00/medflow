@@ -4,6 +4,7 @@ import { HlmButtonImports } from "@spartan-ng/helm/button";
 import { HlmSheetImports } from "@spartan-ng/helm/sheet";
 import { AdminNavComponent } from "./admin-nav.component";
 import { SessionActionsComponent } from "../../shared/ui/session-actions.component";
+import { MedflowBrandComponent } from "../../shared/ui/medflow-brand.component";
 
 @Component({
   selector: "app-admin-shell",
@@ -15,6 +16,7 @@ import { SessionActionsComponent } from "../../shared/ui/session-actions.compone
     HlmSheetImports,
     AdminNavComponent,
     SessionActionsComponent,
+    MedflowBrandComponent,
   ],
   template: `
     <a
@@ -27,12 +29,9 @@ import { SessionActionsComponent } from "../../shared/ui/session-actions.compone
         <div
           class="mx-auto flex min-h-16 max-w-[90rem] items-center justify-between gap-4 px-4 sm:px-6"
         >
-          <a routerLink="estrutura" class="font-semibold tracking-tight"
-            >MedFlow
-            <span class="text-muted-foreground font-normal"
-              >· Configuração administrativa</span
-            ></a
-          >
+          <a routerLink="estrutura"
+            ><app-medflow-brand context="Administração"
+          /></a>
           <div class="ml-auto flex items-center gap-2">
             <app-session-actions /><hlm-sheet #menu="hlmSheet" side="left"
               ><button
@@ -46,7 +45,7 @@ import { SessionActionsComponent } from "../../shared/ui/session-actions.compone
                 ><hlm-sheet-header
                   ><h2 hlmSheetTitle>Configuração</h2>
                   <p hlmSheetDescription>
-                    Estrutura e regras da clínica.
+                    Estrutura e horários de trabalho da clínica.
                   </p></hlm-sheet-header
                 ><app-admin-nav (navigated)="menu.close()" /></hlm-sheet-content
             ></hlm-sheet>

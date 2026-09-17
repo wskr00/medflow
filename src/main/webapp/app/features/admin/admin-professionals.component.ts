@@ -12,6 +12,7 @@ import { HlmFieldImports } from "@spartan-ng/helm/field";
 import { HlmInputImports } from "@spartan-ng/helm/input";
 import { HlmNativeSelectImports } from "@spartan-ng/helm/native-select";
 import { HlmSpinnerImports } from "@spartan-ng/helm/spinner";
+import { HlmToggleGroupImports } from "@spartan-ng/helm/toggle-group";
 import { finalize } from "rxjs";
 import { StatePanelComponent } from "../../shared/ui/state-panel.component";
 import { AdminApi, adminIssue } from "./admin.api";
@@ -28,6 +29,7 @@ import { AdminIssue, Page, Professional, Specialty } from "./admin.models";
     HlmInputImports,
     HlmNativeSelectImports,
     HlmSpinnerImports,
+    HlmToggleGroupImports,
     StatePanelComponent,
   ],
   template: `<section class="space-y-6">
@@ -77,7 +79,7 @@ import { AdminIssue, Page, Professional, Specialty } from "./admin.models";
               @for (value of values.value()?.items ?? []; track value.id) {
                 <button
                   type="button"
-                  class="bg-muted min-h-16 rounded-md p-3 text-left"
+                  class="bg-muted hover:bg-accent focus-visible:ring-ring/50 min-h-16 rounded-md p-3 text-left outline-none transition-colors focus-visible:ring-3"
                   (click)="edit(value)"
                 >
                   <span class="block font-medium">{{ value.nome }}</span
@@ -144,23 +146,29 @@ import { AdminIssue, Page, Professional, Specialty } from "./admin.models";
           </div>
           <div hlmField class="md:col-span-2">
             <label hlmFieldLabel for="doctor-specialties">Especialidades</label
-            ><select
-              hlmNativeSelect
+            ><hlm-toggle-group
               id="doctor-specialties"
-              multiple
-              class="min-h-28"
-              (change)="specialties.set(selected($event)); markDirty()"
+              type="multiple"
+              variant="outline"
+              [spacing]="2"
+              class="flex w-full flex-wrap justify-start"
+              [value]="specialties()"
+              (valueChange)="changeSpecialties($event)"
             >
               @for (item of catalog.value()?.items ?? []; track item.id) {
-                <option
+                <button
+                  hlmToggleGroupItem
+                  type="button"
                   [value]="item.id"
-                  [selected]="specialties().includes(item.id)"
+                  class="min-h-11"
                 >
                   {{ item.nome }}
-                </option>
+                </button>
               }
-            </select>
-            <p hlmFieldDescription>Selecione ao menos uma especialidade.</p>
+            </hlm-toggle-group>
+            <p hlmFieldDescription>
+              Escolha uma ou mais especialidades. Clique novamente para remover.
+            </p>
           </div>
           <div hlmField class="md:col-span-2">
             <label hlmFieldLabel for="doctor-active">Estado</label
@@ -235,10 +243,15 @@ export class AdminProfessionalsComponent {
     this.specialties.set([...value.especialidadeIds]);
     this.active.set(value.ativo);
   }
-  protected selected(event: Event) {
-    return Array.from((event.target as HTMLSelectElement).selectedOptions).map(
-      (option: HTMLOptionElement) => option.value,
+  protected changeSpecialties(value: unknown) {
+    this.specialties.set(
+      Array.isArray(value)
+        ? value.filter((item): item is string => typeof item === "string")
+        : typeof value === "string"
+          ? [value]
+          : [],
     );
+    this.markDirty();
   }
   protected save() {
     if (

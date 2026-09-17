@@ -82,7 +82,7 @@ import { AdminIssue, Page, Room, Unit } from "./admin.models";
               @for (unit of units.value()?.items ?? []; track unit.id) {
                 <button
                   type="button"
-                  class="bg-muted min-h-16 rounded-md p-3 text-left"
+                  class="bg-muted hover:bg-accent focus-visible:ring-ring/50 min-h-16 rounded-md p-3 text-left outline-none transition-colors focus-visible:ring-3"
                   [class.bg-accent]="selectedId() === unit.id"
                   (click)="selectUnit(unit)"
                 >
@@ -183,7 +183,7 @@ import { AdminIssue, Page, Room, Unit } from "./admin.models";
               @for (room of roomsForUnit(); track room.id) {
                 <button
                   type="button"
-                  class="bg-muted flex min-h-11 items-center justify-between rounded-md px-3 text-left"
+                  class="bg-muted hover:bg-accent focus-visible:ring-ring/50 flex min-h-11 items-center justify-between rounded-md px-3 text-left outline-none transition-colors focus-visible:ring-3"
                   (click)="editRoom(room)"
                 >
                   <span>{{ room.nome }}</span
