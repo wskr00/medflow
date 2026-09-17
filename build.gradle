@@ -51,4 +51,7 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+	// A aplicação local carrega a demonstração por padrão; a suíte cria sua
+	// própria massa e mantém somente as migrations estruturais para isolamento.
+	systemProperty 'spring.flyway.locations', 'classpath:db/migration'
 }
