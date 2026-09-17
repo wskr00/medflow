@@ -507,9 +507,9 @@ class AuditHttpIntegrationTests {
 
   private String blockJson(UUID doctorId, boolean active, Long version) {
     String expected = version == null ? "" : ",\"expectedVersion\":" + version;
-    return "{\"medicoId\":\"%s\",\"inicio\":\"2026-09-16T15:00:00Z\","
+    return "{\"medicoId\":\"%s\",\"inicio\":\"2026-09-16T15:00:00\","
         .formatted(doctorId)
-        + "\"fim\":\"2026-09-16T16:00:00Z\",\"ativo\":" + active + expected + "}";
+        + "\"fim\":\"2026-09-16T16:00:00\",\"ativo\":" + active + expected + "}";
   }
 
   private static String createJson(UUID ruleId, int hour, int minute) {

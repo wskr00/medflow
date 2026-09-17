@@ -9,10 +9,11 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import java.net.URI;
 import java.time.DayOfWeek;
-import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.UUID;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -42,9 +43,20 @@ public class SchedulingConfigurationController {
   @GetMapping("/regras-agenda")
   ConfigurationApi.PageResponse<ConfigurationApi.RegraResponse> regras(
       @RequestParam(defaultValue = "false") boolean incluirInativas,
+      @RequestParam(required = false) UUID medicoId,
+      @RequestParam(required = false) UUID especialidadeId,
+      @RequestParam(required = false) UUID consultorioId,
       @RequestParam(defaultValue = "0") @PositiveOrZero int page,
       @RequestParam(defaultValue = "20") @jakarta.validation.constraints.Min(1) @Max(100) int size) {
-    return page(service.regras(incluirInativas, PageRequest.of(page, size, Sort.by("vigenteDe").descending())), ConfigurationApi::regra);
+    return page(service.regras(incluirInativas, medicoId, especialidadeId, consultorioId,
+        PageRequest.of(page, size, Sort.by(Sort.Order.desc("vigenteDe"), Sort.Order.asc("id")))),
+        ConfigurationApi::regra);
+  }
+
+  @GetMapping("/regras-agenda/{id}")
+  @Operation(summary = "Detalha regra de agenda administrativa")
+  ConfigurationApi.RegraResponse regra(@PathVariable UUID id) {
+    return ConfigurationApi.regra(service.regra(id));
   }
 
   @PostMapping("/regras-agenda")
@@ -61,20 +73,30 @@ public class SchedulingConfigurationController {
   @GetMapping("/bloqueios-agenda")
   ConfigurationApi.PageResponse<ConfigurationApi.BloqueioResponse> bloqueios(
       @RequestParam(defaultValue = "false") boolean incluirInativas,
+      @RequestParam(required = false) UUID medicoId,
       @RequestParam(defaultValue = "0") @PositiveOrZero int page,
       @RequestParam(defaultValue = "20") @jakarta.validation.constraints.Min(1) @Max(100) int size) {
-    return page(service.bloqueios(incluirInativas, PageRequest.of(page, size, Sort.by("inicio").descending())), ConfigurationApi::bloqueio);
+    return page(service.bloqueios(incluirInativas, medicoId,
+        PageRequest.of(page, size, Sort.by(Sort.Order.desc("inicio"), Sort.Order.asc("id")))),
+        ConfigurationApi::bloqueio);
+  }
+
+  @GetMapping("/bloqueios-agenda/{id}")
+  @Operation(summary = "Detalha bloqueio de agenda administrativa",
+      description = "Instantes são devolvidos com o offset do fuso da clínica.")
+  ConfigurationApi.BloqueioResponse bloqueio(@PathVariable UUID id) {
+    return ConfigurationApi.bloqueio(service.bloqueio(id));
   }
 
   @PostMapping("/bloqueios-agenda")
   ResponseEntity<ConfigurationApi.BloqueioResponse> criarBloqueio(@Valid @RequestBody BloqueioInput input) {
-    var value = ConfigurationApi.bloqueio(service.criarBloqueio(input.toCommand(0)));
+    var value = ConfigurationApi.bloqueio(service.criarBloqueioLocal(input.toCommand(0)));
     return ResponseEntity.created(URI.create("/api/bloqueios-agenda/" + value.id())).body(value);
   }
 
   @PutMapping("/bloqueios-agenda/{id}")
   ConfigurationApi.BloqueioResponse alterarBloqueio(@PathVariable UUID id, @Valid @RequestBody BloqueioUpdate input) {
-    return ConfigurationApi.bloqueio(service.alterarBloqueio(id, input.toCommand()));
+    return ConfigurationApi.bloqueio(service.alterarBloqueioLocal(id, input.toCommand()));
   }
 
   record RegraInput(@NotNull UUID medicoId, @NotNull UUID especialidadeId, @NotNull UUID consultorioId,
@@ -94,15 +116,19 @@ public class SchedulingConfigurationController {
           DayOfWeek.of(diaSemana), horaInicio, horaFim, duracaoMinutos, vigenteDe, vigenteAte, ativo, expectedVersion);
     }
   }
-  record BloqueioInput(@NotNull UUID medicoId, @NotNull Instant inicio, @NotNull Instant fim, boolean ativo) {
-    SchedulingConfigurationService.BloqueioCommand toCommand(long expectedVersion) {
-      return new SchedulingConfigurationService.BloqueioCommand(medicoId, inicio, fim, ativo, expectedVersion);
+  record BloqueioInput(@NotNull UUID medicoId, @NotNull LocalDateTime inicio,
+      @NotNull LocalDateTime fim, boolean ativo) {
+    SchedulingConfigurationService.BloqueioLocalCommand toCommand(long expectedVersion) {
+      return new SchedulingConfigurationService.BloqueioLocalCommand(
+          medicoId, inicio, fim, ativo, expectedVersion);
     }
   }
-  record BloqueioUpdate(@NotNull UUID medicoId, @NotNull Instant inicio, @NotNull Instant fim, boolean ativo,
+  record BloqueioUpdate(@NotNull UUID medicoId, @NotNull LocalDateTime inicio,
+      @NotNull LocalDateTime fim, boolean ativo,
       @NotNull @PositiveOrZero Long expectedVersion) {
-    SchedulingConfigurationService.BloqueioCommand toCommand() {
-      return new SchedulingConfigurationService.BloqueioCommand(medicoId, inicio, fim, ativo, expectedVersion);
+    SchedulingConfigurationService.BloqueioLocalCommand toCommand() {
+      return new SchedulingConfigurationService.BloqueioLocalCommand(
+          medicoId, inicio, fim, ativo, expectedVersion);
     }
   }
 

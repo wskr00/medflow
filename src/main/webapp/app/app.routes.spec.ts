@@ -35,4 +35,22 @@ describe("application routes", () => {
     );
     expect(care?.canDeactivate?.length).toBeTruthy();
   });
+
+  it("carrega os seis destinos reais da configuração administrativa", () => {
+    TestBed.configureTestingModule({ providers: [provideRouter(routes)] });
+    const admin = TestBed.inject(Router).config.find(
+      (route) => route.path === "workspace/admin",
+    );
+    expect(admin?.canActivate?.length).toBeTruthy();
+    expect(admin?.children?.map((route) => route.path)).toEqual(
+      expect.arrayContaining([
+        "clinica",
+        "estrutura",
+        "profissionais",
+        "especialidades",
+        "agenda",
+        "bloqueios",
+      ]),
+    );
+  });
 });

@@ -9,6 +9,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import java.net.URI;
+import io.swagger.v3.oas.annotations.Operation;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Function;
@@ -62,6 +63,12 @@ public class ClinicConfigurationController {
     return ResponseEntity.created(URI.create("/api/unidades/" + value.id())).body(value);
   }
 
+  @GetMapping("/unidades/{id}") @PreAuthorize("hasRole('ADMINISTRATOR')")
+  @Operation(summary = "Detalha unidade administrativa")
+  ConfigurationApi.UnidadeResponse unidade(@PathVariable UUID id) {
+    return ConfigurationApi.unidade(service.unidade(id));
+  }
+
   @PutMapping("/unidades/{id}") @PreAuthorize("hasRole('ADMINISTRATOR')")
   ConfigurationApi.UnidadeResponse alterarUnidade(@PathVariable UUID id, @Valid @RequestBody UnidadeUpdate input) {
     return ConfigurationApi.unidade(service.alterarUnidade(id, input.expectedVersion(), input.nome(), input.endereco(), input.ativo()));
@@ -70,9 +77,17 @@ public class ClinicConfigurationController {
   @GetMapping("/consultorios") @PreAuthorize("hasRole('ADMINISTRATOR')")
   ConfigurationApi.PageResponse<ConfigurationApi.ConsultorioResponse> consultorios(
       @RequestParam(defaultValue = "false") boolean incluirInativas,
+      @RequestParam(required = false) UUID unidadeId,
       @RequestParam(defaultValue = "0") @PositiveOrZero int page,
       @RequestParam(defaultValue = "20") @jakarta.validation.constraints.Min(1) @jakarta.validation.constraints.Max(100) int size) {
-    return page(service.consultorios(incluirInativas, PageRequest.of(page, size, Sort.by("nome"))), ConfigurationApi::consultorio);
+    return page(service.consultorios(incluirInativas, unidadeId,
+        PageRequest.of(page, size, Sort.by("nome", "id"))), ConfigurationApi::consultorio);
+  }
+
+  @GetMapping("/consultorios/{id}") @PreAuthorize("hasRole('ADMINISTRATOR')")
+  @Operation(summary = "Detalha consultório administrativo")
+  ConfigurationApi.ConsultorioResponse consultorio(@PathVariable UUID id) {
+    return ConfigurationApi.consultorio(service.consultorio(id));
   }
 
   @PostMapping("/consultorios") @PreAuthorize("hasRole('ADMINISTRATOR')")
@@ -105,6 +120,12 @@ public class ClinicConfigurationController {
     return ResponseEntity.created(URI.create("/api/especialidades/" + value.id())).body(value);
   }
 
+  @GetMapping("/especialidades/{id}") @PreAuthorize("hasRole('ADMINISTRATOR')")
+  @Operation(summary = "Detalha especialidade administrativa")
+  ConfigurationApi.EspecialidadeResponse especialidade(@PathVariable UUID id) {
+    return ConfigurationApi.especialidade(service.especialidade(id));
+  }
+
   @PutMapping("/especialidades/{id}") @PreAuthorize("hasRole('ADMINISTRATOR')")
   ConfigurationApi.EspecialidadeResponse alterarEspecialidade(@PathVariable UUID id,
       @Valid @RequestBody NamedUpdate input) {
@@ -127,6 +148,12 @@ public class ClinicConfigurationController {
     var value = ConfigurationApi.medico(service.criarMedico(input.nome(), input.crmNumero(), input.crmUf(),
         input.especialidadeIds(), input.ativo()));
     return ResponseEntity.created(URI.create("/api/medicos/" + value.id())).body(value);
+  }
+
+  @GetMapping("/medicos/{id}") @PreAuthorize("hasRole('ADMINISTRATOR')")
+  @Operation(summary = "Detalha médico administrativo")
+  ConfigurationApi.MedicoResponse medico(@PathVariable UUID id) {
+    return ConfigurationApi.medico(service.medico(id));
   }
 
   @PutMapping("/medicos/{id}") @PreAuthorize("hasRole('ADMINISTRATOR')")
