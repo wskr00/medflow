@@ -81,6 +81,23 @@ class AppointmentHttpIntegrationTests {
   }
 
   @Test
+  void listsOnlyDatesThatStillHaveAvailableSlotsWithinTheRequestedRange() throws Exception {
+    Fixture fixture = fixture("http-available-dates");
+    String url = "/api/disponibilidades/datas?dataDe=2026-09-20&dataAte=2026-09-27"
+        + "&unidadeId=" + fixture.unitId() + "&especialidadeId=" + fixture.specialtyId();
+
+    mvc.perform(get(url).with(principal(fixture.subject(), "PATIENT")))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.timeZone").value("America/Belem"))
+        .andExpect(jsonPath("$.items.length()").value(1))
+        .andExpect(jsonPath("$.items[0]").value("2026-09-21"));
+
+    mvc.perform(get(url.replace("2026-09-27", "2026-12-01"))
+            .with(principal(fixture.subject(), "PATIENT")))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
   void derivesOwnerAndReturnsPatientOrReceptionProjectionWithoutClinicalOrAdministrativeFields()
       throws Exception {
     Fixture fixture = fixture("http-projection");

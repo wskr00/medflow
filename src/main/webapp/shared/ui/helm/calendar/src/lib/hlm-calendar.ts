@@ -42,7 +42,7 @@ import { classes, hlm } from "@spartan-ng/helm/utils";
         "highlightDays",
         "defaultFocusedDate",
       ],
-      outputs: ["dateChange"],
+      outputs: ["dateChange", "focusedDateChange"],
     },
   ],
   host: { "data-slot": "calendar" },
@@ -146,6 +146,9 @@ import { classes, hlm } from "@spartan-ng/helm/utils";
               >
                 <button brnCalendarCellButton [date]="date" [class]="_btnClass">
                   {{ _dateAdapter.getDate(date) }}
+                  @if (_isHighlighted(date)) {
+                    <span class="sr-only">, com horários disponíveis</span>
+                  }
                 </button>
               </td>
             }
@@ -197,7 +200,7 @@ export class HlmCalendar<T> {
     "data-[highlighted]:before:w-1",
     "data-[highlighted]:before:-translate-x-1/2",
     "data-[highlighted]:before:rounded-full",
-    "data-[highlighted]:before:bg-destructive",
+    "data-[highlighted]:before:bg-primary",
   );
 
   protected readonly _selectClass = "gap-0 px-1.5 py-2 [&>ng-icon]:ms-1";
@@ -207,5 +210,11 @@ export class HlmCalendar<T> {
       () =>
         "p-2 [--cell-radius:var(--radius-md)] [--cell-size:--spacing(7)] group/calendar bg-background block in-data-[slot=card-content]:bg-transparent in-data-[slot=popover-content]:bg-transparent",
     );
+  }
+
+  protected _isHighlighted(date: T): boolean {
+    return this._calendar
+      .highlightDays()
+      .some((highlighted) => this._dateAdapter.isSameDay(date, highlighted));
   }
 }

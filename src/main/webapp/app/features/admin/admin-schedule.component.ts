@@ -42,10 +42,10 @@ import {
         Agenda semanal
       </p>
       <h1 class="text-3xl font-semibold tracking-tight">
-        Regras de atendimento
+        Horários de trabalho
       </h1>
       <p class="text-muted-foreground mt-1">
-        Defina profissional, especialidade e consultório na mesma regra.
+        Organize quando cada profissional atende e em qual consultório.
       </p>
     </header>
     @if (notice(); as message) {
@@ -63,11 +63,11 @@ import {
           <div>
             <h2 hlmCardTitle>Semana de referência</h2>
             <p hlmCardDescription>
-              Selecione uma regra para editar ou crie uma nova vigência.
+              Selecione um horário para editar ou cadastre um novo período.
             </p>
           </div>
           <button hlmBtn type="button" class="min-h-11" (click)="newRule()">
-            Nova regra
+            Novo horário
           </button>
         </div>
         <div hlmCardContent>
@@ -80,13 +80,13 @@ import {
           } @else if (rules.isLoading()) {
             <app-state-panel
               state="loading"
-              title="Carregando regras"
+              title="Carregando horários"
               description="Aguarde um momento."
             />
           } @else {
             @if (rules.value()?.items?.length) {
               <div
-                aria-label="Visão semanal das regras"
+                aria-label="Visão semanal dos horários de trabalho"
                 class="mb-4 grid grid-cols-5 gap-2"
               >
                 @for (weekDay of [1, 2, 3, 4, 5]; track weekDay) {
@@ -95,9 +95,8 @@ import {
                       {{ day(weekDay) }}
                     </p>
                     <p class="mt-1 text-sm font-medium">
-                      {{ rulesForDay(weekDay) }} regra{{
-                        rulesForDay(weekDay) === 1 ? "" : "s"
-                      }}
+                      {{ rulesForDay(weekDay) }}
+                      {{ rulesForDay(weekDay) === 1 ? "horário" : "horários" }}
                     </p>
                   </div>
                 }
@@ -107,7 +106,7 @@ import {
               @for (rule of rules.value()?.items ?? []; track rule.id) {
                 <button
                   type="button"
-                  class="bg-muted min-h-20 rounded-md p-3 text-left"
+                  class="bg-muted hover:bg-accent focus-visible:ring-ring/50 min-h-20 rounded-md p-3 text-left outline-none transition-colors focus-visible:ring-3"
                   (click)="edit(rule)"
                 >
                   <span class="block font-medium"
@@ -124,8 +123,8 @@ import {
               } @empty {
                 <app-state-panel
                   state="empty"
-                  title="Nenhuma regra"
-                  description="Crie uma regra semanal de atendimento."
+                  title="Nenhum horário de trabalho"
+                  description="Cadastre quando os profissionais atendem durante a semana."
                 />
               }
             </div>
@@ -134,7 +133,7 @@ import {
       </section>
       <form hlmCard (submit)="$event.preventDefault(); save()">
         <div hlmCardHeader>
-          <h2 hlmCardTitle>{{ id() ? "Editar regra" : "Nova regra" }}</h2>
+          <h2 hlmCardTitle>{{ id() ? "Editar horário" : "Novo horário" }}</h2>
           <p hlmCardDescription>
             Não há intervalo ou antecedência mínima configuráveis neste MVP.
           </p>
@@ -250,7 +249,7 @@ import {
           </div>
         </div>
         <div hlmCardFooter class="justify-end">
-          <button hlmBtn type="submit" class="min-h-11">Salvar regra</button>
+          <button hlmBtn type="submit" class="min-h-11">Salvar horário</button>
         </div>
       </form>
     </div>
@@ -331,7 +330,7 @@ export class AdminScheduleComponent {
     ) {
       this.notice.set({
         code: "INVALID",
-        title: "Revise a regra",
+        title: "Revise o horário de trabalho",
         description:
           "Preencha profissional, especialidade, consultório e horários.",
         conflict: false,

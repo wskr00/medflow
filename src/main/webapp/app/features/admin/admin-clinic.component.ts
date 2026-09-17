@@ -67,7 +67,8 @@ import { AdminIssue, Clinic } from "./admin.models";
         <div hlmCardHeader>
           <h2 hlmCardTitle>Dados da clínica</h2>
           <p hlmCardDescription>
-            O fuso é aplicado pelo servidor nas regras e bloqueios.
+            O fuso é aplicado pelo servidor nos horários de trabalho e
+            bloqueios.
           </p>
         </div>
         <div hlmCardContent class="grid gap-5">
