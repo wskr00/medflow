@@ -21,6 +21,32 @@ export const routes: Routes = [
     ],
   },
   {
+    path: "workspace/reception",
+    canActivate: [requireRole("RECEPTIONIST")],
+    loadComponent: () =>
+      import("./features/reception/reception-shell.component").then(
+        (m) => m.ReceptionShellComponent,
+      ),
+    children: [
+      {
+        path: "",
+        title: "Operação da recepção | MedFlow",
+        loadComponent: () =>
+          import("./features/reception/reception-operation.component").then(
+            (m) => m.ReceptionOperationComponent,
+          ),
+      },
+      {
+        path: "consultas/:id/reagendar",
+        title: "Reagendar consulta | MedFlow",
+        loadComponent: () =>
+          import("./features/reception/reception-reschedule.component").then(
+            (m) => m.ReceptionRescheduleComponent,
+          ),
+      },
+    ],
+  },
+  {
     path: "access-denied",
     loadComponent: () =>
       import("./features/access-denied/access-denied.component").then(
