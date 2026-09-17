@@ -3,6 +3,7 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from "@angular/router";
 import { HlmButtonImports } from "@spartan-ng/helm/button";
 import { HlmSheetImports } from "@spartan-ng/helm/sheet";
 import { SessionActionsComponent } from "../../shared/ui/session-actions.component";
+import { MedflowBrandComponent } from "../../shared/ui/medflow-brand.component";
 
 @Component({
   selector: "app-patient-shell",
@@ -14,6 +15,7 @@ import { SessionActionsComponent } from "../../shared/ui/session-actions.compone
     HlmButtonImports,
     HlmSheetImports,
     SessionActionsComponent,
+    MedflowBrandComponent,
   ],
   template: `
     <div class="min-h-dvh">
@@ -21,7 +23,7 @@ import { SessionActionsComponent } from "../../shared/ui/session-actions.compone
         <div
           class="mx-auto flex min-h-16 w-full max-w-6xl items-center gap-3 px-4 py-3 md:px-8"
         >
-          <a routerLink="consultas" class="shrink-0 font-semibold">MedFlow</a>
+          <a routerLink="consultas"><app-medflow-brand /></a>
           <nav
             class="hidden flex-1 items-center justify-center gap-1 lg:flex"
             aria-label="Consultas"

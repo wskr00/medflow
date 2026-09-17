@@ -3,6 +3,7 @@ package br.com.medflow.scheduling.api;
 import br.com.medflow.scheduling.application.AppointmentService;
 import br.com.medflow.scheduling.domain.StatusAgendamento;
 import java.time.OffsetDateTime;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -15,6 +16,10 @@ final class SchedulingApi {
         slot.regraAgendaId(), slot.medicoId(), slot.especialidadeId(), slot.consultorioId(),
         slot.inicioComOffset(), slot.fimComOffset(), named(slot.medico()), named(slot.especialidade()),
         named(slot.unidade()), named(slot.consultorio()))).toList(), value.timeZone());
+  }
+
+  static AvailableDatesResponse availableDates(AppointmentService.AvailableDates value) {
+    return new AvailableDatesResponse(value.items(), value.timeZone());
   }
 
   static PatientAppointmentResponse patient(AppointmentService.AppointmentView value) {
@@ -44,6 +49,8 @@ final class SchedulingApi {
       NamedResponse especialidade, NamedResponse unidade, NamedResponse consultorio) { }
 
   record AvailabilityResponse(List<SlotResponse> items, String timeZone) { }
+
+  record AvailableDatesResponse(List<LocalDate> items, String timeZone) { }
 
   record AllowedActionsResponse(boolean canReschedule, boolean canCancel) { }
 

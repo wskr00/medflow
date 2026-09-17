@@ -37,6 +37,7 @@ Consultas GET de catálogos por Paciente/Recepção retornam projeção mínima 
 | Operação | Entrada | Saída e regra |
 |---|---|---|
 | `GET /api/disponibilidades` | `data`, `unidadeId`, `especialidadeId`, `medicoId?` | `items[{regraAgendaId,medicoId,especialidadeId,consultorioId,inicio,fim}]`, `timeZone`; consulta não reserva horário |
+| `GET /api/disponibilidades/datas` | `dataDe`, `dataAte`, `unidadeId`, `especialidadeId`, `medicoId?`; intervalo máximo de 62 dias | `items[date]`, `timeZone`; retorna somente datas que ainda possuem ao menos um slot segundo o mesmo cálculo de regras, bloqueios, ocupações e instante atual usado na consulta diária |
 | `POST /api/agendamentos` | `regraAgendaId`, `inicio` | 201, agendamento confirmado; servidor deriva paciente, fim e demais vínculos, revalidando disponibilidade |
 | `GET /api/me/agendamentos` | `page`, `size`, `recorte?`, `q?`, `status?`, `dataDe?`, `dataAte?` | Somente próprios, incluindo futuros/passados; dados operacionais |
 | `GET /api/agendamentos/{id}` | id | Projeção operacional autorizada; sem registro clínico |
