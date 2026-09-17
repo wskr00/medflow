@@ -3,6 +3,7 @@ package br.com.medflow.care.persistence;
 import br.com.medflow.care.domain.Atendimento;
 import jakarta.persistence.LockModeType;
 import java.util.Optional;
+import java.util.Collection;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -19,6 +20,11 @@ public interface AtendimentoRepository extends JpaRepository<Atendimento, UUID> 
   long countByAgendamentoId(UUID agendamentoId);
 
   Optional<Atendimento> findByAgendamentoId(UUID agendamentoId);
+
+  @Query("select a.id as atendimentoId, a.agendamento.id as agendamentoId "
+      + "from Atendimento a where a.agendamento.id in :agendamentoIds")
+  java.util.List<AppointmentCareLink> findLinksByAgendamentoIdIn(
+      @Param("agendamentoIds") Collection<UUID> agendamentoIds);
 
   @EntityGraph(attributePaths = {
       "agendamento", "agendamento.clinica", "agendamento.paciente", "agendamento.medico",
@@ -42,4 +48,9 @@ public interface AtendimentoRepository extends JpaRepository<Atendimento, UUID> 
   })
   Page<Atendimento> findByAgendamentoMedicoIdAndAgendamentoPacienteIdAndFinalizadoEmIsNotNull(
       UUID medicoId, UUID pacienteId, Pageable pageable);
+
+  interface AppointmentCareLink {
+    UUID getAtendimentoId();
+    UUID getAgendamentoId();
+  }
 }

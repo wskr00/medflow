@@ -209,7 +209,7 @@ Estados de tela:
 - agenda/fila carregando: skeleton e ação de início indisponível;
 - fila vazia: informar que não há pacientes aguardando;
 - atendimento iniciado: mostrar contexto autorizado e formulário editável;
-- rascunho salvo: informar horário da última gravação, sem sugerir autosave;
+- rascunho salvo: após reload, informar que o rascunho foi persistido, sem sugerir autosave ou um horário de gravação não contratado;
 - alterações não salvas: impedir saída silenciosa e avisar antes de finalizar
   ou navegar;
 - `409 VERSAO_DESATUALIZADA`: não sobrescrever; oferecer recarregar e preservar

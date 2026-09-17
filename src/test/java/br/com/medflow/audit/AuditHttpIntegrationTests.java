@@ -235,7 +235,8 @@ class AuditHttpIntegrationTests {
                 """.formatted(marker)))
         .andExpect(status().isOk());
     mvc.perform(get("/api/atendimentos/" + careId).with(doctor))
-        .andExpect(status().isOk()).andExpect(jsonPath("$.registroClinico.queixaPrincipal").value(marker));
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.atendimento.registroClinico.queixaPrincipal").value(marker));
     mvc.perform(post("/api/atendimentos/" + careId + "/finalizacao").with(doctor)
             .contentType(MediaType.APPLICATION_JSON).content("{\"expectedVersion\":1}"))
         .andExpect(status().isOk());
