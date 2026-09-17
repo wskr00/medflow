@@ -63,10 +63,12 @@ class ConfigurationHttpIntegrationTests {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.especialidadeIds[0]").value(fixture.specialtyId().toString()));
 
-    mvc.perform(get("/api/consultorios?unidadeId=" + fixture.unitId()).with(admin))
+    mvc.perform(get("/api/consultorios?incluirInativas=true&page=0&size=100").with(admin))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.totalElements").value(1))
-        .andExpect(jsonPath("$.items[0].id").value(fixture.roomId().toString()));
+        .andExpect(jsonPath("$.items[?(@.id == '%s')].unidade.id".formatted(fixture.roomId()))
+            .value(fixture.unitId().toString()))
+        .andExpect(jsonPath("$.items[?(@.id == '%s')].unidade.nome".formatted(fixture.roomId()))
+            .value("Unidade " + fixture.suffix()));
     mvc.perform(get("/api/regras-agenda?medicoId=" + fixture.doctorId()
             + "&especialidadeId=" + fixture.specialtyId() + "&consultorioId=" + fixture.roomId())
             .with(admin))

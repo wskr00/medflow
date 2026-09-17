@@ -24,7 +24,8 @@ final class ConfigurationApi {
     return new UnidadeResponse(value.id(), value.nome(), value.endereco(), value.ativo(), value.version());
   }
   static ConsultorioResponse consultorio(Consultorio value) {
-    return new ConsultorioResponse(value.id(), value.unidade().id(), value.nome(), value.ativo(), value.version());
+    return new ConsultorioResponse(value.id(), value.unidade().id(),
+        named(value.unidade().id(), value.unidade().nome()), value.nome(), value.ativo(), value.version());
   }
   static EspecialidadeResponse especialidade(Especialidade value) {
     return new EspecialidadeResponse(value.id(), value.nome(), value.ativo(), value.version());
@@ -57,7 +58,8 @@ final class ConfigurationApi {
 
   record ClinicResponse(UUID id, String nome, String timeZone, boolean ativo, long version) { }
   record UnidadeResponse(UUID id, String nome, String endereco, boolean ativo, long version) { }
-  record ConsultorioResponse(UUID id, UUID unidadeId, String nome, boolean ativo, long version) { }
+  record ConsultorioResponse(UUID id, UUID unidadeId, NamedResponse unidade, String nome, boolean ativo,
+      long version) { }
   record EspecialidadeResponse(UUID id, String nome, boolean ativo, long version) { }
   record MedicoResponse(UUID id, String nome, String crmNumero, String crmUf, List<UUID> especialidadeIds,
       boolean ativo, long version) { }
