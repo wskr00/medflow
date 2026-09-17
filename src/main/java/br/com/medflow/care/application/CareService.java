@@ -21,6 +21,7 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.UUID;
+import java.util.Map;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -68,7 +69,7 @@ public class CareService {
       specification = specification.and((root, query, builder) ->
           builder.equal(root.get("status"), status));
     }
-    return agendamentos.findAll(specification, pageable).map(this::appointmentView);
+    return operationalPage(agendamentos.findAll(specification, pageable));
   }
 
   @Transactional(readOnly = true)
@@ -79,11 +80,11 @@ public class CareService {
     Specification<Agendamento> specification = doctorSpecification(actor.medicoId())
         .and((root, query, builder) ->
             builder.equal(root.get("status"), StatusAgendamento.EM_ESPERA));
-    return agendamentos.findAll(specification, pageable).map(this::appointmentView);
+    return operationalPage(agendamentos.findAll(specification, pageable));
   }
 
   @Transactional(isolation = Isolation.READ_COMMITTED)
-  public StartResult start(AuthenticatedActor actor, UUID appointmentId, long expectedVersion) {
+  public Workspace start(AuthenticatedActor actor, UUID appointmentId, long expectedVersion) {
     requireDoctor(actor);
     activeDoctor(actor, clinic(actor));
     if (!agendamentos.existsByIdAndMedicoId(appointmentId, actor.medicoId())) {
@@ -99,22 +100,22 @@ public class CareService {
     atendimentos.flush();
     audit.record(clinic.id(), AuditAction.INICIAR_ATENDIMENTO,
         AuditResourceType.AGENDAMENTO, appointment.id());
-    return new StartResult(appointmentView(appointment), careView(care));
+    return workspace(care);
   }
 
   @Transactional
-  public CareView get(AuthenticatedActor actor, UUID id) {
+  public Workspace get(AuthenticatedActor actor, UUID id) {
     requireDoctor(actor);
     activeDoctor(actor, clinic(actor));
     Atendimento care = atendimentos.findByIdAndAgendamentoMedicoId(id, actor.medicoId())
         .orElseThrow(ResourceNotFoundException::new);
     audit.record(actor.clinicaId(), AuditAction.LER_REGISTRO_CLINICO,
         AuditResourceType.ATENDIMENTO, care.id());
-    return careView(care);
+    return workspace(care);
   }
 
   @Transactional(isolation = Isolation.READ_COMMITTED)
-  public CareView saveDraft(AuthenticatedActor actor, UUID id, long expectedVersion,
+  public Workspace saveDraft(AuthenticatedActor actor, UUID id, long expectedVersion,
       String complaint, String history, String plan, String notes) {
     requireDoctor(actor);
     activeDoctor(actor, clinic(actor));
@@ -130,11 +131,11 @@ public class CareService {
     atendimentos.flush();
     audit.record(actor.clinicaId(), AuditAction.SALVAR_REGISTRO_CLINICO,
         AuditResourceType.ATENDIMENTO, care.id());
-    return careView(care, ZoneId.of(actor.timeZone()));
+    return workspace(care, ZoneId.of(actor.timeZone()));
   }
 
   @Transactional(isolation = Isolation.READ_COMMITTED)
-  public FinishResult finish(AuthenticatedActor actor, UUID id, long expectedVersion) {
+  public Workspace finish(AuthenticatedActor actor, UUID id, long expectedVersion) {
     requireDoctor(actor);
     activeDoctor(actor, clinic(actor));
     UUID appointmentId = atendimentos.findAgendamentoIdEscopado(id, actor.medicoId())
@@ -152,7 +153,7 @@ public class CareService {
     atendimentos.flush();
     audit.record(clinic.id(), AuditAction.FINALIZAR_ATENDIMENTO,
         AuditResourceType.ATENDIMENTO, care.id());
-    return new FinishResult(appointmentView(appointment), careView(care));
+    return workspace(care);
   }
 
   @Transactional(readOnly = true)
@@ -166,14 +167,14 @@ public class CareService {
   }
 
   @Transactional
-  public Page<DoctorHistoryItem> doctorHistory(
+  public Page<Workspace> doctorHistory(
       AuthenticatedActor actor, UUID patientId, Pageable pageable) {
     requireDoctor(actor);
     activeDoctor(actor, clinic(actor));
-    Page<DoctorHistoryItem> result = atendimentos
+    Page<Workspace> result = atendimentos
         .findByAgendamentoMedicoIdAndAgendamentoPacienteIdAndFinalizadoEmIsNotNull(
             actor.medicoId(), patientId, pageable)
-        .map(this::doctorHistoryView);
+        .map(this::workspace);
     audit.record(actor.clinicaId(), AuditAction.CONSULTAR_HISTORICO_CLINICO,
         AuditResourceType.PACIENTE, patientId);
     return result;
@@ -183,7 +184,17 @@ public class CareService {
     return (root, query, builder) -> builder.equal(root.get("medico").get("id"), doctorId);
   }
 
-  private OperationalAppointment appointmentView(Agendamento value) {
+  private Page<OperationalAppointment> operationalPage(Page<Agendamento> appointments) {
+    if (appointments.isEmpty()) return appointments.map(value -> appointmentView(value, null));
+    Map<UUID, UUID> careIds = atendimentos.findLinksByAgendamentoIdIn(
+        appointments.getContent().stream().map(Agendamento::id).toList()).stream()
+        .collect(java.util.stream.Collectors.toMap(
+            AtendimentoRepository.AppointmentCareLink::getAgendamentoId,
+            AtendimentoRepository.AppointmentCareLink::getAtendimentoId));
+    return appointments.map(value -> appointmentView(value, careIds.get(value.id())));
+  }
+
+  private OperationalAppointment appointmentView(Agendamento value, UUID careId) {
     ZoneId zone = ZoneId.of(value.clinica().timeZone());
     return new OperationalAppointment(value.id(), value.version(),
         value.inicio().atZone(zone).toOffsetDateTime(),
@@ -193,34 +204,33 @@ public class CareService {
         named(value.especialidade().id(), value.especialidade().nome()),
         named(value.consultorio().unidade().id(), value.consultorio().unidade().nome()),
         named(value.consultorio().id(), value.consultorio().nome()),
-        named(value.paciente().id(), value.paciente().nome()));
+        named(value.paciente().id(), value.paciente().nome()), careId,
+        new AllowedActions(value.status() == StatusAgendamento.EM_ESPERA && careId == null,
+            value.status() == StatusAgendamento.EM_ATENDIMENTO && careId != null));
   }
 
-  private CareView careView(Atendimento value) {
-    return careView(value, ZoneId.of(value.agendamento().clinica().timeZone()));
+  private OperationalAppointment appointmentView(Agendamento value) {
+    return appointmentView(value, null);
   }
 
-  private CareView careView(Atendimento value, ZoneId zone) {
+  private Workspace workspace(Atendimento value) {
+    return workspace(value, ZoneId.of(value.agendamento().clinica().timeZone()));
+  }
+
+  private Workspace workspace(Atendimento value, ZoneId zone) {
     RegistroClinico record = value.registroClinico();
-    return new CareView(value.id(), value.agendamento().id(), value.version(),
+    CareView care = new CareView(value.id(), value.agendamento().id(), value.version(),
         value.iniciadoEm().atZone(zone).toOffsetDateTime(),
         value.finalizadoEm() == null ? null : value.finalizadoEm().atZone(zone).toOffsetDateTime(),
         new ClinicalRecord(record.queixaPrincipal(), record.resumoAnamnese(),
             record.conduta(), record.observacoes()));
+    return new Workspace(appointmentView(value.agendamento(), value.id()), care);
   }
 
   private PatientHistoryItem patientHistoryView(Agendamento value) {
     OperationalAppointment view = appointmentView(value);
     return new PatientHistoryItem(view.id(), view.inicio(), view.fim(), view.status(),
         view.medico(), view.especialidade(), view.unidade(), view.consultorio());
-  }
-
-  private DoctorHistoryItem doctorHistoryView(Atendimento value) {
-    OperationalAppointment appointment = appointmentView(value.agendamento());
-    CareView care = careView(value);
-    return new DoctorHistoryItem(care.id(), appointment.id(), appointment.inicio(), appointment.fim(),
-        care.iniciadoEm(), care.finalizadoEm(), appointment.paciente(), appointment.especialidade(),
-        appointment.unidade(), appointment.consultorio(), care.registroClinico());
   }
 
   private static NamedResource named(UUID id, String name) {
@@ -271,7 +281,10 @@ public class CareService {
   public record OperationalAppointment(UUID id, long version, OffsetDateTime inicio,
       OffsetDateTime fim, StatusAgendamento status, OffsetDateTime checkInEm,
       NamedResource medico, NamedResource especialidade, NamedResource unidade,
-      NamedResource consultorio, NamedResource paciente) { }
+      NamedResource consultorio, NamedResource paciente, UUID atendimentoId,
+      AllowedActions allowedActions) { }
+
+  public record AllowedActions(boolean canStart, boolean canResume) { }
 
   public record ClinicalRecord(String queixaPrincipal, String resumoAnamnese,
       String conduta, String observacoes) { }
@@ -279,16 +292,10 @@ public class CareService {
   public record CareView(UUID id, UUID agendamentoId, long version,
       OffsetDateTime iniciadoEm, OffsetDateTime finalizadoEm, ClinicalRecord registroClinico) { }
 
-  public record StartResult(OperationalAppointment agendamento, CareView atendimento) { }
-
-  public record FinishResult(OperationalAppointment agendamento, CareView atendimento) { }
+  public record Workspace(OperationalAppointment agendamento, CareView atendimento) { }
 
   public record PatientHistoryItem(UUID id, OffsetDateTime inicio, OffsetDateTime fim,
       StatusAgendamento status, NamedResource medico, NamedResource especialidade,
       NamedResource unidade, NamedResource consultorio) { }
 
-  public record DoctorHistoryItem(UUID atendimentoId, UUID agendamentoId,
-      OffsetDateTime inicio, OffsetDateTime fim, OffsetDateTime iniciadoEm,
-      OffsetDateTime finalizadoEm, NamedResource paciente, NamedResource especialidade,
-      NamedResource unidade, NamedResource consultorio, ClinicalRecord registroClinico) { }
 }

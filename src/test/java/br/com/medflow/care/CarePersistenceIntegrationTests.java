@@ -69,22 +69,22 @@ class CarePersistenceIntegrationTests {
 
     var incomplete = care.saveDraft(fixture.doctor(), started.atendimento().id(), 0,
         "  Dor abdominal  ", "   ", null, "  observação inicial  ");
-    assertThat(incomplete.version()).isEqualTo(1);
-    assertThat(incomplete.registroClinico().queixaPrincipal()).isEqualTo("Dor abdominal");
-    assertThat(incomplete.registroClinico().resumoAnamnese()).isEmpty();
-    assertThat(incomplete.registroClinico().conduta()).isEmpty();
-    assertThat(incomplete.registroClinico().observacoes()).isEqualTo("observação inicial");
+    assertThat(incomplete.atendimento().version()).isEqualTo(1);
+    assertThat(incomplete.atendimento().registroClinico().queixaPrincipal()).isEqualTo("Dor abdominal");
+    assertThat(incomplete.atendimento().registroClinico().resumoAnamnese()).isEmpty();
+    assertThat(incomplete.atendimento().registroClinico().conduta()).isEmpty();
+    assertThat(incomplete.atendimento().registroClinico().observacoes()).isEqualTo("observação inicial");
 
-    assertThatThrownBy(() -> care.finish(fixture.doctor(), incomplete.id(), incomplete.version()))
+    assertThatThrownBy(() -> care.finish(fixture.doctor(), incomplete.atendimento().id(), incomplete.atendimento().version()))
         .isInstanceOf(BusinessConflictException.class)
         .extracting(error -> ((BusinessConflictException) error).code())
         .isEqualTo("REGISTRO_INCOMPLETO");
-    assertPersistedState(waiting.id(), incomplete.id(), StatusAgendamento.EM_ATENDIMENTO,
+    assertPersistedState(waiting.id(), incomplete.atendimento().id(), StatusAgendamento.EM_ATENDIMENTO,
         2, 1, null, "Dor abdominal");
 
-    var complete = care.saveDraft(fixture.doctor(), incomplete.id(), incomplete.version(),
+    var complete = care.saveDraft(fixture.doctor(), incomplete.atendimento().id(), incomplete.atendimento().version(),
         "  Dor abdominal  ", "  História completa  ", "  Hidratação  ", "  ");
-    var finished = care.finish(fixture.doctor(), complete.id(), complete.version());
+    var finished = care.finish(fixture.doctor(), complete.atendimento().id(), complete.atendimento().version());
     assertThat(finished.agendamento().status()).isEqualTo(StatusAgendamento.FINALIZADA);
     assertThat(finished.agendamento().version()).isEqualTo(3);
     assertThat(finished.atendimento().version()).isEqualTo(3);
@@ -92,16 +92,16 @@ class CarePersistenceIntegrationTests {
     assertThat(finished.atendimento().registroClinico().resumoAnamnese())
         .isEqualTo("História completa");
 
-    assertThatThrownBy(() -> care.saveDraft(fixture.doctor(), complete.id(), 3,
+    assertThatThrownBy(() -> care.saveDraft(fixture.doctor(), complete.atendimento().id(), 3,
         "alterada", "alterada", "alterada", "alterada"))
         .isInstanceOf(BusinessConflictException.class)
         .extracting(error -> ((BusinessConflictException) error).code())
         .isEqualTo("TRANSICAO_INVALIDA");
-    assertThatThrownBy(() -> care.finish(fixture.doctor(), complete.id(), 3))
+    assertThatThrownBy(() -> care.finish(fixture.doctor(), complete.atendimento().id(), 3))
         .isInstanceOf(BusinessConflictException.class)
         .extracting(error -> ((BusinessConflictException) error).code())
         .isEqualTo("TRANSICAO_INVALIDA");
-    assertPersistedState(waiting.id(), complete.id(), StatusAgendamento.FINALIZADA,
+    assertPersistedState(waiting.id(), complete.atendimento().id(), StatusAgendamento.FINALIZADA,
         3, 3, FixedSchedulingClockConfiguration.NOW, "Dor abdominal");
   }
 
@@ -117,15 +117,15 @@ class CarePersistenceIntegrationTests {
 
     var saved = care.saveDraft(fixture.doctor(), started.atendimento().id(), 0,
         complaint, history, plan, notes);
-    assertThat(saved.registroClinico().queixaPrincipal()).hasSize(RegistroClinico.QUEIXA_MAX);
-    assertThat(saved.registroClinico().resumoAnamnese()).hasSize(RegistroClinico.RESUMO_MAX);
-    assertThat(saved.registroClinico().conduta()).hasSize(RegistroClinico.CONDUTA_MAX);
-    assertThat(saved.registroClinico().observacoes()).hasSize(RegistroClinico.OBSERVACOES_MAX);
+    assertThat(saved.atendimento().registroClinico().queixaPrincipal()).hasSize(RegistroClinico.QUEIXA_MAX);
+    assertThat(saved.atendimento().registroClinico().resumoAnamnese()).hasSize(RegistroClinico.RESUMO_MAX);
+    assertThat(saved.atendimento().registroClinico().conduta()).hasSize(RegistroClinico.CONDUTA_MAX);
+    assertThat(saved.atendimento().registroClinico().observacoes()).hasSize(RegistroClinico.OBSERVACOES_MAX);
 
-    assertThatThrownBy(() -> care.saveDraft(fixture.doctor(), saved.id(), saved.version(),
+    assertThatThrownBy(() -> care.saveDraft(fixture.doctor(), saved.atendimento().id(), saved.atendimento().version(),
         complaint + "x", history, plan, notes))
         .isInstanceOf(IllegalArgumentException.class);
-    var persisted = careRepository.findById(saved.id()).orElseThrow();
+    var persisted = careRepository.findById(saved.atendimento().id()).orElseThrow();
     assertThat(persisted.version()).isEqualTo(1);
     assertThat(persisted.registroClinico().queixaPrincipal()).isEqualTo(complaint);
   }
@@ -161,11 +161,11 @@ class CarePersistenceIntegrationTests {
     jdbc.update("update agendamento set status = 'CANCELADA', version = version + 1 where id = ?",
         waiting.id());
 
-    assertThatThrownBy(() -> care.finish(fixture.doctor(), draft.id(), draft.version()))
+    assertThatThrownBy(() -> care.finish(fixture.doctor(), draft.atendimento().id(), draft.atendimento().version()))
         .isInstanceOf(BusinessConflictException.class)
         .extracting(error -> ((BusinessConflictException) error).code())
         .isEqualTo("TRANSICAO_INVALIDA");
-    assertPersistedState(waiting.id(), draft.id(), StatusAgendamento.CANCELADA,
+    assertPersistedState(waiting.id(), draft.atendimento().id(), StatusAgendamento.CANCELADA,
         3, 1, null, "queixa");
   }
 
@@ -218,15 +218,15 @@ class CarePersistenceIntegrationTests {
         "original", "resumo original", "conduta original", "notas originais");
 
     RaceResult result = race(
-        () -> care.saveDraft(fixture.doctor(), original.id(), original.version(),
+        () -> care.saveDraft(fixture.doctor(), original.atendimento().id(), original.atendimento().version(),
             "nova", "novo resumo", "nova conduta", "novas notas"),
-        () -> care.finish(fixture.doctor(), original.id(), original.version()));
+        () -> care.finish(fixture.doctor(), original.atendimento().id(), original.atendimento().version()));
 
     assertThat(result.successes()).isEqualTo(1);
     assertThat(result.conflicts()).hasSize(1)
         .allMatch(code -> code.equals("VERSAO_DESATUALIZADA") || code.equals("TRANSICAO_INVALIDA"));
     assertThat(result.unexpected()).isEmpty();
-    var persistedCare = careRepository.findById(original.id()).orElseThrow();
+    var persistedCare = careRepository.findById(original.atendimento().id()).orElseThrow();
     var persistedAppointment = appointmentRepository.findById(waiting.id()).orElseThrow();
     assertThat(persistedCare.version()).isEqualTo(2);
     if (persistedCare.finalizadoEm() == null) {
@@ -255,7 +255,7 @@ class CarePersistenceIntegrationTests {
     var started = care.start(fixture.doctor(), waiting.id(), waiting.version());
     var draft = care.saveDraft(fixture.doctor(), started.atendimento().id(), 0,
         "queixa", "resumo", "conduta", "observações");
-    care.finish(fixture.doctor(), draft.id(), draft.version());
+    care.finish(fixture.doctor(), draft.atendimento().id(), draft.atendimento().version());
     var patientHistory = care.patientHistory(fixture.patient(), PageRequest.of(0, 10,
         Sort.by(Sort.Order.desc("inicio"), Sort.Order.asc("id"))));
     assertThat(patientHistory.getContent()).extracting(CareService.PatientHistoryItem::id)
@@ -263,7 +263,7 @@ class CarePersistenceIntegrationTests {
     var doctorHistory = care.doctorHistory(fixture.doctor(), fixture.patient().pacienteId(),
         PageRequest.of(0, 10, Sort.by(Sort.Order.desc("agendamento.inicio"), Sort.Order.asc("id"))));
     assertThat(doctorHistory.getContent()).hasSize(1);
-    assertThat(doctorHistory.getContent().getFirst().registroClinico().queixaPrincipal())
+    assertThat(doctorHistory.getContent().getFirst().atendimento().registroClinico().queixaPrincipal())
         .isEqualTo("queixa");
     assertThat(care.doctorHistory(fixture.doctor(), UUID.randomUUID(), PageRequest.of(0, 10)) )
         .isEmpty();
