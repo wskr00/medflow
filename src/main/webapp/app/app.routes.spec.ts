@@ -4,6 +4,15 @@ import { provideRouter, Router } from "@angular/router";
 import { routes } from "./app.routes";
 
 describe("application routes", () => {
+  it("uses the role-aware redirect at both application entry points", () => {
+    TestBed.configureTestingModule({ providers: [provideRouter(routes)] });
+    const config = TestBed.inject(Router).config;
+    expect(config.find((route) => route.path === "")?.redirectTo).toBeTruthy();
+    expect(
+      config.find((route) => route.path === "workspace")?.redirectTo,
+    ).toBeTruthy();
+  });
+
   it("carrega a jornada do paciente diretamente, sem o shell operacional", () => {
     TestBed.configureTestingModule({ providers: [provideRouter(routes)] });
     const router = TestBed.inject(Router);
