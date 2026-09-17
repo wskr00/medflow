@@ -11,6 +11,7 @@ import br.com.medflow.clinic.persistence.PacienteRepository;
 import br.com.medflow.common.auth.AuthenticatedActor;
 import br.com.medflow.common.http.BusinessConflictException;
 import br.com.medflow.common.http.ResourceNotFoundException;
+import br.com.medflow.common.query.RsqlFilter;
 import br.com.medflow.scheduling.domain.Agendamento;
 import br.com.medflow.scheduling.domain.BloqueioAgenda;
 import br.com.medflow.scheduling.domain.RegraAgenda;
@@ -29,6 +30,7 @@ import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -41,6 +43,15 @@ import org.springframework.transaction.annotation.Transactional;
 /** Casos de uso de disponibilidade e reserva, com Clínica como lock transacional único. */
 @Service
 public class AppointmentService {
+
+  private static final Map<String, String> PATIENT_APPOINTMENT_ALIASES = Map.of(
+      "status", "status", "inicio", "inicio", "medicoId", "medico.id",
+      "especialidadeId", "especialidade.id", "unidadeId", "consultorio.unidade.id");
+  private static final Map<Class<?>, List<String>> PATIENT_APPOINTMENT_FILTER_FIELDS = Map.of(
+      Agendamento.class, List.of("status", "inicio"), Medico.class, List.of("id"),
+      br.com.medflow.clinic.domain.Especialidade.class, List.of("id"),
+      Consultorio.class, List.of("unidade"),
+      br.com.medflow.clinic.domain.Unidade.class, List.of("id"));
 
   private final ClinicaRepository clinicas;
   private final PacienteRepository pacientes;
@@ -77,6 +88,7 @@ public class AppointmentService {
   public Availability disponibilidadeReagendamento(AuthenticatedActor actor, UUID id, LocalDate data) {
     requireAppointmentOperator(actor);
     Agendamento atual = agendamentoAutorizado(actor, id);
+    if (!atual.permiteAlteracao(clock.instant())) throw invalidTransition();
     return calcularDisponibilidade(atual.clinica(), data, atual.consultorio().unidade().id(),
         atual.especialidade().id(), atual.medico().id(), atual.id());
   }
@@ -99,27 +111,22 @@ public class AppointmentService {
   @Transactional(readOnly = true)
   public Page<AppointmentView> proprios(AuthenticatedActor actor, StatusAgendamento status,
       LocalDate dataDe, LocalDate dataAte, Pageable pageable) {
+    return proprios(actor, null, null, status, dataDe, dataAte, pageable);
+  }
+
+  @Transactional(readOnly = true)
+  public Page<AppointmentView> proprios(AuthenticatedActor actor, PatientAppointmentSection recorte,
+      String q, StatusAgendamento status, LocalDate dataDe, LocalDate dataAte, Pageable pageable) {
     requirePatient(actor);
     if (dataDe != null && dataAte != null && dataAte.isBefore(dataDe)) {
       throw new IllegalArgumentException("intervalo de datas inválido");
     }
     ZoneId zone = ZoneId.of(actor.timeZone());
-    Instant inicio = dataDe == null ? null : dataDe.atStartOfDay(zone).toInstant();
-    Instant fim = dataAte == null ? null : dataAte.plusDays(1).atStartOfDay(zone).toInstant();
+    String filter = appointmentFilter(q, status, dataDe, dataAte, zone);
     Specification<Agendamento> specification = (root, query, builder) ->
         builder.equal(root.get("paciente").get("id"), actor.pacienteId());
-    if (status != null) {
-      specification = specification.and((root, query, builder) ->
-          builder.equal(root.get("status"), status));
-    }
-    if (inicio != null) {
-      specification = specification.and((root, query, builder) ->
-          builder.greaterThanOrEqualTo(root.get("inicio"), inicio));
-    }
-    if (fim != null) {
-      specification = specification.and((root, query, builder) ->
-          builder.lessThan(root.get("inicio"), fim));
-    }
+    specification = specification.and(RsqlFilter.specification(filter, PATIENT_APPOINTMENT_ALIASES,
+        PATIENT_APPOINTMENT_FILTER_FIELDS)).and(recorte(recorte, clock.instant()));
     return agendamentos.findAll(specification, pageable).map(this::view);
   }
 
@@ -267,6 +274,7 @@ public class AppointmentService {
 
   private AppointmentView view(Agendamento value) {
     ZoneId zone = ZoneId.of(value.clinica().timeZone());
+    boolean canChange = value.permiteAlteracao(clock.instant());
     return new AppointmentView(value.id(), value.version(), value.inicio().atZone(zone).toOffsetDateTime(),
         value.fim().atZone(zone).toOffsetDateTime(), value.status(),
         value.checkInEm() == null ? null : value.checkInEm().atZone(zone).toOffsetDateTime(),
@@ -274,7 +282,8 @@ public class AppointmentService {
         new NamedResource(value.especialidade().id(), value.especialidade().nome()),
         new NamedResource(value.consultorio().unidade().id(), value.consultorio().unidade().nome()),
         new NamedResource(value.consultorio().id(), value.consultorio().nome()),
-        new NamedResource(value.paciente().id(), value.paciente().nome()));
+        new NamedResource(value.paciente().id(), value.paciente().nome()),
+        canChange, canChange);
   }
 
   private Agendamento agendamentoAutorizado(AuthenticatedActor actor, UUID id) {
@@ -329,6 +338,36 @@ public class AppointmentService {
     return new BusinessConflictException("HORARIO_INDISPONIVEL", "Este horário não está mais disponível.");
   }
 
+  private static BusinessConflictException invalidTransition() {
+    return new BusinessConflictException("TRANSICAO_INVALIDA",
+        "O agendamento não permite esta operação.");
+  }
+
+  private static String appointmentFilter(String q, StatusAgendamento status, LocalDate dataDe,
+      LocalDate dataAte, ZoneId zone) {
+    List<String> predicates = new java.util.ArrayList<>();
+    if (q != null && !q.isBlank()) predicates.add("(" + q + ")");
+    if (status != null) predicates.add("status==" + status.name());
+    if (dataDe != null) predicates.add("inicio=ge=" + dataDe.atStartOfDay(zone).toInstant());
+    if (dataAte != null) predicates.add("inicio=lt=" + dataAte.plusDays(1).atStartOfDay(zone).toInstant());
+    return String.join(";", predicates);
+  }
+
+  private static Specification<Agendamento> recorte(PatientAppointmentSection recorte,
+      Instant agora) {
+    if (recorte == null) return Specification.unrestricted();
+    return switch (recorte) {
+      case UPCOMING -> (root, query, builder) -> builder.and(
+          builder.equal(root.get("status"), StatusAgendamento.AGENDADA),
+          builder.greaterThan(root.get("inicio"), agora));
+      case PAST -> (root, query, builder) -> builder.and(
+          builder.notEqual(root.get("status"), StatusAgendamento.CANCELADA),
+          builder.lessThanOrEqualTo(root.get("inicio"), agora));
+      case CANCELLED -> (root, query, builder) ->
+          builder.equal(root.get("status"), StatusAgendamento.CANCELADA);
+    };
+  }
+
   private record Oferta(RegraAgenda regra, Instant inicio, Instant fim) { }
 
   public record NamedResource(UUID id, String nome) { }
@@ -346,5 +385,5 @@ public class AppointmentService {
   public record AppointmentView(UUID id, long version, OffsetDateTime inicio,
       OffsetDateTime fim, StatusAgendamento status, OffsetDateTime checkInEm,
       NamedResource medico, NamedResource especialidade, NamedResource unidade,
-      NamedResource consultorio, NamedResource paciente) { }
+      NamedResource consultorio, NamedResource paciente, boolean canReschedule, boolean canCancel) { }
 }

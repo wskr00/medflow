@@ -242,6 +242,49 @@ class AppointmentHttpIntegrationTests {
     }
   }
 
+  @Test
+  void exposesOnlyWhitelistedRsqlFiltersWithServerOwnedSectionsAndAllowedActions() throws Exception {
+    Fixture fixture = fixture("http-rsql");
+    var first = mvc.perform(post("/api/agendamentos").with(principal(fixture.subject(), "PATIENT"))
+            .contentType(MediaType.APPLICATION_JSON).content(createBody(fixture, "08:00")))
+        .andExpect(status().isCreated()).andReturn();
+    mvc.perform(post("/api/agendamentos").with(principal(fixture.subject(), "PATIENT"))
+            .contentType(MediaType.APPLICATION_JSON).content(createBody(fixture, "08:30")))
+        .andExpect(status().isCreated());
+
+    mvc.perform(get("/api/me/agendamentos")
+            .param("recorte", "UPCOMING")
+            .param("q", "status==AGENDADA;medicoId==" + fixture.doctorId())
+            .with(principal(fixture.subject(), "PATIENT")))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.totalElements").value(2))
+        .andExpect(jsonPath("$.items[0].inicio").value("2026-09-21T08:00:00-03:00"))
+        .andExpect(jsonPath("$.items[1].inicio").value("2026-09-21T08:30:00-03:00"))
+        .andExpect(jsonPath("$.items[0].allowedActions.canReschedule").value(true))
+        .andExpect(jsonPath("$.items[0].allowedActions.canCancel").value(true));
+
+    mvc.perform(get("/api/me/agendamentos")
+            .param("q", "paciente.subject==" + fixture.subject())
+            .with(principal(fixture.subject(), "PATIENT")))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("ENTRADA_INVALIDA"));
+
+    String location = first.getResponse().getHeader("Location");
+    mvc.perform(post(location + "/cancelamento").with(principal(fixture.subject(), "PATIENT"))
+            .contentType(MediaType.APPLICATION_JSON).content("{\"expectedVersion\":0}"))
+        .andExpect(status().isOk());
+    mvc.perform(get("/api/me/agendamentos").param("recorte", "CANCELLED")
+            .with(principal(fixture.subject(), "PATIENT")))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.totalElements").value(1))
+        .andExpect(jsonPath("$.items[0].allowedActions.canReschedule").value(false))
+        .andExpect(jsonPath("$.items[0].allowedActions.canCancel").value(false));
+    mvc.perform(get(location + "/disponibilidades?data=2026-09-21")
+            .with(principal(fixture.subject(), "PATIENT")))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.code").value("TRANSICAO_INVALIDA"));
+  }
+
   private Fixture fixture(String name) {
     String suffix = name + "-" + IDS.incrementAndGet();
     var specialty = clinic.criarEspecialidade("Especialidade " + suffix, true);

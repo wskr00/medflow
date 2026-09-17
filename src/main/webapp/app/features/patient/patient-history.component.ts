@@ -1,72 +1,22 @@
-import { ChangeDetectionStrategy, Component, inject, input } from "@angular/core";
+import { httpResource } from "@angular/common/http";
+import { ChangeDetectionStrategy, Component, computed, inject } from "@angular/core";
 import { HlmButtonImports } from "@spartan-ng/helm/button";
 import { HlmCardImports } from "@spartan-ng/helm/card";
-
+import { IdentityService } from "../../auth/identity.service";
+import { PageHeaderComponent } from "../../shared/ui/page-header.component";
 import { StatePanelComponent } from "../../shared/ui/state-panel.component";
-import { StatusBadgeComponent } from "../../shared/ui/status-badge.component";
-import { PatientAppointmentsApi, patientApiIssue } from "./patient-appointments.api";
-import { formatPatientDateTime } from "./patient-date-time";
+import { PatientApi, patientIssue } from "./patient.api";
+import { Appointment, Page } from "./patient.models";
 
 @Component({
-  selector: "app-patient-history",
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [HlmButtonImports, HlmCardImports, StatePanelComponent, StatusBadgeComponent],
-  template: `
-    <section hlmCard aria-labelledby="history-title">
-      <div hlmCardHeader>
-        <h2 hlmCardTitle id="history-title">Histórico de atendimentos</h2>
-        <p hlmCardDescription>Este histórico contém somente informações operacionais autorizadas.</p>
-      </div>
-      <div hlmCardContent class="flex flex-col gap-4 pb-6">
-        <div class="flex justify-end"><button hlmBtn variant="outline" type="button" (click)="api.history.reload()">Atualizar</button></div>
-        @if (api.history.isLoading()) {
-          <app-state-panel state="loading" title="Carregando histórico" description="Aguarde um momento." />
-        } @else if (api.history.error()) {
-          <app-state-panel state="error" [title]="issue(api.history.error()).title" [description]="issue(api.history.error()).description" />
-        } @else if ((api.history.value()?.items ?? []).length === 0) {
-          <app-state-panel state="empty" title="Nenhum atendimento finalizado" description="Quando houver atendimentos finalizados, eles aparecerão aqui sem conteúdo clínico." />
-        } @else {
-          <div class="grid gap-3 md:grid-cols-2">
-            @for (item of api.history.value()?.items ?? []; track item.id) {
-              <article class="border-border flex flex-col gap-1 rounded-lg border p-4">
-                <div class="flex items-center justify-between gap-3"><h3 class="font-semibold">{{ item.especialidade.nome }}</h3><app-status-badge status="FINALIZADA" /></div>
-                <p class="text-muted-foreground text-sm">{{ item.medico.nome }} · {{ format(item.inicio) }}</p>
-                <p class="text-muted-foreground text-sm">{{ item.unidade.nome }} · {{ item.consultorio.nome }}</p>
-              </article>
-            }
-          </div>
-          <nav aria-label="Paginação do histórico" class="flex flex-wrap items-center gap-3">
-            <button hlmBtn variant="outline" type="button" [disabled]="api.historyPage() === 0" (click)="previousPage()">Página anterior</button>
-            <p class="text-muted-foreground text-sm" aria-live="polite">Página {{ api.historyPage() + 1 }} de {{ totalPages() }} · {{ api.history.value()?.totalElements }} atendimentos</p>
-            <button hlmBtn variant="outline" type="button" [disabled]="api.historyPage() + 1 >= totalPages()" (click)="nextPage()">Próxima página</button>
-          </nav>
-        }
-      </div>
-    </section>
-  `,
+  selector: "app-patient-history", changeDetection: ChangeDetectionStrategy.OnPush, providers: [PatientApi],
+  imports: [HlmButtonImports, HlmCardImports, PageHeaderComponent, StatePanelComponent],
+  template: `<div class="flex flex-col gap-6"><app-page-header title="Histórico" description="Consultas concluídas e seus dados operacionais." />@if (resource.isLoading()) { <app-state-panel state="loading" title="Carregando histórico" description="Aguarde um momento." /> } @else if (resource.error()) { <app-state-panel state="error" [title]="issue(resource.error()).title" [description]="issue(resource.error()).description" /><button hlmBtn variant="outline" type="button" (click)="resource.reload()">Tentar novamente</button> } @else if (!items().length) { <app-state-panel state="empty" title="Nenhuma consulta concluída" description="As consultas concluídas aparecerão aqui." /> } @else { <section class="grid gap-4 md:grid-cols-2">@for (item of items(); track item.id) { <article hlmCard><div hlmCardContent class="flex flex-col gap-1 pt-6"><h2 class="font-semibold">{{ item.especialidade.nome }}</h2><p class="text-muted-foreground text-sm">{{ dateTime(item.inicio) }} · {{ item.medico.nome }}</p><p class="text-muted-foreground text-sm">{{ item.unidade.nome }} · Consultório {{ item.consultorio.nome }}</p></div></article> }</section> }</div>`,
 })
 export class PatientHistoryComponent {
-  protected readonly api = inject(PatientAppointmentsApi);
-  readonly timeZone = input.required<string>();
-
-  protected format(value: string): string {
-    return formatPatientDateTime(value, this.timeZone());
-  }
-
-  protected issue(error: unknown) {
-    return patientApiIssue(error);
-  }
-
-  protected totalPages(): number {
-    const response = this.api.history.value();
-    return response ? Math.max(1, Math.ceil(response.totalElements / response.size)) : 1;
-  }
-
-  protected previousPage(): void {
-    this.api.setHistoryPage(this.api.historyPage() - 1);
-  }
-
-  protected nextPage(): void {
-    this.api.setHistoryPage(this.api.historyPage() + 1);
-  }
+  private readonly api = inject(PatientApi); private readonly identity = inject(IdentityService);
+  readonly resource = httpResource<Page<Appointment>>(() => this.api.appointments("PAST", "status==FINALIZADA"));
+  protected readonly items = computed(() => this.resource.value()?.items ?? []);
+  protected issue(error: unknown) { return patientIssue(error); }
+  protected dateTime(value: string) { return new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium", timeStyle: "short", timeZone: this.identity.identity.value()?.timeZone }).format(new Date(value)); }
 }
