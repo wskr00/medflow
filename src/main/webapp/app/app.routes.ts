@@ -2,6 +2,7 @@ import { Routes } from "@angular/router";
 
 import { defaultWorkspaceRedirect, requireRole } from "./auth/role.guard";
 import { preventDoctorCareLoss } from "./features/doctor/doctor-care.guard";
+import { preventAdminConfigurationLoss } from "./features/admin/admin-dirty.guard";
 
 export const routes: Routes = [
   {
@@ -102,6 +103,71 @@ export const routes: Routes = [
         loadComponent: () =>
           import("./features/doctor/doctor-care.component").then(
             (m) => m.DoctorCareComponent,
+          ),
+      },
+    ],
+  },
+  {
+    path: "workspace/admin",
+    canActivate: [requireRole("ADMINISTRATOR")],
+    loadComponent: () =>
+      import("./features/admin/admin-shell.component").then(
+        (m) => m.AdminShellComponent,
+      ),
+    children: [
+      { path: "", pathMatch: "full", redirectTo: "estrutura" },
+      {
+        path: "clinica",
+        title: "Clínica | MedFlow",
+        canDeactivate: [preventAdminConfigurationLoss],
+        loadComponent: () =>
+          import("./features/admin/admin-clinic.component").then(
+            (m) => m.AdminClinicComponent,
+          ),
+      },
+      {
+        path: "estrutura",
+        title: "Estrutura | MedFlow",
+        canDeactivate: [preventAdminConfigurationLoss],
+        loadComponent: () =>
+          import("./features/admin/admin-structure.component").then(
+            (m) => m.AdminStructureComponent,
+          ),
+      },
+      {
+        path: "profissionais",
+        title: "Profissionais | MedFlow",
+        canDeactivate: [preventAdminConfigurationLoss],
+        loadComponent: () =>
+          import("./features/admin/admin-professionals.component").then(
+            (m) => m.AdminProfessionalsComponent,
+          ),
+      },
+      {
+        path: "especialidades",
+        title: "Especialidades | MedFlow",
+        canDeactivate: [preventAdminConfigurationLoss],
+        loadComponent: () =>
+          import("./features/admin/admin-specialties.component").then(
+            (m) => m.AdminSpecialtiesComponent,
+          ),
+      },
+      {
+        path: "agenda",
+        title: "Agenda semanal | MedFlow",
+        canDeactivate: [preventAdminConfigurationLoss],
+        loadComponent: () =>
+          import("./features/admin/admin-schedule.component").then(
+            (m) => m.AdminScheduleComponent,
+          ),
+      },
+      {
+        path: "bloqueios",
+        title: "Bloqueios | MedFlow",
+        canDeactivate: [preventAdminConfigurationLoss],
+        loadComponent: () =>
+          import("./features/admin/admin-blocks.component").then(
+            (m) => m.AdminBlocksComponent,
           ),
       },
     ],
