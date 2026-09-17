@@ -113,7 +113,7 @@ import { AdminIssue, Page, Specialty } from "./admin.models";
               class="min-h-11"
               maxlength="200"
               [value]="name()"
-              (input)="name.set($any($event.target).value)"
+              (input)="name.set($any($event.target).value); markDirty()"
             />
             @if (notice()?.fields?.["nome"]) {
               <hlm-field-error>{{
@@ -127,7 +127,7 @@ import { AdminIssue, Page, Specialty } from "./admin.models";
               selectId="specialty-active"
               class="min-h-11"
               [value]="active() ? 'true' : 'false'"
-              (valueChange)="active.set($event === 'true')"
+              (valueChange)="active.set($event === 'true'); markDirty()"
               ><option hlmNativeSelectOption value="true">Ativa</option>
               <option hlmNativeSelectOption value="false">
                 Inativa
@@ -158,7 +158,18 @@ export class AdminSpecialtiesComponent {
   protected readonly active = signal(true);
   protected readonly saving = signal(false);
   protected readonly notice = signal<AdminIssue | null>(null);
+  protected readonly dirty = signal(false);
+  protected markDirty() {
+    this.dirty.set(true);
+  }
+  canLeave() {
+    return (
+      !this.dirty() ||
+      window.confirm("Há alterações não salvas. Sair sem salvar?")
+    );
+  }
   protected newValue() {
+    this.dirty.set(false);
     this.id.set(null);
     this.version.set(null);
     this.name.set("");
@@ -166,6 +177,7 @@ export class AdminSpecialtiesComponent {
     this.notice.set(null);
   }
   protected edit(value: Specialty) {
+    this.dirty.set(false);
     this.id.set(value.id);
     this.version.set(value.version);
     this.name.set(value.nome);
@@ -193,6 +205,7 @@ export class AdminSpecialtiesComponent {
       : this.api.create<Specialty>("especialidades", payload);
     request.pipe(finalize(() => this.saving.set(false))).subscribe({
       next: (value) => {
+        this.dirty.set(false);
         this.edit(value);
         this.values.reload();
       },

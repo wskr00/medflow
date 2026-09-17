@@ -124,7 +124,7 @@ import { AdminIssue, Page, Room, Unit } from "./admin.models";
               class="min-h-11"
               maxlength="200"
               [value]="unitName()"
-              (input)="unitName.set($any($event.target).value)"
+              (input)="unitName.set($any($event.target).value); markDirty()"
             />
             @if (field("nome")) {
               <hlm-field-error>{{ field("nome") }}</hlm-field-error>
@@ -138,7 +138,7 @@ import { AdminIssue, Page, Room, Unit } from "./admin.models";
               class="min-h-11"
               maxlength="500"
               [value]="address()"
-              (input)="address.set($any($event.target).value)"
+              (input)="address.set($any($event.target).value); markDirty()"
             />
             @if (field("endereco")) {
               <hlm-field-error>{{ field("endereco") }}</hlm-field-error>
@@ -150,7 +150,7 @@ import { AdminIssue, Page, Room, Unit } from "./admin.models";
               selectId="unit-active"
               class="min-h-11"
               [value]="unitActive() ? 'true' : 'false'"
-              (valueChange)="unitActive.set($event === 'true')"
+              (valueChange)="unitActive.set($event === 'true'); markDirty()"
               ><option hlmNativeSelectOption value="true">Ativa</option>
               <option hlmNativeSelectOption value="false">
                 Inativa
@@ -210,7 +210,9 @@ import { AdminIssue, Page, Room, Unit } from "./admin.models";
                     id="room-name"
                     class="min-h-11"
                     [value]="roomName()"
-                    (input)="roomName.set($any($event.target).value)"
+                    (input)="
+                      roomName.set($any($event.target).value); markDirty()
+                    "
                   />
                 </div>
                 <button hlmBtn type="submit" class="min-h-11">
@@ -240,6 +242,16 @@ export class AdminStructureComponent {
   protected readonly roomEditing = signal<Room | null>(null);
   protected readonly roomName = signal("");
   protected readonly notice = signal<AdminIssue | null>(null);
+  protected readonly dirty = signal(false);
+  protected markDirty() {
+    this.dirty.set(true);
+  }
+  canLeave() {
+    return (
+      !this.dirty() ||
+      window.confirm("Há alterações não salvas. Sair sem salvar?")
+    );
+  }
   protected readonly saving = signal(false);
   protected readonly roomsForUnit = computed(
     () =>
@@ -256,6 +268,7 @@ export class AdminStructureComponent {
     this.roomEditing.set(null);
   }
   protected newUnit() {
+    this.dirty.set(false);
     this.selectedId.set(null);
     this.unitVersion.set(null);
     this.unitName.set("");
@@ -291,6 +304,7 @@ export class AdminStructureComponent {
       : this.api.create<Unit>("unidades", payload);
     request.pipe(finalize(() => this.saving.set(false))).subscribe({
       next: (unit) => {
+        this.dirty.set(false);
         this.selectUnit(unit);
         this.units.reload();
       },
@@ -298,6 +312,7 @@ export class AdminStructureComponent {
     });
   }
   protected newRoom() {
+    this.dirty.set(false);
     this.roomEditing.set({
       id: "",
       unidadeId: this.selectedId()!,
@@ -308,6 +323,7 @@ export class AdminStructureComponent {
     this.roomName.set("");
   }
   protected editRoom(room: Room) {
+    this.dirty.set(false);
     this.roomEditing.set(room);
     this.roomName.set(room.nome);
   }
@@ -327,6 +343,7 @@ export class AdminStructureComponent {
       : this.api.create<Room>("consultorios", payload);
     request.subscribe({
       next: () => {
+        this.dirty.set(false);
         this.rooms.reload();
         this.roomEditing.set(null);
       },

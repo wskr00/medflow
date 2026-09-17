@@ -62,7 +62,9 @@ import {
         <div hlmCardHeader class="flex-row justify-between">
           <div>
             <h2 hlmCardTitle>Semana de referência</h2>
-            <p hlmCardDescription>Regras vigentes cadastradas.</p>
+            <p hlmCardDescription>
+              Selecione uma regra para editar ou crie uma nova vigência.
+            </p>
           </div>
           <button hlmBtn type="button" class="min-h-11" (click)="newRule()">
             Nova regra
@@ -82,6 +84,25 @@ import {
               description="Aguarde um momento."
             />
           } @else {
+            @if (rules.value()?.items?.length) {
+              <div
+                aria-label="Visão semanal das regras"
+                class="mb-4 grid grid-cols-5 gap-2"
+              >
+                @for (weekDay of [1, 2, 3, 4, 5]; track weekDay) {
+                  <div class="border-border rounded-md border p-2">
+                    <p class="text-muted-foreground text-xs font-semibold">
+                      {{ day(weekDay) }}
+                    </p>
+                    <p class="mt-1 text-sm font-medium">
+                      {{ rulesForDay(weekDay) }} regra{{
+                        rulesForDay(weekDay) === 1 ? "" : "s"
+                      }}
+                    </p>
+                  </div>
+                }
+              </div>
+            }
             <div class="grid gap-2 md:grid-cols-2">
               @for (rule of rules.value()?.items ?? []; track rule.id) {
                 <button
@@ -125,7 +146,7 @@ import {
               selectId="rule-doctor"
               class="min-h-11"
               [value]="doctorId()"
-              (valueChange)="doctorId.set($event ?? '')"
+              (valueChange)="doctorId.set($event ?? ''); markDirty()"
               ><option hlmNativeSelectOption value="">Selecione</option>
               @for (item of doctors.value()?.items ?? []; track item.id) {
                 <option hlmNativeSelectOption [value]="item.id">
@@ -140,7 +161,7 @@ import {
               selectId="rule-specialty"
               class="min-h-11"
               [value]="specialtyId()"
-              (valueChange)="specialtyId.set($event ?? '')"
+              (valueChange)="specialtyId.set($event ?? ''); markDirty()"
               ><option hlmNativeSelectOption value="">Selecione</option>
               @for (item of specialties.value()?.items ?? []; track item.id) {
                 <option hlmNativeSelectOption [value]="item.id">
@@ -155,7 +176,7 @@ import {
               selectId="rule-room"
               class="min-h-11"
               [value]="roomId()"
-              (valueChange)="roomId.set($event ?? '')"
+              (valueChange)="roomId.set($event ?? ''); markDirty()"
               ><option hlmNativeSelectOption value="">Selecione</option>
               @for (item of rooms.value()?.items ?? []; track item.id) {
                 <option hlmNativeSelectOption [value]="item.id">
@@ -170,7 +191,7 @@ import {
               selectId="rule-day"
               class="min-h-11"
               [value]="dayValue()"
-              (valueChange)="dayValue.set($event ?? '1')"
+              (valueChange)="dayValue.set($event ?? '1'); markDirty()"
               ><option hlmNativeSelectOption value="1">Segunda-feira</option>
               <option hlmNativeSelectOption value="2">Terça-feira</option>
               <option hlmNativeSelectOption value="3">Quarta-feira</option>
@@ -189,7 +210,7 @@ import {
                 type="time"
                 class="min-h-11"
                 [value]="start()"
-                (input)="start.set($any($event.target).value)"
+                (input)="start.set($any($event.target).value); markDirty()"
               />
             </div>
             <div hlmField>
@@ -200,7 +221,7 @@ import {
                 type="time"
                 class="min-h-11"
                 [value]="end()"
-                (input)="end.set($any($event.target).value)"
+                (input)="end.set($any($event.target).value); markDirty()"
               />
             </div>
             <div hlmField>
@@ -212,7 +233,7 @@ import {
                 min="1"
                 class="min-h-11"
                 [value]="duration()"
-                (input)="duration.set($any($event.target).value)"
+                (input)="duration.set($any($event.target).value); markDirty()"
               />
             </div>
           </div>
@@ -224,7 +245,7 @@ import {
               type="date"
               class="min-h-11"
               [value]="validFrom()"
-              (input)="validFrom.set($any($event.target).value)"
+              (input)="validFrom.set($any($event.target).value); markDirty()"
             />
           </div>
         </div>
@@ -260,11 +281,23 @@ export class AdminScheduleComponent {
   protected readonly duration = signal("30");
   protected readonly validFrom = signal(new Date().toISOString().slice(0, 10));
   protected readonly notice = signal<AdminIssue | null>(null);
+  protected readonly dirty = signal(false);
+  protected markDirty() {
+    this.dirty.set(true);
+  }
+  canLeave() {
+    return (
+      !this.dirty() ||
+      window.confirm("Há alterações não salvas. Sair sem salvar?")
+    );
+  }
   protected newRule() {
+    this.dirty.set(false);
     this.id.set(null);
     this.version.set(null);
   }
   protected edit(rule: ScheduleRule) {
+    this.dirty.set(false);
     this.id.set(rule.id);
     this.version.set(rule.version);
     this.doctorId.set(rule.medico.id);
@@ -314,6 +347,7 @@ export class AdminScheduleComponent {
       : this.api.create<ScheduleRule>("regras-agenda", payload);
     request.subscribe({
       next: (rule) => {
+        this.dirty.set(false);
         this.edit(rule);
         this.rules.reload();
       },
@@ -322,6 +356,14 @@ export class AdminScheduleComponent {
   }
   protected day(day: number) {
     return ["", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"][day];
+  }
+  protected rulesForDay(day: number) {
+    return (
+      this.rules
+        .value()
+        ?.items.filter((rule) => rule.diaSemana === day && rule.ativo).length ??
+      0
+    );
   }
   protected issue(error: unknown) {
     return adminIssue(error);

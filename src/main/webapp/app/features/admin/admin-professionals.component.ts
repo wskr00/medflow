@@ -115,7 +115,7 @@ import { AdminIssue, Page, Professional, Specialty } from "./admin.models";
               id="doctor-name"
               class="min-h-11"
               [value]="name()"
-              (input)="name.set($any($event.target).value)"
+              (input)="name.set($any($event.target).value); markDirty()"
             />
           </div>
           <div hlmField>
@@ -126,7 +126,7 @@ import { AdminIssue, Page, Professional, Specialty } from "./admin.models";
               class="min-h-11"
               maxlength="30"
               [value]="crmNumber()"
-              (input)="crmNumber.set($any($event.target).value)"
+              (input)="crmNumber.set($any($event.target).value); markDirty()"
             />
           </div>
           <div hlmField>
@@ -137,7 +137,9 @@ import { AdminIssue, Page, Professional, Specialty } from "./admin.models";
               class="min-h-11"
               maxlength="2"
               [value]="crmUf()"
-              (input)="crmUf.set($any($event.target).value.toUpperCase())"
+              (input)="
+                crmUf.set($any($event.target).value.toUpperCase()); markDirty()
+              "
             />
           </div>
           <div hlmField class="md:col-span-2">
@@ -147,7 +149,7 @@ import { AdminIssue, Page, Professional, Specialty } from "./admin.models";
               id="doctor-specialties"
               multiple
               class="min-h-28"
-              (change)="specialties.set(selected($event))"
+              (change)="specialties.set(selected($event)); markDirty()"
             >
               @for (item of catalog.value()?.items ?? []; track item.id) {
                 <option
@@ -166,7 +168,7 @@ import { AdminIssue, Page, Professional, Specialty } from "./admin.models";
               selectId="doctor-active"
               class="min-h-11"
               [value]="active() ? 'true' : 'false'"
-              (valueChange)="active.set($event === 'true')"
+              (valueChange)="active.set($event === 'true'); markDirty()"
               ><option hlmNativeSelectOption value="true">Ativo</option>
               <option hlmNativeSelectOption value="false">
                 Inativo
@@ -203,7 +205,18 @@ export class AdminProfessionalsComponent {
   protected readonly active = signal(true);
   protected readonly saving = signal(false);
   protected readonly notice = signal<AdminIssue | null>(null);
+  protected readonly dirty = signal(false);
+  protected markDirty() {
+    this.dirty.set(true);
+  }
+  canLeave() {
+    return (
+      !this.dirty() ||
+      window.confirm("Há alterações não salvas. Sair sem salvar?")
+    );
+  }
   protected newValue() {
+    this.dirty.set(false);
     this.id.set(null);
     this.version.set(null);
     this.name.set("");
@@ -213,6 +226,7 @@ export class AdminProfessionalsComponent {
     this.active.set(true);
   }
   protected edit(value: Professional) {
+    this.dirty.set(false);
     this.id.set(value.id);
     this.version.set(value.version);
     this.name.set(value.nome);
@@ -259,6 +273,7 @@ export class AdminProfessionalsComponent {
       : this.api.create<Professional>("medicos", payload);
     request.pipe(finalize(() => this.saving.set(false))).subscribe({
       next: (value) => {
+        this.dirty.set(false);
         this.edit(value);
         this.values.reload();
       },

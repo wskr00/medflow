@@ -122,7 +122,7 @@ import { AdminIssue, Page, Professional, ScheduleBlock } from "./admin.models";
               selectId="block-doctor"
               class="min-h-11"
               [value]="doctorId()"
-              (valueChange)="doctorId.set($event ?? '')"
+              (valueChange)="doctorId.set($event ?? ''); markDirty()"
               ><option hlmNativeSelectOption value="">Selecione</option>
               @for (item of doctors.value()?.items ?? []; track item.id) {
                 <option hlmNativeSelectOption [value]="item.id">
@@ -139,7 +139,7 @@ import { AdminIssue, Page, Professional, ScheduleBlock } from "./admin.models";
               type="datetime-local"
               class="min-h-11"
               [value]="start()"
-              (input)="start.set($any($event.target).value)"
+              (input)="start.set($any($event.target).value); markDirty()"
             />
           </div>
           <div hlmField>
@@ -150,7 +150,7 @@ import { AdminIssue, Page, Professional, ScheduleBlock } from "./admin.models";
               type="datetime-local"
               class="min-h-11"
               [value]="end()"
-              (input)="end.set($any($event.target).value)"
+              (input)="end.set($any($event.target).value); markDirty()"
             />
           </div>
         </div>
@@ -175,7 +175,18 @@ export class AdminBlocksComponent {
   protected readonly start = signal("");
   protected readonly end = signal("");
   protected readonly notice = signal<AdminIssue | null>(null);
+  protected readonly dirty = signal(false);
+  protected markDirty() {
+    this.dirty.set(true);
+  }
+  canLeave() {
+    return (
+      !this.dirty() ||
+      window.confirm("Há alterações não salvas. Sair sem salvar?")
+    );
+  }
   protected newBlock() {
+    this.dirty.set(false);
     this.id.set(null);
     this.version.set(null);
     this.doctorId.set("");
@@ -183,6 +194,7 @@ export class AdminBlocksComponent {
     this.end.set("");
   }
   protected edit(block: ScheduleBlock) {
+    this.dirty.set(false);
     this.id.set(block.id);
     this.version.set(block.version);
     this.doctorId.set(block.medico.id);
@@ -214,6 +226,7 @@ export class AdminBlocksComponent {
       : this.api.create<ScheduleBlock>("bloqueios-agenda", payload);
     request.subscribe({
       next: (block) => {
+        this.dirty.set(false);
         this.edit(block);
         this.blocks.reload();
       },
