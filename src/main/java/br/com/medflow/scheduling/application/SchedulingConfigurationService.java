@@ -22,12 +22,14 @@ import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -61,10 +63,30 @@ public class SchedulingConfigurationService {
   }
 
   @Transactional(readOnly = true)
-  public Page<RegraAgenda> regras(boolean incluirInativas, Pageable pageable) {
+  public Page<RegraAgenda> regras(boolean incluirInativas, UUID medicoId, UUID especialidadeId,
+      UUID consultorioId, Pageable pageable) {
     Clinica clinica = clinicas.findBySingletonTrue().orElseThrow(ResourceNotFoundException::new);
-    return incluirInativas ? regras.findByClinicaId(clinica.id(), pageable)
-        : regras.findByClinicaIdAndAtivoTrue(clinica.id(), pageable);
+    if (medicoId != null) medicoDaClinica(medicoId, clinica);
+    if (especialidadeId != null) especialidadeDaClinica(especialidadeId, clinica);
+    if (consultorioId != null) consultorioDaClinica(consultorioId, clinica);
+    Specification<RegraAgenda> specification = (root, query, builder) -> {
+      var scope = builder.equal(root.get("clinica").get("id"), clinica.id());
+      if (!incluirInativas) scope = builder.and(scope, builder.isTrue(root.get("ativo")));
+      if (medicoId != null) scope = builder.and(scope,
+          builder.equal(root.get("medico").get("id"), medicoId));
+      if (especialidadeId != null) scope = builder.and(scope,
+          builder.equal(root.get("especialidade").get("id"), especialidadeId));
+      if (consultorioId != null) scope = builder.and(scope,
+          builder.equal(root.get("consultorio").get("id"), consultorioId));
+      return scope;
+    };
+    return regras.findAll(specification, pageable);
+  }
+
+  @Transactional(readOnly = true)
+  public RegraAgenda regra(UUID id) {
+    Clinica clinica = clinicas.findBySingletonTrue().orElseThrow(ResourceNotFoundException::new);
+    return regraDaClinica(id, clinica);
   }
 
   @Transactional
@@ -108,15 +130,37 @@ public class SchedulingConfigurationService {
   }
 
   @Transactional(readOnly = true)
-  public Page<BloqueioAgenda> bloqueios(boolean incluirInativos, Pageable pageable) {
+  public Page<BloqueioAgenda> bloqueios(boolean incluirInativos, UUID medicoId, Pageable pageable) {
     Clinica clinica = clinicas.findBySingletonTrue().orElseThrow(ResourceNotFoundException::new);
-    return incluirInativos ? bloqueios.findByClinicaId(clinica.id(), pageable)
-        : bloqueios.findByClinicaIdAndAtivoTrue(clinica.id(), pageable);
+    if (medicoId != null) medicoDaClinica(medicoId, clinica);
+    Specification<BloqueioAgenda> specification = (root, query, builder) -> {
+      var scope = builder.equal(root.get("clinica").get("id"), clinica.id());
+      if (!incluirInativos) scope = builder.and(scope, builder.isTrue(root.get("ativo")));
+      return medicoId == null ? scope : builder.and(scope,
+          builder.equal(root.get("medico").get("id"), medicoId));
+    };
+    return bloqueios.findAll(specification, pageable);
+  }
+
+  @Transactional(readOnly = true)
+  public BloqueioAgenda bloqueio(UUID id) {
+    Clinica clinica = clinicas.findBySingletonTrue().orElseThrow(ResourceNotFoundException::new);
+    return bloqueioDaClinica(id, clinica);
   }
 
   @Transactional
   public BloqueioAgenda criarBloqueio(BloqueioCommand command) {
     Clinica clinica = lockClinica();
+    return criarBloqueio(clinica, command);
+  }
+
+  @Transactional
+  public BloqueioAgenda criarBloqueioLocal(BloqueioLocalCommand command) {
+    Clinica clinica = lockClinica();
+    return criarBloqueio(clinica, localCommand(clinica, command));
+  }
+
+  private BloqueioAgenda criarBloqueio(Clinica clinica, BloqueioCommand command) {
     Medico medico = medicoDaClinica(command.medicoId(), clinica);
     if (command.ativo() && !medico.ativo()) throw conflict("Bloqueio ativo exige médico ativo.");
     BloqueioAgenda bloqueio = new BloqueioAgenda(clinica, medico, command.inicio(), command.fim(), command.ativo());
@@ -131,6 +175,16 @@ public class SchedulingConfigurationService {
   @Transactional
   public BloqueioAgenda alterarBloqueio(UUID id, BloqueioCommand command) {
     Clinica clinica = lockClinica();
+    return alterarBloqueio(id, clinica, command);
+  }
+
+  @Transactional
+  public BloqueioAgenda alterarBloqueioLocal(UUID id, BloqueioLocalCommand command) {
+    Clinica clinica = lockClinica();
+    return alterarBloqueio(id, clinica, localCommand(clinica, command));
+  }
+
+  private BloqueioAgenda alterarBloqueio(UUID id, Clinica clinica, BloqueioCommand command) {
     BloqueioAgenda bloqueio = bloqueioDaClinica(id, clinica);
     assertVersion(bloqueio.version(), command.expectedVersion());
     if (!bloqueio.medico().id().equals(command.medicoId())) {
@@ -237,10 +291,23 @@ public class SchedulingConfigurationService {
         "CONFIGURACAO_COM_RESERVAS", "A alteração invalidaria agendamentos futuros.");
   }
 
+  private static BloqueioCommand localCommand(Clinica clinica, BloqueioLocalCommand command) {
+    if (command == null || command.inicio() == null || command.fim() == null) {
+      throw new IllegalArgumentException("bloqueio de agenda inválido");
+    }
+    ZoneId zone = ZoneId.of(clinica.timeZone());
+    return new BloqueioCommand(command.medicoId(), command.inicio().atZone(zone).toInstant(),
+        command.fim().atZone(zone).toInstant(), command.ativo(), command.expectedVersion());
+  }
+
   public record RegraCommand(UUID medicoId, UUID especialidadeId, UUID consultorioId,
       DayOfWeek diaSemana, LocalTime horaInicio, LocalTime horaFim, int duracaoMinutos,
       LocalDate vigenteDe, LocalDate vigenteAte, boolean ativo, long expectedVersion) { }
 
   public record BloqueioCommand(UUID medicoId, Instant inicio, Instant fim, boolean ativo,
       long expectedVersion) { }
+
+  /** Administration submits a clinic-local date-time; persistence uses an instant. */
+  public record BloqueioLocalCommand(UUID medicoId, LocalDateTime inicio, LocalDateTime fim,
+      boolean ativo, long expectedVersion) { }
 }

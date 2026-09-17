@@ -18,6 +18,9 @@ public interface MedicoRepository extends JpaRepository<Medico, UUID>, JpaSpecif
   @Override
   @EntityGraph(attributePaths = "especialidades")
   Page<Medico> findAll(Specification<Medico> specification, Pageable pageable);
+  @Override
+  @EntityGraph(attributePaths = "especialidades")
+  Optional<Medico> findById(UUID id);
   Optional<Medico> findBySubject(String subject);
   Optional<Medico> findBySubjectAndAtivoTrue(String subject);
 }

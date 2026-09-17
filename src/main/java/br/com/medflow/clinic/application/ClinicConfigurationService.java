@@ -93,6 +93,9 @@ public class ClinicConfigurationService {
         .and(RsqlFilter.specification(q, CATALOG_ALIASES, UNIDADE_FILTER_FIELDS)), pageable);
   }
 
+  @Transactional(readOnly = true)
+  public Unidade unidade(UUID id) { return unidadeDaClinica(id, clinica()); }
+
   @Transactional
   public Unidade criarUnidade(String nome, String endereco, boolean ativo) {
     Clinica clinica = lockClinica();
@@ -118,11 +121,21 @@ public class ClinicConfigurationService {
   }
 
   @Transactional(readOnly = true)
-  public Page<Consultorio> consultorios(boolean incluirInativos, Pageable pageable) {
-    UUID clinicaId = clinica().id();
-    return incluirInativos ? consultorios.findByUnidadeClinicaId(clinicaId, pageable)
-        : consultorios.findByUnidadeClinicaIdAndAtivoTrue(clinicaId, pageable);
+  public Page<Consultorio> consultorios(boolean incluirInativos, UUID unidadeId, Pageable pageable) {
+    Clinica clinica = clinica();
+    if (unidadeId != null) unidadeDaClinica(unidadeId, clinica);
+    Specification<Consultorio> scope = (root, query, builder) -> {
+      var inClinic = builder.equal(root.get("unidade").get("clinica").get("id"), clinica.id());
+      var active = incluirInativos ? inClinic
+          : builder.and(inClinic, builder.isTrue(root.get("ativo")));
+      return unidadeId == null ? active : builder.and(active,
+          builder.equal(root.get("unidade").get("id"), unidadeId));
+    };
+    return consultorios.findAll(scope, pageable);
   }
+
+  @Transactional(readOnly = true)
+  public Consultorio consultorio(UUID id) { return consultorioDaClinica(id, clinica()); }
 
   @Transactional
   public Consultorio criarConsultorio(UUID unidadeId, String nome, boolean ativo) {
@@ -170,6 +183,9 @@ public class ClinicConfigurationService {
         .and(RsqlFilter.specification(q, CATALOG_ALIASES, ESPECIALIDADE_FILTER_FIELDS)), pageable);
   }
 
+  @Transactional(readOnly = true)
+  public Especialidade especialidade(UUID id) { return especialidadeDaClinica(id, clinica()); }
+
   @Transactional
   public Especialidade criarEspecialidade(String nome, boolean ativo) {
     Clinica clinica = lockClinica();
@@ -209,6 +225,9 @@ public class ClinicConfigurationService {
     return medicos.findAll(scope.and(RsqlFilter.specification(q, MEDICO_CATALOG_ALIASES,
         MEDICO_FILTER_FIELDS)), pageable);
   }
+
+  @Transactional(readOnly = true)
+  public Medico medico(UUID id) { return medicoDaClinica(id, clinica()); }
 
   @Transactional
   public Medico criarMedico(String nome, String crmNumero, String crmUf,
