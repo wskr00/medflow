@@ -92,13 +92,7 @@ import {
               Pacientes prontos para atendimento.
             </p>
           </div>
-          @if (queue.isLoading()) {
-            <app-state-panel
-              state="loading"
-              title="Carregando fila"
-              description="Aguarde um momento."
-            />
-          } @else if (queue.error()) {
+          @if (queue.error()) {
             <app-state-panel
               state="error"
               [title]="issue(queue.error()).title"
@@ -112,6 +106,12 @@ import {
             >
               Tentar novamente
             </button>
+          } @else if (queue.isLoading()) {
+            <app-state-panel
+              state="loading"
+              title="Carregando fila"
+              description="Aguarde um momento."
+            />
           } @else if (!queueItems().length) {
             <app-state-panel
               state="empty"
@@ -131,22 +131,27 @@ import {
                     </div>
                     <app-status-badge [status]="item.status" />
                   </div>
-                  <button
-                    hlmBtn
-                    type="button"
-                    class="mt-3 min-h-11 w-full"
-                    [disabled]="busyId() === item.id || !canEnter(item)"
-                    (click)="enter(item)"
-                  >
-                    @if (busyId() === item.id) {
-                      <hlm-spinner />
-                    }
-                    {{
-                      item.allowedActions.canResume
-                        ? "Retomar atendimento"
-                        : "Iniciar atendimento"
-                    }}
-                  </button>
+                  @if (item.allowedActions.canResume && item.atendimentoId) {
+                    <a
+                      hlmBtn
+                      class="mt-3 min-h-11 w-full"
+                      [routerLink]="['../atendimentos', item.atendimentoId]"
+                      >Retomar atendimento</a
+                    >
+                  } @else if (item.allowedActions.canStart) {
+                    <button
+                      hlmBtn
+                      type="button"
+                      class="mt-3 min-h-11 w-full"
+                      [disabled]="busyId() === item.id"
+                      (click)="start(item)"
+                    >
+                      @if (busyId() === item.id) {
+                        <hlm-spinner />
+                      }
+                      Iniciar atendimento
+                    </button>
+                  }
                 </li>
               }
             </ol>
@@ -171,13 +176,7 @@ import {
               </p>
             }
           </div>
-          @if (agenda.isLoading()) {
-            <app-state-panel
-              state="loading"
-              title="Carregando agenda"
-              description="Aguarde um momento."
-            />
-          } @else if (agenda.error()) {
+          @if (agenda.error()) {
             <app-state-panel
               state="error"
               [title]="issue(agenda.error()).title"
@@ -191,6 +190,12 @@ import {
             >
               Tentar novamente
             </button>
+          } @else if (agenda.isLoading()) {
+            <app-state-panel
+              state="loading"
+              title="Carregando agenda"
+              description="Aguarde um momento."
+            />
           } @else if (!agendaItems().length) {
             <app-state-panel
               state="empty"
@@ -232,19 +237,27 @@ import {
                         <app-status-badge [status]="item.status" />
                       </td>
                       <td class="px-4 py-3 text-right">
-                        @if (canEnter(item)) {
+                        @if (
+                          item.allowedActions.canResume && item.atendimentoId
+                        ) {
+                          <a
+                            hlmBtn
+                            class="min-h-11"
+                            [routerLink]="[
+                              '../atendimentos',
+                              item.atendimentoId,
+                            ]"
+                            >Retomar</a
+                          >
+                        } @else if (item.allowedActions.canStart) {
                           <button
                             hlmBtn
                             type="button"
                             class="min-h-11"
                             [disabled]="busyId() === item.id"
-                            (click)="enter(item)"
+                            (click)="start(item)"
                           >
-                            {{
-                              item.allowedActions.canResume
-                                ? "Retomar"
-                                : "Iniciar"
-                            }}
+                            Iniciar
                           </button>
                         } @else if (item.atendimentoId) {
                           <a
@@ -287,19 +300,22 @@ import {
                     </p>
                   </div>
                   <div hlmCardFooter>
-                    @if (canEnter(item)) {
+                    @if (item.allowedActions.canResume && item.atendimentoId) {
+                      <a
+                        hlmBtn
+                        class="min-h-11 w-full"
+                        [routerLink]="['../atendimentos', item.atendimentoId]"
+                        >Retomar atendimento</a
+                      >
+                    } @else if (item.allowedActions.canStart) {
                       <button
                         hlmBtn
                         type="button"
                         class="min-h-11 w-full"
                         [disabled]="busyId() === item.id"
-                        (click)="enter(item)"
+                        (click)="start(item)"
                       >
-                        {{
-                          item.allowedActions.canResume
-                            ? "Retomar atendimento"
-                            : "Iniciar atendimento"
-                        }}
+                        Iniciar atendimento
                       </button>
                     } @else if (item.atendimentoId) {
                       <a
@@ -339,17 +355,8 @@ export class DoctorTriageComponent {
   protected readonly queueItems = computed(
     () => this.queue.value()?.items ?? [],
   );
-  protected canEnter(item: DoctorAppointment) {
-    return item.allowedActions.canStart || item.allowedActions.canResume;
-  }
-  protected enter(item: DoctorAppointment) {
-    if (item.allowedActions.canResume && item.atendimentoId) {
-      void this.router.navigate([
-        "/workspace/doctor/atendimentos",
-        item.atendimentoId,
-      ]);
-      return;
-    }
+  protected start(item: DoctorAppointment) {
+    if (!item.allowedActions.canStart) return;
     this.busyId.set(item.id);
     this.notice.set(null);
     this.api
