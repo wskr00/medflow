@@ -1,0 +1,185 @@
+<div class="patient-page">
+  <header class="page-heading">
+    <div>
+      <p class="eyebrow">Sua agenda</p>
+      <h1>Consultas</h1>
+      <p class="page-description">
+        Confira quando e onde será seu próximo atendimento.
+      </p>
+    </div>
+    <a hlmBtn routerLink="../agendar">Agendar consulta</a>
+  </header>
+  @if (notice(); as message) {
+    <section
+      hlmAlert
+      id="patient-cancel-notice"
+      tabindex="-1"
+      role="status"
+      animate.enter="feedback-enter"
+    >
+      <h2 hlmAlertTitle>Consulta cancelada</h2>
+      <p hlmAlertDescription>{{ message }}</p>
+    </section>
+  }
+  @if (resource.isLoading()) {
+    <app-state-panel
+      state="loading"
+      title="Carregando consultas"
+      description="Buscando seus agendamentos."
+    />
+  } @else if (resource.error()) {
+    <div>
+      <app-state-panel
+        state="error"
+        [title]="issue(resource.error()).title"
+        [description]="issue(resource.error()).description"
+      /><button
+        hlmBtn
+        type="button"
+        variant="outline"
+        class="mt-3"
+        (click)="resource.reload()"
+      >
+        Tentar novamente
+      </button>
+    </div>
+  } @else if (!items().length) {
+    <div class="empty-appointments">
+      <app-state-panel
+        state="empty"
+        title="Nenhuma consulta futura"
+        description="Quando você agendar, a data e o local aparecerão aqui."
+      /><a hlmBtn routerLink="../agendar">Escolher uma consulta</a>
+    </div>
+  } @else {
+    <section aria-label="Seus agendamentos" class="appointment-list">
+      @for (appointment of items(); track appointment.id; let first = $first) {
+        <article
+          class="appointment"
+          [class.next-appointment]="first && page() === 0"
+        >
+          <div class="appointment-date">
+            <p class="date-context">
+              {{ first && page() === 0 ? "Próxima consulta" : "Agendamento" }}
+            </p>
+            <p class="date-day">{{ date(appointment.inicio, "day") }}</p>
+            <p class="date-month">{{ date(appointment.inicio, "month") }}</p>
+            <p class="date-weekday">
+              {{ date(appointment.inicio, "weekday") }}
+            </p>
+            <p class="date-time">{{ date(appointment.inicio, "time") }}</p>
+          </div>
+          <div class="appointment-detail">
+            <app-status-badge [status]="appointment.status" />
+            <h2>{{ appointment.especialidade.nome }}</h2>
+            <p class="appointment-doctor">{{ appointment.medico.nome }}</p>
+            <dl>
+              <div>
+                <dt>Unidade</dt>
+                <dd>{{ appointment.unidade.nome }}</dd>
+              </div>
+              <div>
+                <dt>Consultório</dt>
+                <dd>{{ appointment.consultorio.nome }}</dd>
+              </div>
+            </dl>
+          </div>
+          @if (
+            appointment.allowedActions.canReschedule ||
+            appointment.allowedActions.canCancel
+          ) {
+            <div class="appointment-actions">
+              @if (appointment.allowedActions.canReschedule) {
+                <a
+                  hlmBtn
+                  variant="outline"
+                  [routerLink]="[appointment.id, 'reagendar']"
+                  >Reagendar</a
+                >
+              }
+              @if (appointment.allowedActions.canCancel) {
+                <button
+                  hlmBtn
+                  variant="ghost"
+                  class="cancel-action"
+                  type="button"
+                  (click)="openCancel(appointment, dialog)"
+                >
+                  Cancelar consulta
+                </button>
+              }
+            </div>
+          }
+        </article>
+      }
+    </section>
+    @if (page() > 0 || hasNext()) {
+      <nav class="pager" aria-label="Páginas das consultas">
+        <button
+          hlmBtn
+          variant="outline"
+          [disabled]="page() === 0"
+          (click)="page.set(page() - 1)"
+        >
+          Anteriores</button
+        ><span>Página {{ page() + 1 }}</span
+        ><button
+          hlmBtn
+          variant="outline"
+          [disabled]="!hasNext()"
+          (click)="page.set(page() + 1)"
+        >
+          Próximas
+        </button>
+      </nav>
+    }
+  }
+  <hlm-dialog #dialog="hlmDialog"
+    ><hlm-dialog-content *hlmDialogPortal>
+      <hlm-dialog-header
+        ><h2 hlmDialogTitle>Cancelar consulta?</h2>
+        <p hlmDialogDescription>
+          @if (target(); as appointment) {
+            Você cancelará a consulta de {{ appointment.especialidade.nome }} em
+            {{ date(appointment.inicio, "full") }}.
+          }
+        </p></hlm-dialog-header
+      >
+      @if (problem(); as item) {
+        <section hlmAlert variant="destructive">
+          <h3 hlmAlertTitle>{{ item.title }}</h3>
+          <p hlmAlertDescription>{{ item.description }}</p>
+          @if (item.conflict) {
+            <p class="mt-2 text-sm">
+              Feche esta confirmação e confira a situação atual na lista antes
+              de tentar novamente.
+            </p>
+          }
+        </section>
+      }
+      <hlm-dialog-footer
+        ><button
+          hlmBtn
+          variant="outline"
+          type="button"
+          hlmDialogClose
+          [disabled]="saving()"
+          autofocus
+        >
+          Manter consulta</button
+        ><button
+          hlmBtn
+          variant="destructive"
+          type="button"
+          [disabled]="saving() || problem()?.conflict"
+          (click)="cancel(dialog)"
+        >
+          @if (saving()) {
+            <hlm-spinner aria-hidden="true" />
+          }
+          Sim, cancelar consulta
+        </button></hlm-dialog-footer
+      >
+    </hlm-dialog-content></hlm-dialog
+  >
+</div>

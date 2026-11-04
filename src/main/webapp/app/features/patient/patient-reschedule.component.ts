@@ -1,31 +1,192 @@
+import { DOCUMENT } from "@angular/common";
 import { httpResource } from "@angular/common/http";
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from "@angular/core";
+import {
+  ChangeDetectionStrategy,
+  Component,
+  Injector,
+  afterNextRender,
+  computed,
+  effect,
+  inject,
+  signal,
+} from "@angular/core";
 import { toSignal } from "@angular/core/rxjs-interop";
-import { ActivatedRoute, Router, RouterLink } from "@angular/router";
+import { ActivatedRoute, RouterLink } from "@angular/router";
 import { HlmAlertImports } from "@spartan-ng/helm/alert";
 import { HlmButtonImports } from "@spartan-ng/helm/button";
 import { HlmCalendarImports } from "@spartan-ng/helm/calendar";
-import { HlmCardImports } from "@spartan-ng/helm/card";
 import { HlmSpinnerImports } from "@spartan-ng/helm/spinner";
 import { finalize, map } from "rxjs";
 import { IdentityService } from "../../auth/identity.service";
-import { PageHeaderComponent } from "../../shared/ui/page-header.component";
 import { StatePanelComponent } from "../../shared/ui/state-panel.component";
 import { PatientApi, patientIssue } from "./patient.api";
-import { Appointment, Availability, Slot } from "./patient.models";
+import {
+  Appointment,
+  Availability,
+  PatientIssue,
+  Slot,
+} from "./patient.models";
+import { PatientSlotOptionsComponent } from "./patient-slot-options.component";
+import { PatientVisitDetailsComponent } from "./patient-visit-details.component";
+import { calendarToday, civilDate, slotKey } from "./patient-time";
 
-@Component({ selector: "app-patient-reschedule", changeDetection: ChangeDetectionStrategy.OnPush, providers: [PatientApi], imports: [RouterLink, HlmAlertImports, HlmButtonImports, HlmCalendarImports, HlmCardImports, HlmSpinnerImports, PageHeaderComponent, StatePanelComponent], template: `
-  <div class="flex flex-col gap-6"><app-page-header title="Reagendar consulta" description="O horário atual só será alterado depois da confirmação." />
-  @if (appointment.isLoading()) { <app-state-panel state="loading" title="Carregando consulta" description="Aguarde um momento." /> } @else if (appointment.error() || !appointment.value()) { <app-state-panel state="error" [title]="issue(appointment.error()).title" [description]="issue(appointment.error()).description" /><a hlmBtn variant="outline" routerLink="/workspace/patient/consultas">Voltar</a> } @else { @let current = appointment.value()!;
-    <section hlmCard><div hlmCardHeader><h2 hlmCardTitle>Horário atual</h2><p hlmCardDescription>{{ current.especialidade.nome }} · {{ dateTime(current.inicio) }} · {{ current.medico.nome }}</p></div><div hlmCardContent class="grid gap-6 lg:grid-cols-[20rem_1fr]"><section><h2 class="mb-3 font-semibold">Nova data</h2><hlm-calendar [date]="date()" [min]="today" (dateChange)="changeDate($event)" /></section><section class="flex flex-col gap-3"><h2 class="font-semibold">Novo horário</h2>@if (availability.isLoading()) { <app-state-panel state="loading" title="Buscando horários" description="Aguarde um momento." /> } @else if (availability.error()) { <app-state-panel state="error" [title]="issue(availability.error()).title" [description]="issue(availability.error()).description" /> } @else { <div class="grid gap-2 sm:grid-cols-2">@for (item of slots(); track item.regraAgendaId + item.inicio) { <button hlmBtn [variant]="selected() === item ? 'default' : 'outline'" type="button" class="min-h-11 h-auto justify-start py-3 text-start" [attr.aria-pressed]="selected() === item" (click)="choose(item)"><span class="flex flex-col items-start"><span>{{ time(item.inicio) }} · {{ item.consultorio.nome }}</span>@if (selected() === item) { <span class="text-xs font-semibold">Selecionado</span> }</span></button> }</div> }</section></div><div hlmCardFooter class="gap-3"><a hlmBtn variant="outline" routerLink="/workspace/patient/consultas">Voltar</a><button hlmBtn type="button" [disabled]="!selected()" (click)="review.set(true)">Revisar novo horário</button></div></section>
-    @if (review() && selected(); as next) { <section hlmCard><div hlmCardHeader><h2 hlmCardTitle>Revise a alteração</h2><p hlmCardDescription>O horário atual só muda depois da confirmação.</p></div><div hlmCardContent class="grid gap-4 md:grid-cols-2"><section class="border-border flex flex-col gap-3 rounded-md border p-4"><h3 class="font-semibold">Atual</h3><dl class="grid gap-2 text-sm"><div><dt class="text-muted-foreground">Data e horário</dt><dd class="font-medium">{{ dateTime(current.inicio) }}</dd></div><div><dt class="text-muted-foreground">Unidade</dt><dd class="font-medium">{{ current.unidade.nome }}</dd></div><div><dt class="text-muted-foreground">Consultório</dt><dd class="font-medium">{{ current.consultorio.nome }}</dd></div></dl></section><section class="border-primary flex flex-col gap-3 rounded-md border p-4"><h3 class="font-semibold">Novo</h3><dl class="grid gap-2 text-sm"><div><dt class="text-muted-foreground">Data e horário</dt><dd class="font-medium">{{ dateTime(next.inicio) }}</dd></div><div><dt class="text-muted-foreground">Unidade</dt><dd class="font-medium">{{ next.unidade.nome }}</dd></div><div><dt class="text-muted-foreground">Consultório</dt><dd class="font-medium">{{ next.consultorio.nome }}</dd></div></dl></section></div><div hlmCardFooter class="gap-3"><button hlmBtn variant="outline" type="button" (click)="review.set(false)">Voltar</button><button hlmBtn type="button" [disabled]="saving()" (click)="confirm(current, next)">@if (saving()) { <hlm-spinner /> } Confirmar reagendamento</button></div></section> }
-    @if (problem(); as item) { <section hlmAlert><h2 hlmAlertTitle>{{ item.title }}</h2><p hlmAlertDescription>{{ item.description }}</p></section> }
-  }</div>
-` })
+@Component({
+  selector: "app-patient-reschedule",
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  providers: [PatientApi],
+  imports: [
+    RouterLink,
+    HlmAlertImports,
+    HlmButtonImports,
+    HlmCalendarImports,
+    HlmSpinnerImports,
+    StatePanelComponent,
+    PatientSlotOptionsComponent,
+    PatientVisitDetailsComponent,
+  ],
+  templateUrl: "./patient-reschedule.component.html",
+  styleUrls: ["./patient-journey.scss", "./patient-reschedule.component.scss"],
+})
 export class PatientRescheduleComponent {
-  private readonly api = inject(PatientApi); private readonly route = inject(ActivatedRoute); private readonly router = inject(Router); private readonly identity = inject(IdentityService); private readonly id = toSignal(this.route.paramMap.pipe(map((params) => params.get("id") ?? "")), { initialValue: "" });
-  readonly appointment = httpResource<Appointment>(() => this.id() ? this.api.appointment(this.id()) : undefined); protected readonly today = new Date(); protected readonly date = signal(new Date()); protected readonly selected = signal<Slot | null>(null); protected readonly review = signal(false); protected readonly saving = signal(false); protected readonly problem = signal<ReturnType<typeof patientIssue> | null>(null); protected readonly availability = httpResource<Availability>(() => this.id() ? this.api.rescheduleAvailability(this.id(), this.civilDate()) : undefined); protected readonly slots = computed(() => this.availability.value()?.items ?? []);
-  protected choose(slot: Slot) { this.selected.set(slot); this.review.set(false); } protected changeDate(value: Date) { this.date.set(value); this.selected.set(null); this.review.set(false); }
-  protected confirm(current: Appointment, item: Slot) { this.saving.set(true); this.api.reschedule(current.id, item.regraAgendaId, item.inicio, current.version).pipe(finalize(() => this.saving.set(false))).subscribe({ next: () => void this.router.navigateByUrl("/workspace/patient/consultas"), error: (error) => { const issue = patientIssue(error); this.problem.set(issue); if (issue.code === "HORARIO_INDISPONIVEL") { this.selected.set(null); this.review.set(false); this.availability.reload(); } if (issue.conflict) this.appointment.reload(); } }); }
-  protected issue(error: unknown) { return patientIssue(error); } protected time(value: string) { return new Intl.DateTimeFormat("pt-BR", { timeStyle: "short", timeZone: this.identity.identity.value()?.timeZone }).format(new Date(value)); } protected dateTime(value: string) { return new Intl.DateTimeFormat("pt-BR", { dateStyle: "full", timeStyle: "short", timeZone: this.identity.identity.value()?.timeZone }).format(new Date(value)); } private civilDate() { const date = this.date(); return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`; }
+  private readonly api = inject(PatientApi);
+  private readonly route = inject(ActivatedRoute);
+  private readonly identity = inject(IdentityService);
+  private readonly injector = inject(Injector);
+  private readonly document = inject(DOCUMENT);
+  private readonly id = toSignal(
+    this.route.paramMap.pipe(map((params) => params.get("id") ?? "")),
+    { initialValue: "" },
+  );
+  readonly appointment = httpResource<Appointment>(() =>
+    this.id() ? this.api.appointment(this.id()) : undefined,
+  );
+  protected readonly today = calendarToday(
+    this.identity.identity.value()?.timeZone,
+  );
+  protected readonly date = signal(this.today);
+  protected readonly selected = signal<Slot | null>(null);
+  protected readonly review = signal(false);
+  protected readonly saving = signal(false);
+  protected readonly problem = signal<PatientIssue | null>(null);
+  protected readonly completed = signal<Appointment | null>(null);
+  protected readonly conflictBlocked = signal(false);
+  protected readonly availability = httpResource<Availability>(() =>
+    this.id() &&
+    this.appointment.hasValue() &&
+    this.appointment.value().allowedActions.canReschedule &&
+    !this.completed()
+      ? this.api.rescheduleAvailability(this.id(), civilDate(this.date()))
+      : undefined,
+  );
+  protected readonly slots = computed(() =>
+    this.availability.hasValue() ? this.availability.value().items : [],
+  );
+  constructor() {
+    effect(() => {
+      const selected = this.selected();
+      if (
+        !selected ||
+        !this.availability.hasValue() ||
+        this.availability.isLoading() ||
+        this.completed()
+      )
+        return;
+      if (!this.slots().some((slot) => slotKey(slot) === slotKey(selected))) {
+        this.selected.set(null);
+        this.review.set(false);
+      }
+    });
+  }
+  protected choose(slot: Slot) {
+    if (this.saving()) return;
+    this.selected.set(slot);
+    this.review.set(false);
+    this.problem.set(null);
+  }
+  protected changeDate(date: Date | undefined) {
+    if (this.saving()) return;
+    this.date.set(date ?? new Date(this.date()));
+    this.selected.set(null);
+    this.review.set(false);
+    this.problem.set(null);
+  }
+  protected showReview() {
+    if (!this.selected() || this.saving() || this.conflictBlocked()) return;
+    this.review.set(true);
+    this.focus("reschedule-review-title");
+  }
+  protected backToTimes() {
+    this.review.set(false);
+    this.focus("reschedule-times-title");
+  }
+  protected confirm(current: Appointment, item: Slot) {
+    if (
+      this.saving() ||
+      this.conflictBlocked() ||
+      !current.allowedActions.canReschedule ||
+      !this.selected()
+    )
+      return;
+    this.saving.set(true);
+    this.problem.set(null);
+    this.api
+      .reschedule(current.id, item.regraAgendaId, item.inicio, current.version)
+      .pipe(finalize(() => this.saving.set(false)))
+      .subscribe({
+        next: (appointment) => {
+          this.completed.set(appointment);
+          this.selected.set(null);
+          this.review.set(false);
+          this.focus("reschedule-success-title");
+        },
+        error: (error) => {
+          const issue = patientIssue(error, "write");
+          this.problem.set(issue);
+          this.review.set(false);
+          if (issue.conflict) {
+            this.selected.set(null);
+            this.availability.reload();
+            if (issue.code !== "HORARIO_INDISPONIVEL") {
+              this.conflictBlocked.set(true);
+              this.appointment.reload();
+            }
+          }
+          this.focus("reschedule-feedback");
+        },
+      });
+  }
+  protected acceptUpdated() {
+    if (this.appointment.isLoading() || !this.appointment.hasValue()) return;
+    this.conflictBlocked.set(false);
+    this.problem.set(null);
+    this.selected.set(null);
+    this.review.set(false);
+    this.availability.reload();
+    this.focus("reschedule-times-title");
+  }
+  protected issue(error: unknown) {
+    return patientIssue(error);
+  }
+  protected dateTime(value: string) {
+    return new Intl.DateTimeFormat("pt-BR", {
+      dateStyle: "full",
+      timeStyle: "short",
+      timeZone: this.identity.identity.value()?.timeZone,
+    }).format(new Date(value));
+  }
+  protected dateLabel() {
+    return new Intl.DateTimeFormat("pt-BR", { dateStyle: "full" }).format(
+      this.date(),
+    );
+  }
+  private focus(id: string) {
+    afterNextRender(
+      () => {
+        const element = this.document.getElementById(id);
+        element?.focus({ preventScroll: true });
+        element?.scrollIntoView?.({ block: "start", behavior: "instant" });
+      },
+      { injector: this.injector },
+    );
+  }
 }

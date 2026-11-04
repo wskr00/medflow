@@ -1,22 +1,56 @@
 import { httpResource } from "@angular/common/http";
-import { ChangeDetectionStrategy, Component, computed, inject } from "@angular/core";
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  signal,
+} from "@angular/core";
+import { RouterLink } from "@angular/router";
 import { HlmButtonImports } from "@spartan-ng/helm/button";
-import { HlmCardImports } from "@spartan-ng/helm/card";
 import { IdentityService } from "../../auth/identity.service";
-import { PageHeaderComponent } from "../../shared/ui/page-header.component";
 import { StatePanelComponent } from "../../shared/ui/state-panel.component";
+import { StatusBadgeComponent } from "../../shared/ui/status-badge.component";
 import { PatientApi, patientIssue } from "./patient.api";
 import { Appointment, Page } from "./patient.models";
 
 @Component({
-  selector: "app-patient-history", changeDetection: ChangeDetectionStrategy.OnPush, providers: [PatientApi],
-  imports: [HlmButtonImports, HlmCardImports, PageHeaderComponent, StatePanelComponent],
-  template: `<div class="flex flex-col gap-6"><app-page-header title="Histórico" description="Consultas concluídas e seus dados operacionais." />@if (resource.isLoading()) { <app-state-panel state="loading" title="Carregando histórico" description="Aguarde um momento." /> } @else if (resource.error()) { <app-state-panel state="error" [title]="issue(resource.error()).title" [description]="issue(resource.error()).description" /><button hlmBtn variant="outline" type="button" (click)="resource.reload()">Tentar novamente</button> } @else if (!items().length) { <app-state-panel state="empty" title="Nenhuma consulta concluída" description="As consultas concluídas aparecerão aqui." /> } @else { <section class="grid gap-4 md:grid-cols-2">@for (item of items(); track item.id) { <article hlmCard><div hlmCardContent class="flex flex-col gap-1 pt-6"><h2 class="font-semibold">{{ item.especialidade.nome }}</h2><p class="text-muted-foreground text-sm">{{ dateTime(item.inicio) }} · {{ item.medico.nome }}</p><p class="text-muted-foreground text-sm">{{ item.unidade.nome }} · Consultório {{ item.consultorio.nome }}</p></div></article> }</section> }</div>`,
+  selector: "app-patient-history",
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  providers: [PatientApi],
+  imports: [
+    RouterLink,
+    HlmButtonImports,
+    StatePanelComponent,
+    StatusBadgeComponent,
+  ],
+  templateUrl: "./patient-history.component.html",
+  styleUrls: ["./patient-journey.scss", "./patient-history.component.scss"],
 })
 export class PatientHistoryComponent {
-  private readonly api = inject(PatientApi); private readonly identity = inject(IdentityService);
-  readonly resource = httpResource<Page<Appointment>>(() => this.api.appointments("PAST", "status==FINALIZADA"));
-  protected readonly items = computed(() => this.resource.value()?.items ?? []);
-  protected issue(error: unknown) { return patientIssue(error); }
-  protected dateTime(value: string) { return new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium", timeStyle: "short", timeZone: this.identity.identity.value()?.timeZone }).format(new Date(value)); }
+  private readonly api = inject(PatientApi);
+  private readonly identity = inject(IdentityService);
+  protected readonly page = signal(0);
+  readonly resource = httpResource<Page<Appointment>>(() =>
+    this.api.appointments("PAST", "status==FINALIZADA", this.page()),
+  );
+  protected readonly items = computed(() =>
+    this.resource.hasValue() ? this.resource.value().items : [],
+  );
+  protected readonly hasNext = computed(
+    () =>
+      this.resource.hasValue() &&
+      (this.page() + 1) * this.resource.value().size <
+        this.resource.value().totalElements,
+  );
+  protected issue(error: unknown) {
+    return patientIssue(error);
+  }
+  protected dateTime(value: string) {
+    return new Intl.DateTimeFormat("pt-BR", {
+      dateStyle: "long",
+      timeStyle: "short",
+      timeZone: this.identity.identity.value()?.timeZone,
+    }).format(new Date(value));
+  }
 }

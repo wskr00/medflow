@@ -1,0 +1,189 @@
+:host {
+  display: block;
+  min-width: 0;
+  animation: medflow-page-enter var(--medflow-duration-standard)
+    var(--medflow-ease-standard);
+}
+.patient-page {
+  display: grid;
+  gap: 1.75rem;
+}
+.page-heading {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: space-between;
+  align-items: start;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 1.5rem;
+}
+.eyebrow {
+  color: var(--primary);
+  font-size: 0.6875rem;
+  letter-spacing: 0.12em;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+h1 {
+  font-size: clamp(1.75rem, 2.7vw, 2.5rem);
+  line-height: 1.15;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+.page-description {
+  color: var(--muted-foreground);
+  line-height: 1.6;
+  margin-top: 0.6rem;
+  font-size: 0.9375rem;
+  max-width: 48rem;
+}
+.step-heading {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.helper {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+.task-panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+.panel-body {
+  padding: 1.5rem;
+}
+.task-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  border-top: 1px solid var(--border);
+  padding: 1.25rem 1.5rem;
+}
+.task-actions > :last-child {
+  margin-left: auto;
+}
+.task-actions a,
+.task-actions button {
+  min-height: 2.75rem;
+}
+.calendar-layout {
+  display: grid;
+  grid-template-columns: 24rem minmax(0, 1fr);
+}
+.calendar-column {
+  padding: 1.5rem;
+  border-right: 1px solid var(--border);
+  min-width: 0;
+}
+.slots-column {
+  padding: 1.5rem;
+  min-width: 0;
+  display: grid;
+  gap: 1rem;
+  align-content: start;
+}
+.calendar-column h2,
+.slots-column h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+.calendar-column hlm-calendar {
+  max-width: 100%;
+  --cell-size: 2.75rem;
+}
+.calendar-key {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  margin-top: 1rem;
+}
+.visit-summary {
+  border-left: 3px solid var(--primary);
+  padding: 1.25rem 1.5rem;
+  background: var(--muted);
+}
+.visit-summary h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+.notice {
+  display: grid;
+  gap: 1rem;
+}
+.success-panel {
+  max-width: 52rem;
+}
+.success-panel header {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+.success-panel .success-label {
+  color: var(--success);
+  font-weight: 600;
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+}
+.step-focus:focus {
+  outline: none;
+}
+.pager {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+}
+@media (max-width: 1023px) {
+  .calendar-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .calendar-column {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: 21rem minmax(0, 1fr);
+    column-gap: 1.5rem;
+  }
+  .calendar-column h2 {
+    grid-column: 1/-1;
+  }
+  .calendar-key {
+    margin-top: 0;
+    align-self: center;
+  }
+}
+@media (max-width: 600px) {
+  .page-heading {
+    flex-direction: column;
+  }
+  .calendar-column {
+    display: block;
+  }
+  .calendar-key {
+    margin-top: 1rem;
+  }
+  .panel-body,
+  .slots-column,
+  .calendar-column {
+    padding: 1.25rem;
+  }
+  .task-actions {
+    padding: 1rem 1.25rem;
+  }
+}
+
+[hlmBtn] {
+  min-height: 2.75rem;
+}
+
+@media (max-width: 420px) {
+  .calendar-column hlm-calendar {
+    --cell-size: 1.75rem;
+  }
+}

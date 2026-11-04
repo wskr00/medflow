@@ -126,3 +126,13 @@ visível e teclado. Erros manuais de campos usam `forceShow`; select nativo pode
 receber `describedBy` para ligar sua mensagem ao controle focalizado. A recarga
 após conflito é explícita e confirma a substituição do formulário. Evidências e
 limites: [revisão da #60](../qa/ui60/README.md).
+
+## Paciente — #57
+
+A jornada do Paciente usa navegação horizontal persistente, próxima consulta com
+ênfase na data/horário e lista cronológica de histórico. Agendar e reagendar
+compartilham somente seleção de slots e dados operacionais de revisão dentro da
+feature. Revisão antecede qualquer mutação, e a confirmação usa os dados do
+servidor. Horário indisponível limpa o slot e mantém preferências válidas;
+conflito de versão exige conferir o agendamento atualizado. Evidências e limites:
+[revisão da #57](../qa/ui57/README.md).

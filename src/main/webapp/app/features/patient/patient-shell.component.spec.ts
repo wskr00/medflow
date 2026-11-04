@@ -27,11 +27,12 @@ describe("PatientShellComponent", () => {
     expect(text).toContain("Marina Alves");
     expect(text).toContain("Sair");
     expect(text).not.toContain("Operação clínica");
-    expect(fixture.nativeElement.querySelector("main")?.className).toContain(
-      "max-w-6xl",
+    expect(fixture.nativeElement.querySelector("main")?.id).toBe(
+      "patient-main",
     );
-    expect(fixture.nativeElement.querySelector("main")?.className).toContain(
-      "py-8",
-    );
+    expect(
+      fixture.nativeElement.querySelector('a[href="#patient-main"]'),
+    ).toBeTruthy();
+    expect(fixture.nativeElement.querySelectorAll("nav a")).toHaveLength(3);
   });
 });

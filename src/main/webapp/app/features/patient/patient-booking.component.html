@@ -1,0 +1,377 @@
+<div class="patient-page">
+  <header class="page-heading">
+    <div>
+      <p class="eyebrow">Novo agendamento</p>
+      <h1>Agendar consulta</h1>
+      <p class="page-description">
+        Escolha a especialidade, encontre um horário e confira os dados antes de
+        confirmar.
+      </p>
+    </div>
+    <a hlmBtn variant="ghost" routerLink="../consultas">Voltar às consultas</a>
+  </header>
+  @if (stage() < 4) {
+    <ol class="booking-progress" aria-label="Etapas do agendamento">
+      @for (
+        label of ["Cuidado e local", "Data e horário", "Revisão"];
+        track $index
+      ) {
+        <li
+          [attr.aria-current]="stage() === $index + 1 ? 'step' : null"
+          [class.completed]="stage() > $index + 1"
+        >
+          <span class="step-number" aria-hidden="true">{{
+            stage() > $index + 1 ? "✓" : $index + 1
+          }}</span
+          ><span>{{ label }}</span
+          ><span class="sr-only">Etapa {{ $index + 1 }} de 3</span>
+        </li>
+      }
+    </ol>
+  }
+  @if (stage() === 4) {
+    <section
+      class="task-panel success-panel"
+      role="status"
+      animate.enter="feedback-enter"
+    >
+      <header>
+        <p class="success-label">✓ Agendamento confirmado</p>
+        <h2
+          class="step-heading step-focus"
+          id="booking-step-title"
+          tabindex="-1"
+        >
+          Consulta agendada
+        </h2>
+        <p class="helper mt-2">
+          Sua consulta já está na agenda. Confira os dados do atendimento.
+        </p>
+      </header>
+      <div class="panel-body">
+        @if (confirmed(); as item) {
+          <app-patient-visit-details [visit]="item" />
+        }
+      </div>
+      <div class="task-actions">
+        <button hlmBtn variant="outline" type="button" (click)="again()">
+          Agendar outra consulta</button
+        ><a hlmBtn routerLink="../consultas">Ver consultas</a>
+      </div>
+    </section>
+  } @else if (stage() === 1) {
+    <div class="booking-start">
+      <section class="task-panel">
+        <header class="panel-body">
+          <h2
+            id="booking-step-title"
+            tabindex="-1"
+            class="step-heading step-focus"
+          >
+            Cuidado e local
+          </h2>
+          <p class="helper mt-2">
+            Especialidade e unidade são obrigatórias. A escolha do profissional
+            é opcional.
+          </p>
+        </header>
+        <div class="panel-body form-body">
+          @if (loading()) {
+            <app-state-panel
+              state="loading"
+              title="Carregando opções"
+              description="Buscando especialidades e unidades."
+            />
+          } @else if (catalogError()) {
+            <app-state-panel
+              state="error"
+              title="Não foi possível carregar opções"
+              description="Suas escolhas foram mantidas. Tente carregar novamente."
+            /><button
+              hlmBtn
+              variant="outline"
+              type="button"
+              class="mt-3"
+              (click)="reloadCatalogs()"
+            >
+              Tentar novamente
+            </button>
+          } @else {
+            <form [formRoot]="bookingForm" class="booking-form">
+              <div hlmField>
+                <label hlmFieldLabel for="specialty">Especialidade</label
+                ><hlm-native-select
+                  selectId="specialty"
+                  [describedBy]="
+                    bookingForm.specialtyId().touched() &&
+                    bookingForm.specialtyId().invalid()
+                      ? 'booking-specialty-error'
+                      : null
+                  "
+                  aria-required="true"
+                  [formField]="bookingForm.specialtyId"
+                  (valueChange)="changeSpecialty($event)"
+                  ><option hlmNativeSelectOption value="">
+                    Selecione uma especialidade
+                  </option>
+                  @for (
+                    item of specialties.value()?.items ?? [];
+                    track item.id
+                  ) {
+                    <option hlmNativeSelectOption [value]="item.id">
+                      {{ item.nome }}
+                    </option>
+                  }
+                </hlm-native-select>
+                @if (bookingForm.specialtyId().touched()) {
+                  @for (
+                    error of bookingForm.specialtyId().errors();
+                    track error.kind
+                  ) {
+                    <hlm-field-error
+                      id="booking-specialty-error"
+                      [validator]="error.kind"
+                      >{{ error.message }}</hlm-field-error
+                    >
+                  }
+                }
+              </div>
+              <div hlmField>
+                <label hlmFieldLabel for="unit">Unidade</label
+                ><hlm-native-select
+                  selectId="unit"
+                  [describedBy]="
+                    bookingForm.unitId().touched() &&
+                    bookingForm.unitId().invalid()
+                      ? 'booking-unit-error'
+                      : null
+                  "
+                  aria-required="true"
+                  [formField]="bookingForm.unitId"
+                  (valueChange)="clearSelection()"
+                  ><option hlmNativeSelectOption value="">
+                    Selecione uma unidade
+                  </option>
+                  @for (item of units.value()?.items ?? []; track item.id) {
+                    <option hlmNativeSelectOption [value]="item.id">
+                      {{ item.nome }}
+                    </option>
+                  }
+                </hlm-native-select>
+                @if (bookingForm.unitId().touched()) {
+                  @for (
+                    error of bookingForm.unitId().errors();
+                    track error.kind
+                  ) {
+                    <hlm-field-error
+                      id="booking-unit-error"
+                      [validator]="error.kind"
+                      >{{ error.message }}</hlm-field-error
+                    >
+                  }
+                }
+              </div>
+              <div hlmField>
+                <label hlmFieldLabel for="doctor">Profissional · opcional</label
+                ><hlm-native-select
+                  selectId="doctor"
+                  describedBy="booking-doctor-help"
+                  [formField]="bookingForm.doctorId"
+                  (valueChange)="clearSelection()"
+                  ><option hlmNativeSelectOption value="">
+                    Qualquer profissional
+                  </option>
+                  @for (item of doctors(); track item.id) {
+                    <option hlmNativeSelectOption [value]="item.id">
+                      {{ item.nome }}
+                    </option>
+                  }
+                </hlm-native-select>
+                <p hlmFieldDescription id="booking-doctor-help">
+                  Sem preferência? Veja os horários de todos os profissionais da
+                  especialidade.
+                </p>
+              </div>
+              <button hlmBtn type="submit" class="next-step">
+                Escolher data e horário
+              </button>
+            </form>
+          }
+        </div>
+      </section>
+      <aside class="booking-note">
+        <p class="eyebrow">Sobre o agendamento</p>
+        <h2>A reserva acontece na confirmação.</h2>
+        <p>
+          Escolher um horário ainda não o reserva. O agendamento é feito depois
+          da revisão, ao confirmar.
+        </p>
+        <p>
+          Depois, você encontra o agendamento em Consultas. Reagendar ou
+          cancelar depende da situação da consulta.
+        </p>
+      </aside>
+    </div>
+  } @else if (stage() === 2) {
+    <section class="preferences" aria-label="Suas preferências">
+      <div>
+        <strong>{{ preferences().specialty }}</strong>
+        <p>{{ preferences().unit }} · {{ preferences().doctor }}</p>
+      </div>
+      <button hlmBtn variant="ghost" type="button" (click)="goStage(1)">
+        Alterar preferências
+      </button>
+    </section>
+    @if (problem(); as message) {
+      <section hlmAlert role="alert" animate.enter="feedback-enter">
+        <h3 hlmAlertTitle>{{ message.title }}</h3>
+        <p hlmAlertDescription>
+          {{ message.description }} Suas preferências e a data foram mantidas.
+        </p>
+      </section>
+    }
+    <section class="task-panel">
+      <div class="calendar-layout">
+        <section class="calendar-column">
+          <h2>Data</h2>
+          <hlm-calendar
+            [date]="date()"
+            [min]="today"
+            [highlightDays]="highlightedDates()"
+            (dateChange)="changeDate($event)"
+            (focusedDateChange)="calendarFocus.set($event)"
+          />
+          <div class="calendar-key">
+            <p>O ponto indica um dia com horários disponíveis.</p>
+            @if (availableDates.error()) {
+              <p role="alert" class="mt-2">
+                Não foi possível marcar os dias disponíveis. Você ainda pode
+                consultar uma data.
+              </p>
+              <button
+                hlmBtn
+                variant="ghost"
+                type="button"
+                class="mt-2"
+                (click)="availableDates.reload()"
+              >
+                Recarregar dias
+              </button>
+            }
+          </div>
+        </section>
+        <section class="slots-column">
+          <div>
+            <h2 id="booking-step-title" tabindex="-1" class="step-focus">
+              Horários disponíveis
+            </h2>
+            <p class="helper">{{ selectedDateLabel() }}</p>
+          </div>
+          @if (availability.isLoading()) {
+            <app-state-panel
+              state="loading"
+              title="Buscando horários"
+              description="Consultando a data selecionada."
+            />
+          } @else if (availability.error()) {
+            <app-state-panel
+              state="error"
+              [title]="issue(availability.error()).title"
+              [description]="issue(availability.error()).description"
+            /><button
+              hlmBtn
+              variant="outline"
+              type="button"
+              (click)="retryAvailability()"
+            >
+              Tentar novamente
+            </button>
+          } @else if (!slots().length) {
+            <app-state-panel
+              state="empty"
+              title="Sem horários nesta data"
+              description="Escolha no calendário outro dia. Os dias marcados com um ponto têm horários disponíveis."
+            />
+          } @else {
+            <app-patient-slot-options
+              [slots]="slots()"
+              [selected]="selected()"
+              (choose)="choose($event)"
+            />
+          }
+        </section>
+      </div>
+      <div class="task-actions">
+        <span class="selection-status" role="status">
+          @if (selected(); as item) {
+            Selecionado: {{ time(item.inicio) }} · {{ item.medico.nome }}
+          } @else {
+            Selecione um horário para continuar.
+          }</span
+        ><button
+          hlmBtn
+          type="button"
+          [disabled]="
+            !selected() || availability.isLoading() || !!availability.error()
+          "
+          (click)="goStage(3)"
+        >
+          Revisar consulta
+        </button>
+      </div>
+    </section>
+  } @else {
+    <section class="task-panel review-panel">
+      <div class="panel-body">
+        <h2
+          id="booking-step-title"
+          tabindex="-1"
+          class="step-heading step-focus"
+        >
+          Revise sua consulta
+        </h2>
+        <p class="helper mt-2">
+          Confira data, profissional e local. O agendamento será feito ao
+          confirmar.
+        </p>
+        <div class="review-body">
+          @if (selected(); as item) {
+            <app-patient-visit-details [visit]="item" />
+          }
+        </div>
+        @if (problem(); as message) {
+          <section
+            hlmAlert
+            variant="destructive"
+            role="alert"
+            animate.enter="feedback-enter"
+          >
+            <h2 hlmAlertTitle>{{ message.title }}</h2>
+            <p hlmAlertDescription>{{ message.description }}</p>
+          </section>
+        }
+      </div>
+      <div class="task-actions">
+        <button
+          hlmBtn
+          variant="outline"
+          type="button"
+          [disabled]="saving()"
+          (click)="goStage(2)"
+        >
+          Alterar horário</button
+        ><button
+          hlmBtn
+          type="button"
+          [disabled]="saving() || !selected()"
+          (click)="confirm()"
+        >
+          @if (saving()) {
+            <hlm-spinner aria-hidden="true" />
+          }
+          Confirmar agendamento
+        </button>
+      </div>
+    </section>
+  }
+</div>
