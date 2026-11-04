@@ -1,0 +1,86 @@
+:host {
+  display: block;
+  min-height: 100dvh;
+}
+.medical-header {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1rem 2rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+  border-top: 3px solid var(--primary);
+}
+.workspace-label {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  padding-left: 1.5rem;
+  border-left: 1px solid var(--border);
+}
+nav {
+  margin-left: auto;
+}
+nav a {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  font-size: 0.875rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 2px solid transparent;
+  transition: background-color 150ms;
+}
+nav a:hover {
+  background: var(--muted);
+}
+nav a.active {
+  border-color: var(--primary);
+}
+#doctor-main {
+  padding: 2rem;
+  max-width: 100rem;
+  margin: auto;
+}
+#doctor-main:focus {
+  outline: none;
+}
+.skip-link {
+  position: fixed;
+  top: 0.5rem;
+  left: 0.5rem;
+  transform: translateY(-200%);
+  z-index: 50;
+  background: var(--card);
+  padding: 1rem;
+}
+.skip-link:focus {
+  transform: none;
+}
+@media (max-width: 800px) {
+  .medical-header {
+    padding: 1rem 1.5rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .workspace-label {
+    display: none;
+  }
+  .medical-header app-session-actions {
+    margin-left: auto;
+  }
+  nav {
+    order: 3;
+    margin: 0;
+    flex-basis: 100%;
+  }
+  #doctor-main {
+    padding: 1.5rem;
+  }
+}
+@media (max-width: 420px) {
+  .medical-header {
+    padding: 1rem;
+  }
+  #doctor-main {
+    padding: 1.25rem 1rem;
+  }
+}

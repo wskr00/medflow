@@ -106,3 +106,12 @@ rolável. O fundo preenche toda a coluna. A fila possui lista rolável e altura
 limitada à janela apenas no desktop; o tablet usa a rolagem da página. Entradas
 de rota usam 180 ms e 6 px, com foco/topo restaurados na ativação. Os extremos
 1024×500 e 320 px foram acrescentados às evidências e aos testes de painéis.
+
+## Área médica — #59
+
+A identidade compartilhada é aplicada em um cabeçalho compacto e área ampla de
+escrita, com composição própria do médico. Triagem usa agenda/fila; atendimento
+usa contexto, campos e ações separadas. O tablet oferece salvamento ao fim do
+formulário, e o histórico permanece em um painel lateral acessível. Conflitos
+exibem comparação explícita sem substituir texto local. Evidências e limites:
+[revisão da #59](../qa/ui59/README.md).
