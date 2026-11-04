@@ -15,6 +15,7 @@ Os diagramas textuais em `diagramas.md` e a especificação de `prototipos.md` i
 - `requisitos.md` — baseline dos requisitos funcionais e não funcionais.
 - `autorizacao.md` — implementação da autorização funcional/contextual e contrato para as Issues dependentes.
 - `planejamento/indicadores-medicos.md` — contrato temporal e HTTP da API agregada do Médico (#61).
+- `planejamento/indicadores-administrativos.md` — contrato temporal e HTTP da API agregada do Administrador (#62).
 - `escopo/` — Documento de Escopo e Problem Pitch.
 - `planejamento/` — Project Charter e cronograma/acompanhamento.
 - `diagramas/` — diagramas de arquitetura, classes, estados e casos de uso.
