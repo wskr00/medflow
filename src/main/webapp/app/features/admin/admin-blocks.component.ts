@@ -5,13 +5,23 @@ import {
   inject,
   signal,
 } from "@angular/core";
-import { HlmAlertImports } from "@spartan-ng/helm/alert";
 import { HlmButtonImports } from "@spartan-ng/helm/button";
 import { HlmCardImports } from "@spartan-ng/helm/card";
 import { HlmFieldImports } from "@spartan-ng/helm/field";
 import { HlmInputImports } from "@spartan-ng/helm/input";
 import { HlmNativeSelectImports } from "@spartan-ng/helm/native-select";
+import { finalize } from "rxjs";
 import { StatePanelComponent } from "../../shared/ui/state-panel.component";
+import { AdminFeedbackComponent } from "./admin-feedback.component";
+import {
+  savedConfiguration,
+  invalidConfiguration,
+  discardAdminChanges,
+  confirmDeactivation,
+  confirmReload,
+  focusAdminEditor,
+  failedAdminReload,
+} from "./admin-editor.utils";
 import { AdminApi, adminIssue } from "./admin.api";
 import { AdminIssue, Page, Professional, ScheduleBlock } from "./admin.models";
 @Component({
@@ -19,7 +29,7 @@ import { AdminIssue, Page, Professional, ScheduleBlock } from "./admin.models";
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [AdminApi],
   imports: [
-    HlmAlertImports,
+    AdminFeedbackComponent,
     HlmButtonImports,
     HlmCardImports,
     HlmFieldImports,
@@ -27,139 +37,8 @@ import { AdminIssue, Page, Professional, ScheduleBlock } from "./admin.models";
     HlmNativeSelectImports,
     StatePanelComponent,
   ],
-  template: `<section class="space-y-6">
-    <header>
-      <p class="text-primary text-xs font-semibold tracking-widest uppercase">
-        Bloqueios
-      </p>
-      <h1 class="text-3xl font-semibold tracking-tight">
-        Indisponibilidade de profissional
-      </h1>
-      <p class="text-muted-foreground mt-1">
-        Bloqueios são absolutos e o servidor revalida reservas afetadas.
-      </p>
-    </header>
-    @if (notice(); as message) {
-      <section
-        hlmAlert
-        [variant]="message.conflict ? 'default' : 'destructive'"
-      >
-        <h2 hlmAlertTitle>{{ message.title }}</h2>
-        <p hlmAlertDescription>{{ message.description }}</p>
-        <button
-          hlmBtn
-          variant="outline"
-          type="button"
-          class="mt-3 min-h-11"
-          (click)="blocks.reload()"
-        >
-          Recarregar bloqueios
-        </button>
-      </section>
-    }
-    <div class="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_23rem]">
-      <section hlmCard>
-        <div hlmCardHeader class="flex-row justify-between">
-          <div>
-            <h2 hlmCardTitle>Bloqueios cadastrados</h2>
-            <p hlmCardDescription>
-              Todos os horários são exibidos no fuso da clínica.
-            </p>
-          </div>
-          <button hlmBtn type="button" class="min-h-11" (click)="newBlock()">
-            Novo bloqueio
-          </button>
-        </div>
-        <div hlmCardContent>
-          @if (blocks.error()) {
-            <app-state-panel
-              state="error"
-              [title]="issue(blocks.error()).title"
-              [description]="issue(blocks.error()).description"
-            />
-          } @else if (blocks.isLoading()) {
-            <app-state-panel
-              state="loading"
-              title="Carregando bloqueios"
-              description="Aguarde um momento."
-            />
-          } @else {
-            <div class="flex flex-col gap-2">
-              @for (block of blocks.value()?.items ?? []; track block.id) {
-                <button
-                  type="button"
-                  class="bg-muted hover:bg-accent focus-visible:ring-ring/50 min-h-16 rounded-md p-3 text-left outline-none transition-colors focus-visible:ring-3"
-                  (click)="edit(block)"
-                >
-                  <span class="block font-medium">{{ block.medico.nome }}</span
-                  ><span class="text-muted-foreground text-xs"
-                    >{{ dateTime(block.inicio) }}–{{ dateTime(block.fim) }} ·
-                    {{ block.ativo ? "ativo" : "inativo" }}</span
-                  >
-                </button>
-              } @empty {
-                <app-state-panel
-                  state="empty"
-                  title="Nenhum bloqueio"
-                  description="Cadastre uma indisponibilidade quando necessário."
-                />
-              }
-            </div>
-          }
-        </div>
-      </section>
-      <form hlmCard (submit)="$event.preventDefault(); save()">
-        <div hlmCardHeader>
-          <h2 hlmCardTitle>{{ id() ? "Editar bloqueio" : "Novo bloqueio" }}</h2>
-          <p hlmCardDescription>
-            Preencha horário local; o servidor resolve no fuso da clínica.
-          </p>
-        </div>
-        <div hlmCardContent class="grid gap-5">
-          <div hlmField>
-            <label hlmFieldLabel for="block-doctor">Profissional</label
-            ><hlm-native-select
-              selectId="block-doctor"
-              class="min-h-11"
-              [value]="doctorId()"
-              (valueChange)="doctorId.set($event ?? ''); markDirty()"
-              ><option hlmNativeSelectOption value="">Selecione</option>
-              @for (item of doctors.value()?.items ?? []; track item.id) {
-                <option hlmNativeSelectOption [value]="item.id">
-                  {{ item.nome }}
-                </option>
-              }
-            </hlm-native-select>
-          </div>
-          <div hlmField>
-            <label hlmFieldLabel for="block-start">Início</label
-            ><input
-              hlmInput
-              id="block-start"
-              type="datetime-local"
-              class="min-h-11"
-              [value]="start()"
-              (input)="start.set($any($event.target).value); markDirty()"
-            />
-          </div>
-          <div hlmField>
-            <label hlmFieldLabel for="block-end">Fim</label
-            ><input
-              hlmInput
-              id="block-end"
-              type="datetime-local"
-              class="min-h-11"
-              [value]="end()"
-              (input)="end.set($any($event.target).value); markDirty()"
-            />
-          </div>
-        </div>
-        <div hlmCardFooter class="justify-end">
-          <button hlmBtn type="submit" class="min-h-11">Salvar bloqueio</button>
-        </div>
-      </form>
-    </div>
-  </section>`,
+  templateUrl: "./admin-blocks.component.html",
+  styleUrl: "./admin-editors.scss",
 })
 export class AdminBlocksComponent {
   private readonly api = inject(AdminApi);
@@ -174,70 +53,118 @@ export class AdminBlocksComponent {
   protected readonly doctorId = signal("");
   protected readonly start = signal("");
   protected readonly end = signal("");
+  protected readonly saving = signal(false);
   protected readonly notice = signal<AdminIssue | null>(null);
+  private readonly wasActive = signal(false);
+  protected readonly active = signal(true);
   protected readonly dirty = signal(false);
   protected markDirty() {
+    if (this.notice()?.code === "SAVED") this.notice.set(null);
     this.dirty.set(true);
   }
   canLeave() {
     return (
-      !this.dirty() ||
-      window.confirm("Há alterações não salvas. Sair sem salvar?")
+      !this.saving() &&
+      (!this.dirty() ||
+        window.confirm("Há alterações não salvas. Sair sem salvar?"))
     );
   }
   protected newBlock() {
+    if (this.saving() || !discardAdminChanges(this.dirty())) return;
+    this.notice.set(null);
+    this.wasActive.set(false);
     this.dirty.set(false);
     this.id.set(null);
     this.version.set(null);
     this.doctorId.set("");
     this.start.set("");
     this.end.set("");
+    this.active.set(true);
+    focusAdminEditor("block-doctor");
   }
-  protected edit(block: ScheduleBlock) {
+  protected edit(block: ScheduleBlock, persisted = false) {
+    if (!persisted && (this.saving() || !discardAdminChanges(this.dirty())))
+      return;
+    this.notice.set(null);
+    this.wasActive.set(block.ativo);
     this.dirty.set(false);
     this.id.set(block.id);
     this.version.set(block.version);
+    this.active.set(block.ativo);
     this.doctorId.set(block.medico.id);
     this.start.set(block.inicio.slice(0, 16));
     this.end.set(block.fim.slice(0, 16));
+    if (!persisted) focusAdminEditor("block-start");
   }
   protected save() {
-    if (!this.doctorId() || !this.start() || !this.end()) {
-      this.notice.set({
-        code: "INVALID",
-        title: "Revise o bloqueio",
-        description: "Profissional, início e fim são obrigatórios.",
-        conflict: false,
-        fields: {},
-      });
+    if (this.saving() || this.notice()?.code === "VERSAO_DESATUALIZADA") return;
+    const fields: Record<string, string> = {};
+    if (!this.doctorId()) fields["medicoId"] = "Selecione o profissional.";
+    if (!this.start()) fields["inicio"] = "Informe o início do bloqueio.";
+    if (!this.end() || this.end() <= this.start())
+      fields["fim"] = "O fim deve ser posterior ao início.";
+    if (Object.keys(fields).length) {
+      this.notice.set(invalidConfiguration(fields));
+      focusAdminEditor(
+        fields["medicoId"]
+          ? "block-doctor"
+          : fields["inicio"]
+            ? "block-start"
+            : "block-end",
+      );
       return;
     }
     const payload = {
       medicoId: this.doctorId(),
       inicio: this.start(),
       fim: this.end(),
-      ativo: true,
+      ativo: this.active(),
     };
+    if (!confirmDeactivation(this.wasActive(), this.active())) return;
+    this.notice.set(null);
+    this.saving.set(true);
     const request = this.id()
       ? this.api.update<ScheduleBlock>("bloqueios-agenda", this.id()!, {
           ...payload,
           expectedVersion: this.version(),
         })
       : this.api.create<ScheduleBlock>("bloqueios-agenda", payload);
-    request.subscribe({
+    request.pipe(finalize(() => this.saving.set(false))).subscribe({
       next: (block) => {
         this.dirty.set(false);
-        this.edit(block);
+        this.edit(block, true);
+        this.notice.set(
+          savedConfiguration(
+            "O cadastro foi atualizado. As referências anteriores foram preservadas.",
+          ),
+        );
         this.blocks.reload();
       },
       error: (error) => this.notice.set(adminIssue(error)),
     });
   }
   protected dateTime(value: string) {
-    return new Intl.DateTimeFormat("pt-BR", {
-      dateStyle: "short",
-      timeStyle: "short",
-    }).format(new Date(value));
+    const [date, time] = value.split("T");
+    return `${date.split("-").reverse().join("/")}, ${time.slice(0, 5)}`;
+  }
+  protected reloadCurrent() {
+    const id = this.id();
+    if (!id || this.saving() || !confirmReload()) return;
+    this.saving.set(true);
+    this.api
+      .read<ScheduleBlock>(this.api.block(id))
+      .pipe(finalize(() => this.saving.set(false)))
+      .subscribe({
+        next: (value) => {
+          this.edit(value, true);
+          this.notice.set(null);
+          this.blocks.reload();
+        },
+        error: (error) => this.notice.set(failedAdminReload(error)),
+      });
+  }
+  protected field(name: string) {
+    return this.notice()?.fields[name];
   }
   protected issue(error: unknown) {
     return adminIssue(error);

@@ -32,9 +32,13 @@ export function adminIssue(error: unknown): AdminIssue {
   const copy: Record<string, readonly [string, string]> = {
     VERSAO_DESATUALIZADA: [
       "Configuração alterada",
-      "O formulário foi preservado. Recarregue os dados para comparar a versão atual.",
+      "O formulário foi preservado e não foi salvo. Carregue a versão atual antes de tentar novamente.",
     ],
-    CONFLITO_DE_RESERVAS: [
+    CONFIGURACAO_CONFLITANTE: [
+      "Configuração incompatível",
+      "Não foi possível aplicar a alteração. Confira vínculos, períodos e conflitos com horários já cadastrados.",
+    ],
+    CONFIGURACAO_COM_RESERVAS: [
       "Alteração bloqueada por reservas",
       "A configuração não foi alterada e nenhuma reserva foi cancelada automaticamente.",
     ],
@@ -71,6 +75,9 @@ export function adminIssue(error: unknown): AdminIssue {
 @Injectable()
 export class AdminApi {
   private readonly http = inject(HttpClient);
+  read<T>(url: string): Observable<T> {
+    return this.http.get<T>(url);
+  }
   clinic() {
     return endpoint("/clinica");
   }

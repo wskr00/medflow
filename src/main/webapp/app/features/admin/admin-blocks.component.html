@@ -1,0 +1,216 @@
+<section class="admin-page">
+  <header>
+    <p class="text-primary text-xs font-semibold tracking-widest uppercase">
+      Bloqueios
+    </p>
+    <h1 class="text-3xl font-semibold tracking-tight">
+      Indisponibilidade de profissional
+    </h1>
+    <p class="text-muted-foreground mt-1">
+      Registre períodos em que o profissional não poderá atender.
+    </p>
+  </header>
+  <app-admin-feedback
+    [issue]="notice()"
+    [busy]="saving()"
+    (reload)="reloadCurrent()"
+  />
+  <div class="editor-layout">
+    <section
+      hlmCard
+      class="record-panel"
+      id="admin-list"
+      tabindex="-1"
+      aria-label="Cadastros existentes"
+    >
+      <div hlmCardHeader class="list-header">
+        <div>
+          <h2 hlmCardTitle>Bloqueios cadastrados</h2>
+          <p hlmCardDescription>
+            Todos os horários são exibidos no fuso da clínica.
+          </p>
+        </div>
+        <button hlmBtn type="button" class="min-h-11" (click)="newBlock()">
+          Novo bloqueio
+        </button>
+      </div>
+      <div hlmCardContent>
+        @if (blocks.error()) {
+          <app-state-panel
+            state="error"
+            [title]="issue(blocks.error()).title"
+            [description]="issue(blocks.error()).description"
+          /><button
+            hlmBtn
+            variant="outline"
+            type="button"
+            class="mt-3"
+            (click)="blocks.reload()"
+          >
+            Tentar novamente
+          </button>
+        } @else if (blocks.isLoading()) {
+          <app-state-panel
+            state="loading"
+            title="Carregando bloqueios"
+            description="Aguarde um momento."
+          />
+        } @else {
+          <div class="flex flex-col gap-2">
+            @for (block of blocks.value()?.items ?? []; track block.id) {
+              <button
+                type="button"
+                class="record-option"
+                [attr.aria-pressed]="id() === block.id"
+                (click)="edit(block)"
+              >
+                <span class="block font-medium">{{ block.medico.nome }}</span
+                ><span class="text-muted-foreground text-xs"
+                  >{{ dateTime(block.inicio) }}–{{ dateTime(block.fim) }} ·
+                  {{ block.ativo ? "ativo" : "inativo" }}</span
+                >
+              </button>
+            } @empty {
+              <app-state-panel
+                state="empty"
+                title="Nenhum bloqueio"
+                description="Cadastre uma indisponibilidade quando necessário."
+              />
+            }
+          </div>
+        }
+      </div>
+    </section>
+    <form hlmCard (submit)="$event.preventDefault(); save()">
+      <div hlmCardHeader>
+        <h2 hlmCardTitle>{{ id() ? "Editar bloqueio" : "Novo bloqueio" }}</h2>
+        <p hlmCardDescription>
+          Informe o período no fuso da clínica. Reservas existentes podem
+          impedir a alteração.
+        </p>
+      </div>
+      <fieldset class="editor-fields" [disabled]="saving()">
+        @if (doctors.error()) {
+          <div class="px-6">
+            <p class="form-hint" role="alert">
+              Não foi possível carregar as opções do formulário.
+            </p>
+            <button
+              hlmBtn
+              variant="outline"
+              type="button"
+              (click)="doctors.reload()"
+            >
+              Recarregar opções
+            </button>
+          </div>
+        }
+        @if (id()) {
+          <p class="px-6 form-hint">
+            O profissional é mantido ao editar. Para outro profissional,
+            cadastre um novo bloqueio.
+          </p>
+        }
+        <div hlmCardContent class="grid gap-5">
+          <div hlmField>
+            <label hlmFieldLabel for="block-doctor">Profissional</label
+            ><hlm-native-select
+              [disabled]="!!id()"
+              selectId="block-doctor"
+              [forceInvalid]="!!field('medicoId')"
+              [aria-invalid]="!!field('medicoId')"
+              [describedBy]="field('medicoId') ? 'block-doctor-error' : null"
+              class="min-h-11"
+              [value]="doctorId()"
+              (valueChange)="doctorId.set($event ?? ''); markDirty()"
+              ><option hlmNativeSelectOption value="">Selecione</option>
+              @for (
+                item of doctors.hasValue() ? doctors.value().items : [];
+                track item.id
+              ) {
+                <option hlmNativeSelectOption [value]="item.id">
+                  {{ item.nome }}
+                </option>
+              }
+            </hlm-native-select>
+            @if (field("medicoId")) {
+              <hlm-field-error forceShow id="block-doctor-error">{{
+                field("medicoId")
+              }}</hlm-field-error>
+            }
+          </div>
+          <div hlmField>
+            <label hlmFieldLabel for="block-start">Início</label
+            ><input
+              hlmInput
+              id="block-start"
+              [attr.aria-invalid]="!!field('inicio')"
+              [attr.aria-describedby]="
+                field('inicio') ? 'block-start-error' : null
+              "
+              type="datetime-local"
+              class="min-h-11"
+              [value]="start()"
+              (input)="start.set($any($event.target).value); markDirty()"
+            />
+            @if (field("inicio")) {
+              <hlm-field-error forceShow id="block-start-error">{{
+                field("inicio")
+              }}</hlm-field-error>
+            }
+          </div>
+          <div hlmField>
+            <label hlmFieldLabel for="block-end">Fim</label
+            ><input
+              hlmInput
+              id="block-end"
+              [attr.aria-invalid]="!!field('fim')"
+              [attr.aria-describedby]="field('fim') ? 'block-end-error' : null"
+              type="datetime-local"
+              class="min-h-11"
+              [value]="end()"
+              (input)="end.set($any($event.target).value); markDirty()"
+            />
+            @if (field("fim")) {
+              <hlm-field-error forceShow id="block-end-error">{{
+                field("fim")
+              }}</hlm-field-error>
+            }
+          </div>
+          <div hlmField>
+            <label hlmFieldLabel for="block-active">Estado</label
+            ><hlm-native-select
+              selectId="block-active"
+              [value]="active() ? 'true' : 'false'"
+              (valueChange)="active.set($event === 'true'); markDirty()"
+              ><option hlmNativeSelectOption value="true">Ativo</option>
+              <option hlmNativeSelectOption value="false">
+                Inativo
+              </option></hlm-native-select
+            >
+          </div>
+        </div>
+        <div hlmCardFooter class="editor-actions">
+          <p class="editor-status" role="status">
+            {{
+              saving()
+                ? "Salvando…"
+                : dirty()
+                  ? "Alterações não salvas"
+                  : "Sem alterações pendentes"
+            }}
+          </p>
+          <a href="#admin-list" class="back-to-list">Voltar à lista</a>
+          <button
+            hlmBtn
+            type="submit"
+            class="min-h-11"
+            [disabled]="saving() || notice()?.code === 'VERSAO_DESATUALIZADA'"
+          >
+            Salvar bloqueio
+          </button>
+        </div>
+      </fieldset>
+    </form>
+  </div>
+</section>

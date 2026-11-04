@@ -1,0 +1,135 @@
+:host {
+  display: block;
+}
+.admin-workspace {
+  display: grid;
+  grid-template-columns: 13rem minmax(0, 1fr);
+  min-height: 100dvh;
+  background: var(--rail);
+}
+.admin-rail {
+  color: var(--rail-foreground);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 2.5rem;
+  height: 100dvh;
+  position: sticky;
+  top: 0;
+  padding: 2rem 1rem 1.25rem;
+  min-width: 0;
+}
+.brand {
+  color: inherit;
+  width: fit-content;
+  padding-inline: 0.5rem;
+}
+.brand app-medflow-brand {
+  --primary: var(--rail-foreground);
+}
+.admin-navigation {
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.rail-label {
+  color: var(--rail-muted);
+  font-size: 0.625rem;
+  letter-spacing: 0.12em;
+  font-weight: 600;
+  padding: 0 0.75rem 1rem;
+}
+.admin-session {
+  --muted-foreground: var(--rail-muted);
+  --background: var(--rail);
+  --foreground: var(--rail-foreground);
+  --border: var(--rail-muted);
+  border-top: 1px solid color-mix(in srgb, var(--rail-muted) 35%, transparent);
+  padding-top: 1.25rem;
+  min-width: 0;
+}
+.admin-content {
+  min-width: 0;
+  background: var(--background);
+}
+.workspace-context {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 2rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+main {
+  min-width: 0;
+  padding: 2rem;
+  max-width: 100rem;
+}
+main:focus {
+  outline: none;
+}
+.skip-link {
+  position: fixed;
+  top: 0.5rem;
+  left: 0.5rem;
+  transform: translateY(-200%);
+  background: var(--card);
+  padding: 1rem;
+  z-index: 50;
+}
+.skip-link:focus {
+  transform: none;
+}
+@media (max-width: 1023px) {
+  .admin-workspace {
+    display: block;
+  }
+  .admin-rail {
+    height: auto;
+    position: static;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    padding: 1rem 1.5rem 0;
+    gap: 1rem;
+  }
+  .admin-navigation {
+    grid-column: 1/-1;
+    grid-row: 2;
+    overflow: visible;
+  }
+  .rail-label {
+    display: none;
+  }
+  .admin-session {
+    grid-column: 2;
+    grid-row: 1;
+    padding: 0;
+    border: 0;
+  }
+  .workspace-context {
+    padding: 0.75rem 1.5rem;
+  }
+  main {
+    padding: 1.5rem;
+  }
+}
+@media (max-width: 480px) {
+  .admin-rail {
+    padding-inline: 1rem;
+  }
+  main {
+    padding: 1.25rem 1rem;
+  }
+  .workspace-context {
+    padding-inline: 1rem;
+  }
+  .workspace-context span:last-child {
+    display: none;
+  }
+}
+@media (min-width: 1024px) and (max-height: 580px) {
+  .admin-rail {
+    gap: 1.5rem;
+    padding-top: 1.25rem;
+  }
+}

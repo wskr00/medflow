@@ -1,0 +1,366 @@
+<section class="admin-page">
+  <header>
+    <p class="text-primary text-xs font-semibold tracking-widest uppercase">
+      Agenda semanal
+    </p>
+    <h1 class="text-3xl font-semibold tracking-tight">Horários de trabalho</h1>
+    <p class="text-muted-foreground mt-1">
+      Organize quando cada profissional atende e em qual consultório.
+    </p>
+  </header>
+  <app-admin-feedback
+    [issue]="notice()"
+    [busy]="saving()"
+    (reload)="reloadCurrent()"
+  />
+  <div class="editor-layout">
+    <section
+      hlmCard
+      class="record-panel"
+      id="admin-list"
+      tabindex="-1"
+      aria-label="Cadastros existentes"
+    >
+      <div hlmCardHeader class="list-header">
+        <div>
+          <h2 hlmCardTitle>Horários cadastrados</h2>
+          <p hlmCardDescription>
+            Selecione um horário para editar ou cadastre um novo período.
+          </p>
+        </div>
+        <button hlmBtn type="button" class="min-h-11" (click)="newRule()">
+          Novo horário
+        </button>
+      </div>
+      <div hlmCardContent>
+        @if (rules.error()) {
+          <app-state-panel
+            state="error"
+            [title]="issue(rules.error()).title"
+            [description]="issue(rules.error()).description"
+          /><button
+            hlmBtn
+            variant="outline"
+            type="button"
+            class="mt-3"
+            (click)="rules.reload()"
+          >
+            Tentar novamente
+          </button>
+        } @else if (rules.isLoading()) {
+          <app-state-panel
+            state="loading"
+            title="Carregando horários"
+            description="Aguarde um momento."
+          />
+        } @else {
+          <div class="grid gap-1">
+            @for (rule of rules.value()?.items ?? []; track rule.id) {
+              <button
+                type="button"
+                class="record-option"
+                [attr.aria-pressed]="id() === rule.id"
+                (click)="edit(rule)"
+              >
+                <span class="block font-medium"
+                  >{{ day(rule.diaSemana) }} ·
+                  {{ rule.horaInicio.slice(0, 5) }}–{{
+                    rule.horaFim.slice(0, 5)
+                  }}</span
+                ><span class="text-muted-foreground block text-xs"
+                  >{{ rule.medico.nome }}<br />{{ rule.especialidade.nome }} ·
+                  {{ rule.unidade.nome }}<br />{{ rule.consultorio.nome }}</span
+                ><span class="text-muted-foreground text-xs"
+                  >{{ rule.duracaoMinutos }} min ·
+                  {{ rule.ativo ? "ativa" : "inativa" }}</span
+                >
+              </button>
+            } @empty {
+              <app-state-panel
+                state="empty"
+                title="Nenhum horário de trabalho"
+                description="Cadastre quando os profissionais atendem durante a semana."
+              />
+            }
+          </div>
+        }
+      </div>
+    </section>
+    <form hlmCard (submit)="$event.preventDefault(); save()">
+      <div hlmCardHeader>
+        <h2 hlmCardTitle>{{ id() ? "Editar horário" : "Novo horário" }}</h2>
+        <p hlmCardDescription>
+          Defina local, duração e vigência. Todos os campos são obrigatórios,
+          exceto o fim da vigência. Reservas existentes são preservadas.
+        </p>
+      </div>
+      <fieldset class="editor-fields" [disabled]="saving()">
+        @if (doctors.error() || specialties.error() || rooms.error()) {
+          <div class="px-6">
+            <p class="form-hint" role="alert">
+              Não foi possível carregar as opções do formulário.
+            </p>
+            <button
+              hlmBtn
+              variant="outline"
+              type="button"
+              (click)="doctors.reload(); specialties.reload(); rooms.reload()"
+            >
+              Recarregar opções
+            </button>
+          </div>
+        }
+        @if (id()) {
+          <p class="px-6 form-hint">
+            Profissional, especialidade e consultório são mantidos ao editar.
+            Para outro vínculo, cadastre um novo horário.
+          </p>
+        }
+        <div hlmCardContent class="grid gap-5 sm:grid-cols-2">
+          <div hlmField>
+            <label hlmFieldLabel for="rule-doctor">Profissional</label
+            ><hlm-native-select
+              [disabled]="!!id()"
+              selectId="rule-doctor"
+              [forceInvalid]="!!field('medicoId')"
+              [aria-invalid]="!!field('medicoId')"
+              [describedBy]="field('medicoId') ? 'rule-doctor-error' : null"
+              class="min-h-11"
+              [value]="doctorId()"
+              (valueChange)="changeDoctor($event ?? '')"
+              ><option hlmNativeSelectOption value="">Selecione</option>
+              @for (
+                item of doctors.hasValue() ? doctors.value().items : [];
+                track item.id
+              ) {
+                <option hlmNativeSelectOption [value]="item.id">
+                  {{ item.nome }}
+                </option>
+              }
+            </hlm-native-select>
+            @if (field("medicoId")) {
+              <hlm-field-error forceShow id="rule-doctor-error">{{
+                field("medicoId")
+              }}</hlm-field-error>
+            }
+          </div>
+          <div hlmField>
+            <label hlmFieldLabel for="rule-specialty">Especialidade</label
+            ><hlm-native-select
+              [disabled]="!!id()"
+              selectId="rule-specialty"
+              [forceInvalid]="!!field('especialidadeId')"
+              [aria-invalid]="!!field('especialidadeId')"
+              [describedBy]="
+                field('especialidadeId') ? 'rule-specialty-error' : null
+              "
+              class="min-h-11"
+              [value]="specialtyId()"
+              (valueChange)="specialtyId.set($event ?? ''); markDirty()"
+              ><option hlmNativeSelectOption value="">Selecione</option>
+              @for (item of availableSpecialties(); track item.id) {
+                <option hlmNativeSelectOption [value]="item.id">
+                  {{ item.nome }}
+                </option>
+              }
+            </hlm-native-select>
+            @if (field("especialidadeId")) {
+              <hlm-field-error forceShow id="rule-specialty-error">{{
+                field("especialidadeId")
+              }}</hlm-field-error>
+            }
+          </div>
+          <div hlmField>
+            <label hlmFieldLabel for="rule-room">Consultório</label
+            ><hlm-native-select
+              [disabled]="!!id()"
+              selectId="rule-room"
+              [forceInvalid]="!!field('consultorioId')"
+              [aria-invalid]="!!field('consultorioId')"
+              [describedBy]="field('consultorioId') ? 'rule-room-error' : null"
+              class="min-h-11"
+              [value]="roomId()"
+              (valueChange)="roomId.set($event ?? ''); markDirty()"
+              ><option hlmNativeSelectOption value="">Selecione</option>
+              @for (
+                item of rooms.hasValue() ? rooms.value().items : [];
+                track item.id
+              ) {
+                <option hlmNativeSelectOption [value]="item.id">
+                  {{ item.nome }}
+                </option>
+              }
+            </hlm-native-select>
+            @if (field("consultorioId")) {
+              <hlm-field-error forceShow id="rule-room-error">{{
+                field("consultorioId")
+              }}</hlm-field-error>
+            }
+          </div>
+          <div hlmField>
+            <label hlmFieldLabel for="rule-day">Dia da semana</label
+            ><hlm-native-select
+              selectId="rule-day"
+              [forceInvalid]="!!field('diaSemana')"
+              [aria-invalid]="!!field('diaSemana')"
+              [describedBy]="field('diaSemana') ? 'rule-day-error' : null"
+              class="min-h-11"
+              [value]="dayValue()"
+              (valueChange)="dayValue.set($event ?? '1'); markDirty()"
+              ><option hlmNativeSelectOption value="1">Segunda-feira</option>
+              <option hlmNativeSelectOption value="2">Terça-feira</option>
+              <option hlmNativeSelectOption value="3">Quarta-feira</option>
+              <option hlmNativeSelectOption value="4">Quinta-feira</option>
+              <option hlmNativeSelectOption value="5">Sexta-feira</option>
+              <option hlmNativeSelectOption value="6">Sábado</option>
+              <option hlmNativeSelectOption value="7">
+                Domingo
+              </option></hlm-native-select
+            >
+            @if (field("diaSemana")) {
+              <hlm-field-error forceShow id="rule-day-error">{{
+                field("diaSemana")
+              }}</hlm-field-error>
+            }
+          </div>
+          <div class="grid grid-cols-1 gap-4 sm:col-span-2 sm:grid-cols-3">
+            <div hlmField>
+              <label hlmFieldLabel for="rule-start">Início</label
+              ><input
+                hlmInput
+                id="rule-start"
+                [attr.aria-invalid]="!!field('horaInicio')"
+                [attr.aria-describedby]="
+                  field('horaInicio') ? 'rule-start-error' : null
+                "
+                type="time"
+                class="min-h-11"
+                [value]="start()"
+                (input)="start.set($any($event.target).value); markDirty()"
+              />
+              @if (field("horaInicio")) {
+                <hlm-field-error forceShow id="rule-start-error">{{
+                  field("horaInicio")
+                }}</hlm-field-error>
+              }
+            </div>
+            <div hlmField>
+              <label hlmFieldLabel for="rule-end">Fim</label
+              ><input
+                hlmInput
+                id="rule-end"
+                [attr.aria-invalid]="!!field('horaFim')"
+                [attr.aria-describedby]="
+                  field('horaFim') ? 'rule-end-error' : null
+                "
+                type="time"
+                class="min-h-11"
+                [value]="end()"
+                (input)="end.set($any($event.target).value); markDirty()"
+              />
+              @if (field("horaFim")) {
+                <hlm-field-error forceShow id="rule-end-error">{{
+                  field("horaFim")
+                }}</hlm-field-error>
+              }
+            </div>
+            <div hlmField>
+              <label hlmFieldLabel for="rule-duration">Minutos</label
+              ><input
+                hlmInput
+                id="rule-duration"
+                [attr.aria-invalid]="!!field('duracaoMinutos')"
+                [attr.aria-describedby]="
+                  field('duracaoMinutos') ? 'rule-duration-error' : null
+                "
+                type="number"
+                min="1"
+                class="min-h-11"
+                [value]="duration()"
+                (input)="duration.set($any($event.target).value); markDirty()"
+              />
+              @if (field("duracaoMinutos")) {
+                <hlm-field-error forceShow id="rule-duration-error">{{
+                  field("duracaoMinutos")
+                }}</hlm-field-error>
+              }
+            </div>
+          </div>
+          <div hlmField>
+            <label hlmFieldLabel for="rule-validity">Vigente de</label
+            ><input
+              hlmInput
+              id="rule-validity"
+              [attr.aria-invalid]="!!field('vigenteDe')"
+              [attr.aria-describedby]="
+                field('vigenteDe') ? 'rule-validity-error' : null
+              "
+              type="date"
+              class="min-h-11"
+              [value]="validFrom()"
+              (input)="validFrom.set($any($event.target).value); markDirty()"
+            />
+            @if (field("vigenteDe")) {
+              <hlm-field-error forceShow id="rule-validity-error">{{
+                field("vigenteDe")
+              }}</hlm-field-error>
+            }
+          </div>
+          <div hlmField>
+            <label hlmFieldLabel for="rule-valid-until"
+              >Vigente até · opcional</label
+            >
+            <input
+              hlmInput
+              id="rule-valid-until"
+              type="date"
+              [value]="validUntil()"
+              (input)="validUntil.set($any($event.target).value); markDirty()"
+              [attr.aria-invalid]="!!field('vigenteAte')"
+              [attr.aria-describedby]="
+                field('vigenteAte') ? 'rule-valid-until-error' : null
+              "
+            />
+            @if (field("vigenteAte")) {
+              <hlm-field-error forceShow id="rule-valid-until-error">{{
+                field("vigenteAte")
+              }}</hlm-field-error>
+            }
+          </div>
+          <div hlmField>
+            <label hlmFieldLabel for="rule-active">Estado</label
+            ><hlm-native-select
+              selectId="rule-active"
+              [value]="active() ? 'true' : 'false'"
+              (valueChange)="active.set($event === 'true'); markDirty()"
+              ><option hlmNativeSelectOption value="true">Ativo</option>
+              <option hlmNativeSelectOption value="false">
+                Inativo
+              </option></hlm-native-select
+            >
+          </div>
+        </div>
+        <div hlmCardFooter class="editor-actions">
+          <p class="editor-status" role="status">
+            {{
+              saving()
+                ? "Salvando…"
+                : dirty()
+                  ? "Alterações não salvas"
+                  : "Sem alterações pendentes"
+            }}
+          </p>
+          <a href="#admin-list" class="back-to-list">Voltar à lista</a>
+          <button
+            hlmBtn
+            type="submit"
+            class="min-h-11"
+            [disabled]="saving() || notice()?.code === 'VERSAO_DESATUALIZADA'"
+          >
+            Salvar horário
+          </button>
+        </div>
+      </fieldset>
+    </form>
+  </div>
+</section>
