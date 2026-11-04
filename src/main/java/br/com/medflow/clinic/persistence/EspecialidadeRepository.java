@@ -10,4 +10,5 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 public interface EspecialidadeRepository extends JpaRepository<Especialidade, UUID>, JpaSpecificationExecutor<Especialidade> {
   Page<Especialidade> findByClinicaId(UUID clinicaId, Pageable pageable);
   Page<Especialidade> findByClinicaIdAndAtivoTrue(UUID clinicaId, Pageable pageable);
+  boolean existsByIdAndClinicaId(UUID id, UUID clinicaId);
 }

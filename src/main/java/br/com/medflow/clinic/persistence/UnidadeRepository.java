@@ -11,4 +11,5 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 public interface UnidadeRepository extends JpaRepository<Unidade, UUID>, JpaSpecificationExecutor<Unidade> {
   Page<Unidade> findByClinicaId(UUID clinicaId, Pageable pageable);
   Page<Unidade> findByClinicaIdAndAtivoTrue(UUID clinicaId, Pageable pageable);
+  boolean existsByIdAndClinicaId(UUID id, UUID clinicaId);
 }
