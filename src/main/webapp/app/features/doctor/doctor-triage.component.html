@@ -1,0 +1,328 @@
+<section class="triage-page">
+  <header
+    class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
+  >
+    <div class="space-y-1">
+      <p class="text-primary text-xs font-semibold tracking-widest uppercase">
+        ÁREA MÉDICA / AGENDA
+      </p>
+      <h1 class="text-3xl font-semibold tracking-tight">Minha agenda</h1>
+      <p class="text-muted-foreground">
+        Consulte sua agenda e dê continuidade aos atendimentos.
+      </p>
+    </div>
+    <div class="flex gap-2">
+      <input
+        hlmInput
+        type="date"
+        class="min-h-11"
+        aria-label="Data da agenda"
+        [value]="date()"
+        (change)="changeDate($any($event.target).value)"
+      /><button
+        hlmBtn
+        variant="outline"
+        type="button"
+        class="min-h-11"
+        (click)="reload()"
+      >
+        Atualizar
+      </button>
+    </div>
+  </header>
+  @if (notice(); as message) {
+    <section hlmAlert aria-live="polite" animate.enter="feedback-enter">
+      <h2 hlmAlertTitle>{{ message.title }}</h2>
+      <p hlmAlertDescription>{{ message.description }}</p>
+    </section>
+  }
+  <div class="triage-desk">
+    <aside
+      aria-labelledby="doctor-queue-title"
+      class="doctor-queue"
+      [attr.aria-busy]="queue.isLoading()"
+    >
+      <div>
+        <h2 id="doctor-queue-title" class="text-xl font-semibold">
+          Fila de espera
+        </h2>
+        <p class="text-muted-foreground text-sm">
+          Pacientes prontos para atendimento.
+        </p>
+      </div>
+      @if (queue.error()) {
+        <app-state-panel
+          state="error"
+          [title]="issue(queue.error()).title"
+          [description]="issue(queue.error()).description"
+        /><button
+          hlmBtn
+          variant="outline"
+          type="button"
+          class="mt-3 min-h-11 w-full"
+          (click)="queue.reload()"
+        >
+          Tentar novamente
+        </button>
+      } @else if (queue.isLoading()) {
+        <app-state-panel
+          state="loading"
+          title="Carregando fila"
+          description="Aguarde um momento."
+        />
+      } @else if (!queueItems().length) {
+        <app-state-panel
+          state="empty"
+          title="Nenhum paciente aguardando"
+          description="Os pacientes em espera aparecerão aqui."
+        />
+      } @else {
+        <ol
+          class="queue-list"
+          tabindex="0"
+          aria-label="Pacientes aguardando atendimento"
+        >
+          @for (item of queueItems(); track item.id; let index = $index) {
+            <li class="queue-entry" animate.enter="feedback-enter">
+              @if (queuePage() === 0 && index === 0) {
+                <p class="next-label">PRÓXIMO DA FILA</p>
+              }
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <p class="font-semibold">{{ item.paciente.nome }}</p>
+                  <p class="text-muted-foreground text-xs">
+                    {{ dateTime(item.inicio) }} · {{ item.especialidade.nome }}
+                  </p>
+                </div>
+                <app-status-badge [status]="item.status" />
+              </div>
+              @if (item.allowedActions.canResume && item.atendimentoId) {
+                <a
+                  hlmBtn
+                  class="mt-3 min-h-11 w-full"
+                  [routerLink]="['../atendimentos', item.atendimentoId]"
+                  >Retomar atendimento</a
+                >
+              } @else if (item.allowedActions.canStart) {
+                <button
+                  hlmBtn
+                  type="button"
+                  class="mt-3 min-h-11 w-full"
+                  [disabled]="busyId() !== null"
+                  (click)="start(item)"
+                >
+                  @if (busyId() === item.id) {
+                    <hlm-spinner />
+                  }
+                  Iniciar atendimento
+                </button>
+              }
+            </li>
+          }
+        </ol>
+        <nav class="pager" aria-label="Páginas da fila">
+          <button
+            hlmBtn
+            variant="ghost"
+            [disabled]="queuePage() === 0"
+            (click)="queuePage.set(queuePage() - 1)"
+          >
+            Anteriores</button
+          ><button
+            hlmBtn
+            variant="ghost"
+            [disabled]="!hasNext(queueData())"
+            (click)="queuePage.set(queuePage() + 1)"
+          >
+            Próximos
+          </button>
+        </nav>
+      }
+    </aside>
+    <section
+      aria-labelledby="doctor-agenda-title"
+      class="doctor-agenda"
+      [attr.aria-busy]="agenda.isLoading()"
+    >
+      <div class="flex items-baseline justify-between gap-3">
+        <div>
+          <h2 id="doctor-agenda-title" class="text-xl font-semibold">
+            Agenda do dia
+          </h2>
+          <p class="text-muted-foreground text-sm">
+            Consultas atribuídas a você.
+          </p>
+        </div>
+        @if (agendaData(); as page) {
+          <p class="text-muted-foreground text-sm">
+            {{ page.totalElements }} consultas
+          </p>
+        }
+      </div>
+      @if (agenda.error()) {
+        <app-state-panel
+          state="error"
+          [title]="issue(agenda.error()).title"
+          [description]="issue(agenda.error()).description"
+        /><button
+          hlmBtn
+          variant="outline"
+          type="button"
+          class="mt-3 min-h-11"
+          (click)="agenda.reload()"
+        >
+          Tentar novamente
+        </button>
+      } @else if (agenda.isLoading()) {
+        <app-state-panel
+          state="loading"
+          title="Carregando agenda"
+          description="Aguarde um momento."
+        />
+      } @else if (!agendaItems().length) {
+        <app-state-panel
+          state="empty"
+          title="Nenhuma consulta nesta data"
+          description="Escolha outra data para consultar sua agenda."
+        />
+      } @else {
+        <div class="agenda-table">
+          <table class="w-full text-sm">
+            <thead>
+              <tr>
+                <th scope="col">Horário</th>
+                <th scope="col">Paciente / local</th>
+                <th scope="col">Situação</th>
+                <th scope="col">Atendimento</th>
+              </tr>
+            </thead>
+            <tbody class="divide-border divide-y">
+              @for (item of agendaItems(); track item.id) {
+                <tr>
+                  <td class="px-4 py-4 font-semibold tabular-nums">
+                    {{ time(item.inicio) }}
+                  </td>
+                  <td class="patient-cell">
+                    <strong>{{ item.paciente.nome }}</strong
+                    ><span>{{ item.especialidade.nome }}</span
+                    ><small
+                      >{{ item.unidade.nome }} ·
+                      {{ item.consultorio.nome }}</small
+                    >
+                  </td>
+                  <td class="px-4 py-4">
+                    <app-status-badge [status]="item.status" />
+                  </td>
+                  <td class="px-4 py-3 text-right">
+                    @if (item.allowedActions.canResume && item.atendimentoId) {
+                      <a
+                        hlmBtn
+                        class="min-h-11"
+                        [routerLink]="['../atendimentos', item.atendimentoId]"
+                        >Retomar</a
+                      >
+                    } @else if (item.allowedActions.canStart) {
+                      <button
+                        hlmBtn
+                        type="button"
+                        class="min-h-11"
+                        [disabled]="busyId() !== null"
+                        (click)="start(item)"
+                      >
+                        Iniciar
+                      </button>
+                    } @else if (item.atendimentoId) {
+                      <a
+                        hlmBtn
+                        variant="outline"
+                        class="min-h-11"
+                        [routerLink]="['../atendimentos', item.atendimentoId]"
+                        >Ver atendimento</a
+                      >
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <div class="agenda-cards">
+          @for (item of agendaItems(); track item.id) {
+            <article hlmCard>
+              <div hlmCardHeader>
+                <div class="flex items-start justify-between gap-3">
+                  <div>
+                    <p class="font-semibold tabular-nums">
+                      {{ time(item.inicio) }} · {{ item.paciente.nome }}
+                    </p>
+                    <p hlmCardDescription>
+                      {{ item.especialidade.nome }} ·
+                      {{ item.unidade.nome }}
+                    </p>
+                  </div>
+                  <app-status-badge [status]="item.status" />
+                </div>
+              </div>
+              <div hlmCardContent>
+                <p class="text-muted-foreground text-sm">
+                  {{ item.consultorio.nome }}
+                </p>
+              </div>
+              @if (
+                item.allowedActions.canResume ||
+                item.allowedActions.canStart ||
+                item.atendimentoId
+              ) {
+                <div hlmCardFooter>
+                  @if (item.allowedActions.canResume && item.atendimentoId) {
+                    <a
+                      hlmBtn
+                      class="min-h-11 w-full"
+                      [routerLink]="['../atendimentos', item.atendimentoId]"
+                      >Retomar atendimento</a
+                    >
+                  } @else if (item.allowedActions.canStart) {
+                    <button
+                      hlmBtn
+                      type="button"
+                      class="min-h-11 w-full"
+                      [disabled]="busyId() !== null"
+                      (click)="start(item)"
+                    >
+                      Iniciar atendimento
+                    </button>
+                  } @else if (item.atendimentoId) {
+                    <a
+                      hlmBtn
+                      variant="outline"
+                      class="min-h-11 w-full"
+                      [routerLink]="['../atendimentos', item.atendimentoId]"
+                      >Ver atendimento</a
+                    >
+                  }
+                </div>
+              }
+            </article>
+          }
+        </div>
+      }
+      <nav class="pager" aria-label="Páginas da agenda">
+        <button
+          hlmBtn
+          variant="outline"
+          [disabled]="agendaPage() === 0"
+          (click)="agendaPage.set(agendaPage() - 1)"
+        >
+          Anterior</button
+        ><button
+          hlmBtn
+          variant="outline"
+          [disabled]="!hasNext(agendaData())"
+          (click)="agendaPage.set(agendaPage() + 1)"
+        >
+          Próxima
+        </button>
+      </nav>
+    </section>
+  </div>
+</section>

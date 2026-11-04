@@ -1,0 +1,145 @@
+:host {
+  display: block;
+  animation: medflow-page-enter 180ms var(--medflow-ease-standard);
+}
+.triage-page {
+  display: grid;
+  gap: 2rem;
+}
+h1 {
+  font-size: clamp(2rem, 3vw, 2.75rem);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+}
+h2 {
+  font-weight: 500;
+}
+.triage-desk {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 20rem;
+  gap: 2rem;
+  align-items: start;
+}
+.doctor-queue {
+  grid-column: 2;
+  grid-row: 1;
+  background: var(--card);
+  border-top: 3px solid var(--primary);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  position: sticky;
+  top: 1rem;
+  max-height: calc(100dvh - 2rem);
+}
+.queue-list {
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  overscroll-behavior: contain;
+}
+.queue-entry {
+  padding: 1rem 0.25rem;
+  border-bottom: 1px solid var(--border);
+}
+.next-label {
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  color: var(--primary);
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+}
+.doctor-agenda {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+  display: grid;
+  gap: 1rem;
+}
+.agenda-table {
+  background: var(--card);
+  border-block: 1px solid var(--border);
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th {
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  padding: 1rem;
+  text-align: left;
+}
+td {
+  vertical-align: top;
+}
+tr {
+  transition: background-color 120ms;
+}
+tbody tr:hover {
+  background: var(--background);
+}
+.patient-cell {
+  padding: 1rem;
+}
+.patient-cell strong,
+.patient-cell span,
+.patient-cell small {
+  display: block;
+}
+.patient-cell span,
+.patient-cell small {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  margin-top: 0.3rem;
+}
+.agenda-cards {
+  display: none;
+}
+.pager {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+@media (max-width: 1199px) {
+  .triage-desk {
+    grid-template-columns: 1fr;
+  }
+  .doctor-queue,
+  .doctor-agenda {
+    grid-column: 1;
+    grid-row: auto;
+  }
+  .doctor-queue {
+    position: static;
+    max-height: none;
+  }
+  .queue-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    overflow: visible;
+  }
+}
+@media (max-width: 900px) {
+  .agenda-table {
+    display: none;
+  }
+  .agenda-cards {
+    display: grid;
+    gap: 1rem;
+  }
+}
+@media (max-width: 600px) {
+  .queue-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+.queue-entry:only-child {
+  grid-column: 1 / -1;
+}

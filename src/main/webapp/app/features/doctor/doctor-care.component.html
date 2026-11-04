@@ -1,0 +1,444 @@
+@if (workspace.error()) {
+  <section class="space-y-4">
+    <app-state-panel
+      state="error"
+      [title]="issue(workspace.error()).title"
+      [description]="issue(workspace.error()).description"
+    /><button
+      hlmBtn
+      variant="outline"
+      type="button"
+      (click)="workspace.reload()"
+    >
+      Tentar novamente</button
+    ><a
+      hlmBtn
+      variant="outline"
+      routerLink="/workspace/doctor/triagem"
+      class="min-h-11"
+      >Voltar para a agenda</a
+    >
+  </section>
+} @else if (workspace.isLoading()) {
+  <app-state-panel
+    state="loading"
+    title="Carregando atendimento"
+    description="Recuperando o contexto do atendimento."
+  />
+} @else if (workspace.value(); as data) {
+  <section class="care-page">
+    <a
+      routerLink="/workspace/doctor/triagem"
+      class="text-primary inline-flex min-h-11 items-center text-sm font-medium"
+      >← Voltar para minha agenda</a
+    >
+    <header class="patient-context">
+      <div
+        class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
+      >
+        <div class="space-y-1">
+          <p
+            class="text-primary text-xs font-semibold tracking-widest uppercase"
+          >
+            {{
+              data.atendimento.finalizadoEm
+                ? "Atendimento finalizado"
+                : "Atendimento em curso"
+            }}
+          </p>
+          <h1 class="text-3xl font-semibold tracking-tight">
+            {{ data.agendamento.paciente.nome }}
+          </h1>
+          <p class="text-muted-foreground">
+            {{ data.agendamento.especialidade.nome }} ·
+            {{ data.agendamento.medico.nome }}
+          </p>
+        </div>
+        <p class="text-muted-foreground text-sm">
+          {{ dateTime(data.agendamento.inicio) }}<br />{{
+            data.agendamento.unidade.nome
+          }}
+          · {{ data.agendamento.consultorio.nome }}
+        </p>
+      </div>
+    </header>
+    <div class="care-toolbar">
+      <hlm-sheet side="right" (stateChanged)="onHistorySheetState($event)"
+        ><button
+          hlmSheetTrigger
+          hlmBtn
+          variant="outline"
+          type="button"
+          class="min-h-11"
+        >
+          Histórico do paciente</button
+        ><hlm-sheet-content *hlmSheetPortal
+          ><hlm-sheet-header
+            ><h2 hlmSheetTitle>Histórico de atendimentos</h2>
+            <p hlmSheetDescription>
+              Somente atendimentos deste paciente realizados por você e já
+              finalizados.
+            </p></hlm-sheet-header
+          >
+          @if (history.isLoading()) {
+            <app-state-panel
+              state="loading"
+              title="Carregando histórico"
+              description="Aguarde um momento."
+            />
+          } @else if (history.error()) {
+            <app-state-panel
+              state="error"
+              [title]="issue(history.error()).title"
+              [description]="issue(history.error()).description"
+            />
+          } @else if (!history.value()?.items?.length) {
+            <app-state-panel
+              state="empty"
+              title="Sem histórico disponível"
+              description="Não há atendimentos finalizados para exibir."
+            />
+          } @else {
+            <ol class="history-list">
+              @for (
+                item of history.value()?.items ?? [];
+                track item.atendimento.id
+              ) {
+                <li class="border-border rounded-lg border p-3 text-sm">
+                  <p class="font-medium">
+                    {{ dateTime(item.agendamento.inicio) }}
+                  </p>
+                  <p class="text-muted-foreground mt-1 whitespace-pre-wrap">
+                    {{ item.atendimento.registroClinico.queixaPrincipal }}
+                  </p>
+                  <dl class="history-record">
+                    <dt>Resumo da anamnese</dt>
+                    <dd>
+                      {{ item.atendimento.registroClinico.resumoAnamnese }}
+                    </dd>
+                    <dt>Conduta</dt>
+                    <dd>
+                      {{ item.atendimento.registroClinico.conduta }}
+                    </dd>
+                    <dt>Observações</dt>
+                    <dd>
+                      {{
+                        item.atendimento.registroClinico.observacoes ||
+                          "Não informado"
+                      }}
+                    </dd>
+                  </dl>
+                </li>
+              }
+            </ol>
+            <nav class="history-pager" aria-label="Páginas do histórico">
+              <button
+                hlmBtn
+                variant="outline"
+                [disabled]="historyPage() === 0"
+                (click)="historyPage.set(historyPage() - 1)"
+              >
+                Anteriores</button
+              ><button
+                hlmBtn
+                variant="outline"
+                [disabled]="!historyHasNext()"
+                (click)="historyPage.set(historyPage() + 1)"
+              >
+                Próximos
+              </button>
+            </nav>
+          }
+        </hlm-sheet-content></hlm-sheet
+      >
+    </div>
+    @if (notice(); as message) {
+      <section
+        hlmAlert
+        [variant]="message.conflict ? 'default' : 'destructive'"
+        aria-live="polite"
+        animate.enter="feedback-enter"
+      >
+        <h2 hlmAlertTitle>{{ message.title }}</h2>
+        <p hlmAlertDescription>{{ message.description }}</p>
+        <div class="mt-3 flex flex-wrap gap-2">
+          @if (message.conflict) {
+            <button
+              hlmBtn
+              variant="outline"
+              type="button"
+              class="min-h-11"
+              (click)="reloadForComparison()"
+            >
+              Recarregar para comparar
+            </button>
+          }
+          @if (!conflictBlocked()) {
+            <button
+              hlmBtn
+              variant="ghost"
+              type="button"
+              class="min-h-11"
+              (click)="notice.set(null)"
+            >
+              Dispensar
+            </button>
+          }
+        </div>
+      </section>
+    }
+    @if (comparing()) {
+      <section class="comparison" aria-label="Comparação de registros">
+        <h2>Compare antes de continuar</h2>
+        <p>
+          O texto digitado foi preservado. Confira a versão persistida abaixo;
+          nenhuma mesclagem é automática.
+        </p>
+        <div class="comparison-columns">
+          <div>
+            <h3>Texto local</h3>
+            <dl>
+              <dt>Queixa principal</dt>
+              <dd>{{ draft().queixaPrincipal }}</dd>
+              <dt>Resumo da anamnese</dt>
+              <dd>{{ draft().resumoAnamnese }}</dd>
+              <dt>Conduta</dt>
+              <dd>{{ draft().conduta }}</dd>
+              <dt>Observações</dt>
+              <dd>{{ draft().observacoes }}</dd>
+            </dl>
+          </div>
+          <div>
+            <h3>Versão persistida</h3>
+            <dl>
+              <dt>Queixa principal</dt>
+              <dd>{{ data.atendimento.registroClinico.queixaPrincipal }}</dd>
+              <dt>Resumo da anamnese</dt>
+              <dd>{{ data.atendimento.registroClinico.resumoAnamnese }}</dd>
+              <dt>Conduta</dt>
+              <dd>{{ data.atendimento.registroClinico.conduta }}</dd>
+              <dt>Observações</dt>
+              <dd>{{ data.atendimento.registroClinico.observacoes }}</dd>
+            </dl>
+          </div>
+        </div>
+        @if (!data.atendimento.finalizadoEm) {
+          <button hlmBtn type="button" (click)="acceptLocal(data)">
+            Manter texto local e continuar
+          </button>
+        }
+      </section>
+    }
+    @if (data.atendimento.finalizadoEm) {
+      <section aria-labelledby="completed-title" class="space-y-4">
+        <div hlmAlert>
+          <h2 hlmAlertTitle>Atendimento finalizado</h2>
+          <p hlmAlertDescription>
+            Registro concluído em
+            {{ dateTime(data.atendimento.finalizadoEm) }}. Esta versão é somente
+            leitura.
+          </p>
+        </div>
+        <article hlmCard>
+          <div hlmCardHeader>
+            <h2 id="completed-title" hlmCardTitle>Registro clínico</h2>
+          </div>
+          <dl hlmCardContent class="grid gap-5 sm:grid-cols-2">
+            <div>
+              <dt class="text-muted-foreground text-sm">Queixa principal</dt>
+              <dd class="mt-1 whitespace-pre-wrap">
+                {{ data.atendimento.registroClinico.queixaPrincipal }}
+              </dd>
+            </div>
+            <div>
+              <dt class="text-muted-foreground text-sm">Resumo da anamnese</dt>
+              <dd class="mt-1 whitespace-pre-wrap">
+                {{ data.atendimento.registroClinico.resumoAnamnese }}
+              </dd>
+            </div>
+            <div>
+              <dt class="text-muted-foreground text-sm">Conduta</dt>
+              <dd class="mt-1 whitespace-pre-wrap">
+                {{ data.atendimento.registroClinico.conduta }}
+              </dd>
+            </div>
+            <div>
+              <dt class="text-muted-foreground text-sm">Observações</dt>
+              <dd class="mt-1 whitespace-pre-wrap">
+                {{
+                  data.atendimento.registroClinico.observacoes ||
+                    "Não informado"
+                }}
+              </dd>
+            </div>
+          </dl>
+        </article>
+      </section>
+    } @else {
+      <form
+        class="care-layout"
+        [attr.aria-busy]="saving()"
+        (submit)="$event.preventDefault(); save(data)"
+      >
+        <div class="space-y-5">
+          <section aria-labelledby="record-title" class="space-y-1">
+            <h2 id="record-title" class="text-xl font-semibold">
+              Registro clínico
+            </h2>
+            <p class="text-muted-foreground text-sm">
+              Salve o rascunho quando quiser. Os três primeiros campos são
+              necessários somente para finalizar.
+            </p>
+          </section>
+          <div hlmField>
+            <label hlmFieldLabel for="complaint">Queixa principal</label
+            ><textarea
+              hlmTextarea
+              id="complaint"
+              class="min-h-28"
+              [formField]="recordForm.queixaPrincipal"
+            ></textarea>
+            <p hlmFieldDescription>Obrigatória para finalizar.</p>
+          </div>
+          <div hlmField>
+            <label hlmFieldLabel for="history">Resumo da anamnese</label
+            ><textarea
+              hlmTextarea
+              id="history"
+              class="min-h-36"
+              [formField]="recordForm.resumoAnamnese"
+            ></textarea>
+            <p hlmFieldDescription>Obrigatório para finalizar.</p>
+          </div>
+          <div hlmField>
+            <label hlmFieldLabel for="plan">Conduta</label
+            ><textarea
+              hlmTextarea
+              id="plan"
+              class="min-h-36"
+              [formField]="recordForm.conduta"
+            ></textarea>
+            <p hlmFieldDescription>Obrigatória para finalizar.</p>
+          </div>
+          <div hlmField>
+            <label hlmFieldLabel for="notes">Observações</label
+            ><textarea
+              hlmTextarea
+              id="notes"
+              class="min-h-28"
+              [formField]="recordForm.observacoes"
+            ></textarea>
+            <p hlmFieldDescription>Opcional.</p>
+          </div>
+        </div>
+        <aside
+          aria-label="Ações do atendimento"
+          id="care-actions"
+          tabindex="-1"
+          class="care-actions"
+        >
+          <p class="draft-status" role="status">
+            @if (saving()) {
+              Salvando alterações…
+            } @else if (conflictBlocked()) {
+              Versão em conflito. Compare os registros antes de continuar.
+            } @else if (dirty()) {
+              Alterações não salvas nesta tela.
+            } @else {
+              Rascunho salvo. Nenhuma alteração pendente.
+            }
+          </p>
+          @if (!complete()) {
+            <p class="completion-help">
+              Para finalizar, preencha queixa principal, resumo da anamnese e
+              conduta. Você pode salvar um rascunho incompleto.
+            </p>
+          } @else if (dirty()) {
+            <p class="completion-help">
+              Salve as alterações antes de finalizar.
+            </p>
+          }
+          <div class="flex flex-col gap-2">
+            <button
+              hlmBtn
+              variant="outline"
+              type="submit"
+              class="min-h-11"
+              [disabled]="
+                saving() ||
+                !dirty() ||
+                conflictBlocked() ||
+                recordForm().invalid()
+              "
+            >
+              @if (saving()) {
+                <hlm-spinner aria-hidden="true" />
+              }
+              Salvar rascunho</button
+            ><hlm-dialog #finishDialog="hlmDialog"
+              ><button
+                hlmBtn
+                hlmDialogTrigger
+                type="button"
+                class="min-h-11"
+                [disabled]="
+                  saving() ||
+                  dirty() ||
+                  !complete() ||
+                  conflictBlocked() ||
+                  data.agendamento.status !== 'EM_ATENDIMENTO'
+                "
+              >
+                Finalizar atendimento</button
+              ><hlm-dialog-content *hlmDialogPortal
+                ><hlm-dialog-header
+                  ><h2 hlmDialogTitle>Finalizar atendimento?</h2>
+                  <p hlmDialogDescription>
+                    A consulta só será finalizada com o rascunho salvo e os
+                    campos obrigatórios preenchidos. Depois disso, o registro
+                    ficará somente para leitura.
+                  </p></hlm-dialog-header
+                ><hlm-dialog-footer
+                  ><button
+                    hlmBtn
+                    hlmDialogClose
+                    variant="outline"
+                    type="button"
+                    class="min-h-11"
+                    autofocus
+                  >
+                    Revisar registro</button
+                  ><button
+                    hlmBtn
+                    type="button"
+                    class="min-h-11"
+                    [disabled]="saving()"
+                    (click)="finish(data, finishDialog)"
+                  >
+                    Confirmar finalização
+                  </button></hlm-dialog-footer
+                ></hlm-dialog-content
+              ></hlm-dialog
+            >
+          </div>
+        </aside>
+        <div class="mobile-record-footer">
+          <button
+            hlmBtn
+            type="submit"
+            [disabled]="
+              saving() ||
+              !dirty() ||
+              conflictBlocked() ||
+              recordForm().invalid()
+            "
+          >
+            Salvar rascunho</button
+          ><a href="#care-actions" class="text-primary"
+            >Revisar finalização ↑</a
+          >
+        </div>
+      </form>
+    }
+  </section>
+}

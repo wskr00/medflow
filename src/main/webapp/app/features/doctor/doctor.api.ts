@@ -20,13 +20,20 @@ function endpoint(
   return `${authConfig.apiBaseUrl}${path}${query.size ? `?${query}` : ""}`;
 }
 
-export function doctorIssue(error: unknown): DoctorIssue {
+export function doctorIssue(
+  error: unknown,
+  context: "care" | "triage" = "care",
+): DoctorIssue {
   const response = error as HttpErrorResponse;
   const code =
     response?.error?.code ??
     { 0: "FALHA_DE_REDE", 404: "RECURSO_NAO_ENCONTRADO" }[response?.status] ??
     "ERRO_INTERNO";
   const copy: Record<string, readonly [string, string]> = {
+    REGISTRO_INCOMPLETO: [
+      "Registro incompleto",
+      "Preencha queixa principal, resumo da anamnese e conduta antes de finalizar.",
+    ],
     VERSAO_DESATUALIZADA: [
       "Registro atualizado em outro acesso",
       "Seu texto local continua nesta tela. Recarregue para comparar a versão persistida antes de salvar novamente.",
@@ -48,7 +55,15 @@ export function doctorIssue(error: unknown): DoctorIssue {
     "Não foi possível concluir",
     "O texto continua nesta tela. Tente novamente em alguns instantes.",
   ];
-  return { code, title, description, conflict: response?.status === 409 };
+  return {
+    code,
+    title,
+    description:
+      context === "triage"
+        ? "Atualize a agenda e tente novamente. Confira a situação atual antes de repetir a ação."
+        : description,
+    conflict: response?.status === 409 && code !== "REGISTRO_INCOMPLETO",
+  };
 }
 
 @Injectable()
@@ -63,9 +78,9 @@ export class DoctorApi {
   workspace(id: string) {
     return endpoint(`/atendimentos/${id}`);
   }
-  history(patientId: string) {
+  history(patientId: string, page = 0) {
     return endpoint(`/medico/pacientes/${patientId}/historico`, {
-      page: 0,
+      page,
       size: 20,
     });
   }

@@ -1,0 +1,153 @@
+:host {
+  display: block;
+  animation: medflow-page-enter 180ms var(--medflow-ease-standard);
+}
+.care-page {
+  display: grid;
+  gap: 1.5rem;
+}
+.patient-context {
+  padding: 1.5rem 0;
+  border-block: 1px solid var(--border);
+}
+h1 {
+  font-size: 2rem;
+  font-weight: 500;
+  letter-spacing: -0.035em;
+}
+.care-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 17rem;
+  gap: 2.5rem;
+  align-items: start;
+}
+.care-layout > div {
+  max-width: 62rem;
+}
+textarea {
+  background: var(--card);
+  padding: 1rem;
+  line-height: 1.7;
+  resize: vertical;
+  font-size: 1rem;
+  transition:
+    border-color 120ms,
+    box-shadow 120ms;
+}
+.care-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+  border-top: 3px solid var(--primary);
+  background: var(--card);
+  position: sticky;
+  top: 1rem;
+}
+.draft-status {
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.6;
+}
+.completion-help {
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: var(--muted-foreground);
+}
+.comparison {
+  padding: 1.5rem;
+  background: var(--card);
+  border-left: 3px solid var(--warning);
+  display: grid;
+  gap: 1rem;
+}
+.comparison-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+.comparison h2,
+.comparison h3 {
+  font-weight: 600;
+}
+.comparison dt {
+  font-size: 0.8rem;
+  color: var(--muted-foreground);
+  margin-top: 1rem;
+}
+.comparison dd {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.history-list {
+  overflow-y: auto;
+  min-height: 0;
+  padding-inline: 1rem;
+}
+.history-record dt {
+  font-weight: 500;
+  margin-top: 0.75rem;
+}
+.history-record dd {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 1023px) {
+  .care-layout {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  .care-actions {
+    position: static;
+    grid-row: 1;
+  }
+  .care-actions > div {
+    display: flex;
+    flex-wrap: wrap;
+  }
+  .comparison-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.care-actions hlm-dialog,
+.care-actions hlm-dialog > button {
+  width: 100%;
+}
+.care-toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+.history-list {
+  max-height: calc(100dvh - 12rem);
+}
+.mobile-record-footer {
+  display: none;
+}
+#care-actions {
+  scroll-margin-top: 1rem;
+}
+#care-actions:focus {
+  outline: none;
+}
+@media (max-width: 1023px) {
+  .mobile-record-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+  }
+}
+
+.history-pager {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+.comparison > button {
+  width: fit-content;
+  min-height: 44px;
+}
