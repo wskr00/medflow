@@ -1,7 +1,7 @@
+import { chartSeries } from "../../shared/ui/daily-count-chart.utils";
 import { convertToParamMap } from "@angular/router";
 import { describe, expect, it } from "vitest";
 import {
-  chartSeries,
   civilDay,
   clinicDay,
   filterErrors,

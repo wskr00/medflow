@@ -23,8 +23,8 @@ import {
   PointElement,
   Tooltip,
 } from "chart.js";
-import { IndicatorPoint } from "./admin-indicators.models";
-import { chartSeries, civilDay, civilLabel } from "./admin-indicators.utils";
+import { DailyCountPoint, chartSeries } from "./daily-count-chart.utils";
+import { civilDay, civilLabel } from "../date/civil-date";
 
 Chart.register(
   BarController,
@@ -40,17 +40,17 @@ Chart.register(
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [HlmButtonImports],
-  selector: "app-admin-indicator-chart",
-  styleUrls: ["./admin-indicator-content.scss", "./admin-indicator-chart.scss"],
-  templateUrl: "./admin-indicator-chart.html",
+  selector: "app-daily-count-chart",
+  styleUrl: "./daily-count-chart.scss",
+  templateUrl: "./daily-count-chart.html",
 })
-export class AdminIndicatorChart {
+export class DailyCountChart {
   readonly chartId = input.required<string>();
   readonly title = input.required<string>();
   readonly description = input.required<string>();
   readonly inicio = input.required<string>();
   readonly fim = input.required<string>();
-  readonly points = input.required<readonly IndicatorPoint[]>();
+  readonly points = input.required<readonly DailyCountPoint[]>();
   readonly unit = input.required<string>();
   readonly emptyText = input.required<string>();
   readonly tone = input<"primary" | "info">("primary");

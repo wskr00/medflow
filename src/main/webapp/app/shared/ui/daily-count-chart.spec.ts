@@ -1,6 +1,6 @@
 import { TestBed } from "@angular/core/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { AdminIndicatorChart } from "./admin-indicator-chart";
+import { DailyCountChart } from "./daily-count-chart";
 import { Chart } from "chart.js";
 
 vi.mock("chart.js", () => {
@@ -44,7 +44,7 @@ const chartMock = Chart as unknown as {
   fail: boolean;
 };
 function create() {
-  const fixture = TestBed.createComponent(AdminIndicatorChart);
+  const fixture = TestBed.createComponent(DailyCountChart);
   for (const [key, value] of Object.entries({
     chartId: "test-chart",
     title: "Consultas por dia",
@@ -66,7 +66,7 @@ describe("Integração do gráfico com o ciclo de vida Angular", () => {
     chartMock.configs.length = 0;
     chartMock.destroyed = 0;
     chartMock.fail = false;
-    TestBed.configureTestingModule({ imports: [AdminIndicatorChart] });
+    TestBed.configureTestingModule({ imports: [DailyCountChart] });
     vi.stubGlobal("matchMedia", () => ({
       matches: true,
       addEventListener() {},

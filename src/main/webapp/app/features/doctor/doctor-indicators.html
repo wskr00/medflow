@@ -1,0 +1,364 @@
+<div class="activity-page">
+  <header class="title-row">
+    <div>
+      <p class="eyebrow">Área médica / Atividade</p>
+      <h1>Minha atividade</h1>
+      <p class="muted">Suas consultas e atendimentos no período selecionado.</p>
+    </div>
+    <a hlmBtn variant="outline" routerLink="../triagem">Ir para minha agenda</a>
+  </header>
+  @if(identity.isLoading()){
+  <app-state-panel
+    state="loading"
+    title="Carregando contexto da sua atividade"
+    description="Aguarde o fuso da clínica para consultar o período correto."
+  />
+  } @else if(!zone()){
+  <app-state-panel
+    state="error"
+    title="Não foi possível carregar seu contexto"
+    description="Seu contexto de acesso e o fuso da clínica são necessários para consultar sua atividade."
+  />
+  <div class="recovery-actions">
+    <button hlmBtn variant="outline" type="button" (click)="reloadContext()">
+      Tentar carregar o contexto novamente</button
+    ><button hlmBtn type="button" (click)="loginAgain()">
+      Entrar novamente
+    </button>
+  </div>
+  } @else {
+  <form
+    class="filters"
+    [formRoot]="periodForm"
+    (submit)="invalidSubmit()"
+    aria-label="Período da atividade"
+  >
+    <div class="filter-fields">
+      <div hlmField>
+        <label hlmFieldLabel for="activity-preset">Período</label
+        ><hlm-native-select
+          selectId="activity-preset"
+          [value]="preset()"
+          (valueChange)="choosePreset($event)"
+          ><option value="1">Hoje</option>
+          <option value="7">Últimos 7 dias</option>
+          <option value="30">Últimos 30 dias</option>
+          <option value="custom">Personalizado</option></hlm-native-select
+        >
+      </div>
+      <button hlmBtn type="submit">Aplicar período</button
+      ><button
+        hlmBtn
+        variant="outline"
+        class="refresh"
+        type="button"
+        [disabled]="!applied() || result.isLoading()"
+        (click)="result.reload()"
+      >
+        Atualizar
+      </button>
+    </div>
+    @if(preset() === 'custom' || invalidUrl()){
+    <div class="custom-period">
+      <div hlmField>
+        <label hlmFieldLabel for="activity-inicio">Data inicial</label
+        ><input
+          hlmInput
+          id="activity-inicio"
+          type="date"
+          [formField]="periodForm.inicio"
+          [attr.aria-describedby]="fieldError('inicio') ? 'activity-start-error' : 'activity-date-help'"
+        />@if(fieldError('inicio')){<hlm-field-error
+          forceShow
+          id="activity-start-error"
+          >{{fieldError('inicio')}}</hlm-field-error
+        >}
+      </div>
+      <div hlmField>
+        <label hlmFieldLabel for="activity-fim">Data final</label
+        ><input
+          hlmInput
+          id="activity-fim"
+          type="date"
+          [formField]="periodForm.fim"
+          [attr.aria-describedby]="fieldError('fim') ? 'activity-end-error' : 'activity-date-help'"
+        />@if(fieldError('fim')){<hlm-field-error
+          forceShow
+          id="activity-end-error"
+          >{{fieldError('fim')}}</hlm-field-error
+        >}
+      </div>
+      <p id="activity-date-help" class="muted">
+        Inclui início e fim, no fuso da clínica. Até 366 dias.
+      </p>
+    </div>
+    }
+    <div class="period-actions">
+      <button hlmBtn variant="ghost" type="button" (click)="resetPeriod()">
+        Restaurar últimos 7 dias</button
+      >@if(pendingPeriod()){
+      <p class="draft-notice" role="status">
+        Alterações de período ainda não aplicadas.
+      </p>
+      }
+    </div>
+  </form>
+  @if(applied(); as period){
+  <div class="applied-context" aria-label="Período aplicado">
+    <strong>{{label(period.inicio)}} — {{label(period.fim)}}</strong
+    ><span>Inclui início e fim</span
+    ><span>Fuso {{data()?.timeZone ?? zone()}}</span>
+  </div>
+  }
+  <section
+    class="activity-results"
+    aria-label="Resultado da sua atividade"
+    [attr.aria-busy]="result.isLoading()"
+  >
+    @if(invalidUrl()){
+    <app-state-panel
+      state="error"
+      title="Revise o período do endereço"
+      description="O período não foi consultado. Corrija os campos indicados ou restaure os últimos 7 dias e aplique novamente."
+    />
+    } @else if(result.isLoading()){
+    <app-state-panel
+      state="loading"
+      title="Carregando sua atividade"
+      description="Consultando o período aplicado."
+    />
+    } @else if(result.error(); as error){
+    <app-state-panel
+      state="error"
+      [title]="issue(error).title"
+      [description]="issue(error).description"
+    />
+    <div class="recovery-actions">
+      @if(issue(error).context){<button
+        hlmBtn
+        variant="outline"
+        type="button"
+        (click)="reloadContext()"
+      >
+        Recarregar identidade</button
+      >}@if(issue(error).session){<a
+        hlmBtn
+        variant="outline"
+        routerLink="/workspace"
+        >Voltar à minha área</a
+      ><button hlmBtn type="button" (click)="loginAgain()">
+        Entrar novamente</button
+      >}@else{<button
+        hlmBtn
+        variant="outline"
+        type="button"
+        (click)="result.reload()"
+      >
+        Tentar novamente</button
+      >}
+    </div>
+    } @else if(data(); as report){
+    <div class="report-content" animate.enter="feedback-enter">
+      <p class="sr-only" role="status">
+        Atividade carregada de {{label(report.inicio)}} a {{label(report.fim)}}.
+      </p>
+      @if(report.consultasPorDataAgendada.totalConsultas === 0 &&
+      report.finalizacoesPorDataReal.totalFinalizadas === 0){<app-state-panel
+        state="empty"
+        title="Nenhuma atividade registrada neste recorte"
+        description="Consulte outro período. Os filtros continuam disponíveis e as contagens são zero."
+      />}
+      <div class="summaries">
+        <section
+          class="activity-summary"
+          aria-labelledby="activity-scheduled-title"
+        >
+          <h2 id="activity-scheduled-title">Consultas pela data agendada</h2>
+          <p class="summary-note">
+            Inclui todos os estados, também canceladas.
+          </p>
+          <p class="scheduled-total">
+            <strong data-testid="activity-scheduled"
+              >{{report.consultasPorDataAgendada.totalConsultas}}</strong
+            ><span>consultas no período</span>
+          </p>
+          <dl class="states">
+            @for(state of states(); track state.kind){
+            <div>
+              <dt>
+                <span [class]="'dot ' + state.kind" aria-hidden="true"></span
+                >{{state.label}}
+              </dt>
+              <dd [attr.data-testid]="'activity-state-' + state.kind">
+                {{state.value}}
+              </dd>
+            </div>
+            }
+          </dl>
+          <p class="state-note">
+            Situação atual das consultas do recorte. Estes números não são uma
+            fila em tempo real.
+          </p>
+        </section>
+        <section
+          class="activity-summary"
+          aria-labelledby="activity-completed-title"
+        >
+          <h2 id="activity-completed-title">Atendimentos pelo término real</h2>
+          <p class="summary-note">Finalizados dentro do período selecionado.</p>
+          <dl class="conclusion-metrics">
+            <div>
+              <dt>Concluídos</dt>
+              <dd data-testid="activity-completed">
+                {{report.finalizacoesPorDataReal.totalFinalizadas}}
+              </dd>
+            </div>
+            <div class="mean">
+              <dt>Tempo médio registrado</dt>
+              <dd data-testid="activity-average">
+                {{duration(report.finalizacoesPorDataReal.duracaoMediaSegundos)}}
+              </dd>
+            </div>
+          </dl>
+          @if(report.finalizacoesPorDataReal.totalFinalizadas === 0){
+          <p class="duration-help">
+            Nenhum atendimento concluído neste recorte para calcular a média.
+          </p>
+          } @else if(report.finalizacoesPorDataReal.duracaoMediaSegundos ===
+          null) {
+          <p class="duration-help">
+            Há {{report.finalizacoesPorDataReal.totalFinalizadas}} atendimentos
+            concluídos no recorte, mas o tempo médio não está disponível.
+          </p>
+          } @else {
+          <p class="duration-help">
+            <strong
+              >Média de {{report.finalizacoesPorDataReal.totalFinalizadas}}
+              atendimentos.</strong
+            >
+            Do início à finalização registrados. Pode incluir intervalos até o
+            encerramento do registro.
+          </p>
+          }
+          <p class="duration-help">
+            O término pode ocorrer em outra data. Conclusões e consultas não
+            devem ser somadas.
+          </p>
+        </section>
+      </div>
+      <div class="daily-sections">
+        <app-daily-count-chart
+          chartId="doctor-scheduled"
+          title="Consultas por dia"
+          description="Pela data agendada · quantidade de consultas"
+          [inicio]="report.inicio"
+          [fim]="report.fim"
+          [points]="points()"
+          unit="consultas"
+          emptyText="Nenhuma consulta com data agendada neste recorte."
+        >
+          <div
+            countChartDetails
+            class="scheduled-table-scroll"
+            tabindex="0"
+            aria-label="Detalhamento diário das consultas"
+          >
+            <table class="activity-table detailed-table">
+              <caption>
+                Consultas por dia · {{label(report.inicio)}} a
+                {{label(report.fim)}} · situação atual
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Data</th>
+                  <th scope="col">Total</th>
+                  <th scope="col">Agendadas</th>
+                  <th scope="col">Em espera</th>
+                  <th scope="col">Em atendimento</th>
+                  <th scope="col">Finalizadas</th>
+                  <th scope="col">Canceladas</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for(day of scheduledDays(); track day.data){
+                <tr>
+                  <th scope="row">{{label(day.data)}}</th>
+                  <td>{{day.totalConsultas}}</td>
+                  <td>{{day.agendadas}}</td>
+                  <td>{{day.emEspera}}</td>
+                  <td>{{day.emAtendimento}}</td>
+                  <td>{{day.finalizadas}}</td>
+                  <td>{{day.canceladas}}</td>
+                </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </app-daily-count-chart>
+        <section class="surface" aria-labelledby="doctor-completions-title">
+          <h3 id="doctor-completions-title">Conclusões por dia</h3>
+          <p class="chart-note">
+            Pelo término real · quantidade e média registrada
+          </p>
+          @if(!allCompletedDays().length){
+          <p class="empty-message">
+            Nenhum atendimento concluído neste recorte. Tempo médio: Sem dados.
+          </p>
+          }@else{
+          <table class="activity-table" id="doctor-completed-days">
+            <caption class="sr-only">
+              Conclusões por dia de {{label(report.inicio)}} a
+              {{label(report.fim)}}: quantidade e tempo médio
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Data</th>
+                <th scope="col">Concluídos</th>
+                <th scope="col">Tempo médio</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for(day of completedDays(); track day.data){
+              <tr>
+                <th scope="row">{{label(day.data, true)}}</th>
+                <td>{{day.totalFinalizadas}}</td>
+                <td>{{duration(day.duracaoMediaSegundos)}}</td>
+              </tr>
+              }
+            </tbody>
+          </table>
+          @if(allCompletedDays().length > 14){<button
+            hlmBtn
+            variant="ghost"
+            type="button"
+            class="more-days"
+            [attr.aria-expanded]="allDays()"
+            aria-controls="doctor-completed-days"
+            (click)="allDays.set(!allDays())"
+          >
+            {{allDays() ? 'Mostrar menos dias' : 'Ver todos os dias'}}
+            ({{allCompletedDays().length}})</button
+          >}
+          <p class="table-note">
+            A média do período considera o número de atendimentos de cada dia.
+          </p>
+          }
+        </section>
+      </div>
+      <footer>
+        <span>Leitura da sua atividade · dados agregados</span
+        ><span>Consulta recebida às {{receivedTime()}}</span>
+      </footer>
+    </div>
+    } @else if(applied()){
+    <app-state-panel
+      state="error"
+      title="Resposta incompatível com o período solicitado"
+      description="Não foi possível apresentar uma leitura confiável deste recorte."
+    /><button hlmBtn variant="outline" type="button" (click)="result.reload()">
+      Tentar novamente
+    </button>
+    }
+  </section>
+  }
+</div>

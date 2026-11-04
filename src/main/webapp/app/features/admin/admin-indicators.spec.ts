@@ -8,7 +8,7 @@ import { provideRouter } from "@angular/router";
 import Keycloak from "keycloak-js";
 import { describe, expect, it, vi } from "vitest";
 import { AdminIndicators } from "./admin-indicators";
-import { AdminIndicatorChart } from "./admin-indicator-chart";
+import { DailyCountChart } from "../../shared/ui/daily-count-chart";
 
 describe("Indicadores da Administração", () => {
   it("mantém as populações independentes e não renomeia resultados ao editar o rascunho", async () => {
@@ -21,7 +21,7 @@ describe("Indicadores da Administração", () => {
         { provide: Keycloak, useValue: {} },
       ],
     });
-    TestBed.overrideComponent(AdminIndicatorChart, {
+    TestBed.overrideComponent(DailyCountChart, {
       set: { template: "<p>{{title()}}</p>" },
     });
     const fixture = TestBed.createComponent(AdminIndicators),

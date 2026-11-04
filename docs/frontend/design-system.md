@@ -150,3 +150,15 @@ animação do canvas. Evidências: [dashboard da #64](../qa/ui64/README.md).
 Select Helm restaura o valor comprometido quando opções projetadas são
 carregadas ou substituídas assincronamente, sem emitir mudança do usuário.
 Isso evita mostrar “Todas” para um filtro que continua aplicado após reload.
+
+## Minha atividade — #63
+
+O Médico mantém navegação horizontal e agenda como entrada principal. Atividade
+separa consultas pela data agendada de conclusões pelo término real; duração
+mostra unidades explícitas e ausência de média como “Sem dados”. Um gráfico
+diário e tabelas substituem uma grade de cartões de indicadores.
+
+`DailyCountChart` é a primitive compartilhada pelos três consumidores de contagem
+diária dos dashboards, com tabela alternativa/projetada, fallback, movimento
+reduzido e carregamento lazy. Filtros, métricas e composição permanecem próprios
+de cada perfil. Evidências: [revisão da #63](../qa/ui63/README.md).

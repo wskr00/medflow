@@ -1,7 +1,12 @@
 import { ParamMap } from "@angular/router";
-import { IndicatorFilters, IndicatorPoint } from "./admin-indicators.models";
-
-const dayMs = 86_400_000;
+import { IndicatorFilters } from "./admin-indicators.models";
+import { civilDay, clinicDay, shiftDay } from "../../shared/date/civil-date";
+export {
+  civilDay,
+  clinicDay,
+  civilLabel,
+  isTimeZone,
+} from "../../shared/date/civil-date";
 export const filterKeys = [
   "inicio",
   "fim",
@@ -9,41 +14,6 @@ export const filterKeys = [
   "especialidadeId",
 ] as const;
 export type FilterErrors = Partial<Record<keyof IndicatorFilters, string>>;
-/** A civil date is parsed in UTC only for calendar arithmetic, never to infer the clinic's day. */
-export function civilDay(value: string): number | undefined {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
-  const instant = Date.parse(`${value}T12:00:00Z`);
-  if (
-    !Number.isFinite(instant) ||
-    new Date(instant).toISOString().slice(0, 10) !== value
-  )
-    return undefined;
-  return Math.floor(instant / dayMs);
-}
-export function isTimeZone(value: string): boolean {
-  try {
-    new Intl.DateTimeFormat("pt-BR", { timeZone: value }).format();
-    return !!value;
-  } catch {
-    return false;
-  }
-}
-export function clinicDay(zone: string, now = new Date()): string {
-  const parts = new Intl.DateTimeFormat("en", {
-    timeZone: zone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(now);
-  const part = (type: string) =>
-    parts.find((item) => item.type === type)!.value;
-  return `${part("year")}-${part("month")}-${part("day")}`;
-}
-export function shiftDay(value: string, offset: number): string {
-  return new Date((civilDay(value)! + offset) * dayMs)
-    .toISOString()
-    .slice(0, 10);
-}
 export function presetFilters(
   zone: string,
   days = 7,
@@ -96,33 +66,4 @@ export function filtersFromQuery(
 }
 export function sameFilters(a: IndicatorFilters, b: IndicatorFilters): boolean {
   return filterKeys.every((key) => a[key] === b[key]);
-}
-export function civilLabel(value: string, short = false): string {
-  return new Intl.DateTimeFormat("pt-BR", {
-    timeZone: "UTC",
-    day: "numeric",
-    month: short ? "short" : "long",
-    ...(short ? {} : { year: "numeric" }),
-  }).format(new Date(`${value}T12:00:00Z`));
-}
-/** Missing positions remain null, rather than fabricated zero observations or compressed time. */
-export function chartSeries(
-  inicio: string,
-  fim: string,
-  points: readonly IndicatorPoint[],
-) {
-  const start = civilDay(inicio),
-    end = civilDay(fim);
-  if (
-    start === undefined ||
-    end === undefined ||
-    end < start ||
-    end - start >= 366
-  )
-    return { labels: [], values: [] };
-  const byDay = new Map(points.map((point) => [point.data, point.quantidade]));
-  const labels = Array.from({ length: end - start + 1 }, (_, index) =>
-    shiftDay(inicio, index),
-  );
-  return { labels, values: labels.map((date) => byDay.get(date) ?? null) };
 }
