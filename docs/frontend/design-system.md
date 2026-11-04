@@ -136,3 +136,17 @@ feature. Revisão antecede qualquer mutação, e a confirmação usa os dados do
 servidor. Horário indisponível limpa o slot e mantém preferências válidas;
 conflito de versão exige conferir o agendamento atualizado. Evidências e limites:
 [revisão da #57](../qa/ui57/README.md).
+
+## Indicadores administrativos — #64
+
+A leitura agregada ocupa uma rota própria, com resumo tipográfico, série diária,
+situação da agenda e distribuições dimensionais. Consultas por data agendada e
+conclusões por data real têm seções independentes. Chart.js fica no chunk lazy
+da feature; nomes, unidades e tabelas equivalentes permanecem em HTML. Barras
+dimensionais complementam tabelas semânticas, sem virar controles de navegação.
+Movimento usa os tokens existentes e a preferência reduzida também desliga a
+animação do canvas. Evidências: [dashboard da #64](../qa/ui64/README.md).
+
+Select Helm restaura o valor comprometido quando opções projetadas são
+carregadas ou substituídas assincronamente, sem emitir mudança do usuário.
+Isso evita mostrar “Todas” para um filtro que continua aplicado após reload.

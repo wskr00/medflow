@@ -1,0 +1,171 @@
+{
+  "period": {
+    "inicio": "2031-02-01",
+    "fim": "2031-02-07",
+    "timeZone": "America/Belem"
+  },
+  "scheduled": {
+    "totalConsultas": 7,
+    "agendadas": 2,
+    "emEspera": 1,
+    "emAtendimento": 1,
+    "finalizadas": 2,
+    "canceladas": 1,
+    "porDia": [
+      {
+        "data": "2031-02-01",
+        "totalConsultas": 1,
+        "agendadas": 1,
+        "emEspera": 0,
+        "emAtendimento": 0,
+        "finalizadas": 0,
+        "canceladas": 0
+      },
+      {
+        "data": "2031-02-02",
+        "totalConsultas": 1,
+        "agendadas": 0,
+        "emEspera": 1,
+        "emAtendimento": 0,
+        "finalizadas": 0,
+        "canceladas": 0
+      },
+      {
+        "data": "2031-02-03",
+        "totalConsultas": 1,
+        "agendadas": 0,
+        "emEspera": 0,
+        "emAtendimento": 1,
+        "finalizadas": 0,
+        "canceladas": 0
+      },
+      {
+        "data": "2031-02-04",
+        "totalConsultas": 1,
+        "agendadas": 0,
+        "emEspera": 0,
+        "emAtendimento": 0,
+        "finalizadas": 1,
+        "canceladas": 0
+      },
+      {
+        "data": "2031-02-05",
+        "totalConsultas": 1,
+        "agendadas": 0,
+        "emEspera": 0,
+        "emAtendimento": 0,
+        "finalizadas": 0,
+        "canceladas": 1
+      },
+      {
+        "data": "2031-02-06",
+        "totalConsultas": 1,
+        "agendadas": 1,
+        "emEspera": 0,
+        "emAtendimento": 0,
+        "finalizadas": 0,
+        "canceladas": 0
+      },
+      {
+        "data": "2031-02-07",
+        "totalConsultas": 1,
+        "agendadas": 0,
+        "emEspera": 0,
+        "emAtendimento": 0,
+        "finalizadas": 1,
+        "canceladas": 0
+      }
+    ],
+    "porUnidade": [
+      {
+        "id": "2414a0ed-3b04-48d3-8caa-21f434cddd04",
+        "nome": "Unidade QA64 Centro",
+        "totalConsultas": 4,
+        "agendadas": 1,
+        "emEspera": 0,
+        "emAtendimento": 1,
+        "finalizadas": 2,
+        "canceladas": 0
+      },
+      {
+        "id": "215d1011-429b-478a-ba97-0c3c70af30d9",
+        "nome": "Unidade QA64 Histórica",
+        "totalConsultas": 3,
+        "agendadas": 1,
+        "emEspera": 1,
+        "emAtendimento": 0,
+        "finalizadas": 0,
+        "canceladas": 1
+      }
+    ],
+    "porEspecialidade": [
+      {
+        "id": "8790763a-82a8-4e7f-acd1-0a2bf8bb07ed",
+        "nome": "Especialidade QA64 A",
+        "totalConsultas": 4,
+        "agendadas": 2,
+        "emEspera": 1,
+        "emAtendimento": 0,
+        "finalizadas": 1,
+        "canceladas": 0
+      },
+      {
+        "id": "14a9abd8-0cea-4628-89b7-dc9a8d8cf008",
+        "nome": "Especialidade QA64 B",
+        "totalConsultas": 3,
+        "agendadas": 0,
+        "emEspera": 0,
+        "emAtendimento": 1,
+        "finalizadas": 1,
+        "canceladas": 1
+      }
+    ]
+  },
+  "completed": {
+    "totalFinalizadas": 3,
+    "porDia": [
+      {
+        "data": "2031-02-01",
+        "totalFinalizadas": 1
+      },
+      {
+        "data": "2031-02-02",
+        "totalFinalizadas": 1
+      },
+      {
+        "data": "2031-02-05",
+        "totalFinalizadas": 1
+      }
+    ],
+    "porUnidade": [
+      {
+        "id": "2414a0ed-3b04-48d3-8caa-21f434cddd04",
+        "nome": "Unidade QA64 Centro",
+        "totalFinalizadas": 1
+      },
+      {
+        "id": "215d1011-429b-478a-ba97-0c3c70af30d9",
+        "nome": "Unidade QA64 Histórica",
+        "totalFinalizadas": 2
+      }
+    ],
+    "porEspecialidade": [
+      {
+        "id": "8790763a-82a8-4e7f-acd1-0a2bf8bb07ed",
+        "nome": "Especialidade QA64 A",
+        "totalFinalizadas": 2
+      },
+      {
+        "id": "14a9abd8-0cea-4628-89b7-dc9a8d8cf008",
+        "nome": "Especialidade QA64 B",
+        "totalFinalizadas": 1
+      }
+    ]
+  },
+  "filtered": {
+    "scheduled": 2,
+    "completed": 1
+  },
+  "consoleErrors": [],
+  "clinicalRequests": []
+}
