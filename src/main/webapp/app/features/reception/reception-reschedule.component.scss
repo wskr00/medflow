@@ -1,0 +1,40 @@
+:host {
+  display: block;
+  animation: medflow-page-enter 180ms var(--medflow-ease-standard);
+}
+.reschedule-page {
+  max-width: 80rem;
+  padding: 2.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+.current-appointment {
+  border-left: 3px solid var(--primary);
+  background: var(--card);
+  padding: 1.25rem 1.5rem;
+}
+.current-appointment h2 {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+.current-appointment > p:first-of-type {
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+h1 {
+  font-weight: 500;
+  letter-spacing: -0.035em;
+}
+@media (max-width: 1023px) {
+  .reschedule-page {
+    padding: 2rem 1.5rem;
+  }
+}
+
+/* Route focus announces the main region; interactive controls keep their focus ring. */
+#reception-main:focus {
+  outline: none;
+}

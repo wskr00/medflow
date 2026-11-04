@@ -1,3 +1,4 @@
+@import "@fontsource-variable/ibm-plex-sans/standard.css";
 @import "./tailwind.css";
 
 html,
@@ -13,4 +14,49 @@ button:not(:disabled),
 a[href],
 [role="button"]:not([aria-disabled="true"]) {
   cursor: pointer;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 2rem;
+}
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+.feedback-enter {
+  animation: medflow-feedback 180ms var(--medflow-ease-standard);
+}
+@keyframes medflow-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes medflow-feedback {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

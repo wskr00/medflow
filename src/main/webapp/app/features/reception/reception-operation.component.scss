@@ -1,0 +1,278 @@
+:host {
+  display: block;
+  animation: medflow-page-enter 180ms var(--medflow-ease-standard);
+}
+.operation-page {
+  padding: 2.5rem 2rem;
+  max-width: 100rem;
+  margin-inline: auto;
+}
+.operation-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+.section-label {
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  color: var(--primary);
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+.operation-title {
+  font-size: clamp(2rem, 3vw, 2.8rem);
+  font-weight: 500;
+  letter-spacing: -0.045em;
+  line-height: 1.1;
+  margin-bottom: 0.6rem;
+}
+.operation-jumps {
+  display: none;
+}
+.operation-filters {
+  display: grid;
+  grid-template-columns: 1fr 1.25fr 1.4fr 1fr auto;
+  gap: 1rem;
+  padding: 1.25rem 0;
+  border-block: 1px solid var(--border);
+  margin-bottom: 2rem;
+}
+.operation-desk {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 17rem;
+  gap: 1.75rem;
+  align-items: start;
+}
+.agenda-region {
+  min-width: 0;
+  display: grid;
+  gap: 1rem;
+}
+.agenda-table {
+  background: var(--card);
+  border-block: 1px solid var(--border);
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+th {
+  font-size: 0.65rem;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+  text-transform: uppercase;
+  padding: 1rem 0.65rem;
+  text-align: left;
+  background: var(--muted);
+  color: var(--muted-foreground);
+}
+td {
+  padding: 1rem 0.65rem;
+  vertical-align: top;
+}
+tr {
+  transition: background-color var(--medflow-duration-fast);
+}
+tbody tr:hover {
+  background: color-mix(in oklch, var(--accent) 25%, var(--card));
+}
+.appointment-time {
+  font-size: 1.15rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.appointment-time span {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: 0.7rem;
+  font-weight: 400;
+  margin-top: 0.25rem;
+}
+.appointment-person {
+  min-width: 0;
+}
+.appointment-person strong {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+.appointment-person span,
+.appointment-person small {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+.appointment-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem;
+  min-width: 10rem;
+}
+.appointment-actions button,
+.appointment-actions a {
+  min-height: 2.75rem;
+  width: 100%;
+}
+.agenda-cards {
+  display: none;
+}
+.queue-region {
+  border-top: 3px solid var(--primary);
+  background: var(--card);
+  padding: 1.25rem 1rem;
+  position: sticky;
+  top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 3rem);
+  gap: 0.75rem;
+}
+.queue-region > div {
+  align-items: start;
+}
+.queue-region h2 {
+  font-size: 1.2rem;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+}
+.queue-description {
+  color: var(--muted-foreground);
+  font-size: 0.7rem;
+  margin-top: 0.5rem;
+  line-height: 1.5;
+}
+.queue-count {
+  font-size: 0.7rem;
+  white-space: nowrap;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+}
+.queue-list {
+  list-style: none;
+  margin-top: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-width: thin;
+  scrollbar-gutter: stable;
+}
+.queue-entry {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1.1rem 0.25rem;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+}
+.queue-position {
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted-foreground);
+  padding-top: 0.15rem;
+}
+.queue-person {
+  min-width: 0;
+}
+.queue-person p {
+  line-height: 1.6;
+}
+.queue-person p:first-child {
+  font-size: 0.875rem;
+}
+.queue-pagination {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.25rem;
+  margin-top: 1rem;
+}
+[hlmAlert] {
+  margin-bottom: 1.5rem;
+}
+#agenda-title,
+#queue-title {
+  scroll-margin-top: 1.5rem;
+}
+@media (max-width: 1279px) {
+  .operation-desk {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .queue-region {
+    position: static;
+    max-height: none;
+  }
+  .queue-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 1.5rem;
+    overflow: visible;
+    scrollbar-gutter: auto;
+  }
+  .operation-filters {
+    grid-template-columns: 1fr 1fr;
+  }
+  .operation-jumps {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+  }
+  .operation-jumps a {
+    padding: 0.75rem 0;
+    color: var(--primary);
+    border-bottom: 2px solid var(--primary);
+  }
+  .operation-jumps span {
+    margin-left: 0.5rem;
+  }
+}
+@media (max-width: 1023px) {
+  .operation-page {
+    padding: 2rem 1.5rem;
+  }
+  .agenda-table {
+    display: none;
+  }
+  .agenda-cards {
+    display: grid;
+    gap: 1rem;
+  }
+  .operation-heading {
+    align-items: start;
+  }
+  .operation-heading > button {
+    margin-top: 1.75rem;
+  }
+}
+@media (max-width: 600px) {
+  .operation-heading {
+    flex-direction: column;
+  }
+  .operation-heading > button {
+    margin-top: 0;
+  }
+  .operation-filters,
+  .queue-list {
+    grid-template-columns: 1fr;
+  }
+  .operation-page {
+    padding: 1.5rem 1rem;
+  }
+}
+.appointment-actions > button {
+  grid-column: 1 / -1;
+}
+.appointment-actions > hlm-dialog {
+  display: block;
+}
+.agenda-table th:last-child {
+  width: 11rem;
+}
+
+/* Route focus announces the main region; interactive controls keep their focus ring. */
+#reception-main:focus {
+  outline: none;
+}
