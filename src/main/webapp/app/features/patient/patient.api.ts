@@ -14,7 +14,10 @@ function endpoint(
   return `${authConfig.apiBaseUrl}${path}${query.size ? `?${query}` : ""}`;
 }
 
-export function patientIssue(error: unknown): PatientIssue {
+export function patientIssue(
+  error: unknown,
+  context: "read" | "write" = "read",
+): PatientIssue {
   const response = error as HttpErrorResponse;
   const code =
     response?.error?.code ??
@@ -40,7 +43,7 @@ export function patientIssue(error: unknown): PatientIssue {
     ],
     RECURSO_NAO_ENCONTRADO: [
       "Consulta não encontrada",
-      "Esta consulta não está disponível para reagendamento. Volte para suas consultas.",
+      "Não foi possível encontrar esta consulta. Volte para suas consultas.",
     ],
     NAO_AUTENTICADO: ["Sessão expirada", "Entre novamente para continuar."],
     FALHA_DE_REDE: [
@@ -52,14 +55,27 @@ export function patientIssue(error: unknown): PatientIssue {
     "Não foi possível concluir",
     "Tente novamente em alguns instantes.",
   ];
-  return { code, title, description, conflict: response?.status === 409 };
+  return {
+    code,
+    title,
+    description:
+      context === "write" &&
+      (code === "FALHA_DE_REDE" || code === "ERRO_INTERNO")
+        ? "Não recebemos a confirmação do serviço. Confira suas consultas antes de repetir a operação."
+        : description,
+    conflict: response?.status === 409,
+  };
 }
 
 @Injectable()
 export class PatientApi {
   private readonly http = inject(HttpClient);
-  appointments(recorte: "UPCOMING" | "PAST" | "CANCELLED", q?: string) {
-    return endpoint("/me/agendamentos", { recorte, q, page: 0, size: 20 });
+  appointments(
+    recorte: "UPCOMING" | "PAST" | "CANCELLED",
+    q?: string,
+    page = 0,
+  ) {
+    return endpoint("/me/agendamentos", { recorte, q, page, size: 20 });
   }
   appointment(id: string) {
     return endpoint(`/agendamentos/${id}`);

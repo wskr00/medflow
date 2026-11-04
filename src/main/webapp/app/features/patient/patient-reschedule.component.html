@@ -1,0 +1,237 @@
+<div class="patient-page">
+  <header class="page-heading">
+    <div>
+      <p class="eyebrow">Alterar agendamento</p>
+      <h1>Reagendar consulta</h1>
+      <p class="page-description">
+        Seu horário atual será mantido até a confirmação de um novo horário.
+      </p>
+    </div>
+    <a hlmBtn variant="ghost" routerLink="/workspace/patient/consultas"
+      >Voltar às consultas</a
+    >
+  </header>
+  @if (completed(); as appointment) {
+    <section
+      class="task-panel success-panel"
+      role="status"
+      animate.enter="feedback-enter"
+    >
+      <header>
+        <p class="success-label">✓ Alteração confirmada</p>
+        <h2
+          class="step-heading step-focus"
+          id="reschedule-success-title"
+          tabindex="-1"
+        >
+          Consulta reagendada
+        </h2>
+        <p class="helper mt-2">O novo horário já está na agenda.</p>
+      </header>
+      <div class="panel-body">
+        <app-patient-visit-details [visit]="appointment" />
+      </div>
+      <div class="task-actions">
+        <a hlmBtn routerLink="/workspace/patient/consultas">Ver consultas</a>
+      </div>
+    </section>
+  } @else {
+    @if (problem(); as message) {
+      <section
+        hlmAlert
+        role="alert"
+        id="reschedule-feedback"
+        tabindex="-1"
+        animate.enter="feedback-enter"
+      >
+        <h2 hlmAlertTitle>{{ message.title }}</h2>
+        <p hlmAlertDescription>
+          {{ message.description }} A data escolhida foi mantida. A alteração
+          não foi confirmada.
+        </p>
+      </section>
+    }
+    @if (appointment.isLoading()) {
+      <app-state-panel
+        state="loading"
+        title="Carregando consulta"
+        description="Buscando seu agendamento atual."
+      />
+    } @else if (appointment.error()) {
+      <div>
+        <app-state-panel
+          state="error"
+          [title]="issue(appointment.error()).title"
+          [description]="issue(appointment.error()).description"
+        /><button
+          hlmBtn
+          variant="outline"
+          type="button"
+          class="mt-3"
+          (click)="appointment.reload()"
+        >
+          Tentar novamente
+        </button>
+      </div>
+    } @else if (appointment.value(); as current) {
+      <section class="visit-summary" aria-label="Horário atual">
+        <h2>Horário atual</h2>
+        <p>{{ current.especialidade.nome }} · {{ current.medico.nome }}</p>
+        <p class="mt-1 font-medium">{{ dateTime(current.inicio) }}</p>
+        <p class="helper mt-1">
+          {{ current.unidade.nome }} · {{ current.consultorio.nome }}
+        </p>
+      </section>
+      @if (!current.allowedActions.canReschedule) {
+        <app-state-panel
+          state="conflict"
+          title="Esta consulta não pode ser reagendada"
+          description="A situação do atendimento mudou. Confira suas consultas para ver as ações disponíveis."
+        /><a hlmBtn variant="outline" routerLink="/workspace/patient/consultas"
+          >Ver consultas</a
+        >
+      } @else if (conflictBlocked()) {
+        <section class="task-panel">
+          <div class="panel-body">
+            <h2 class="step-heading">Confira a consulta atualizada</h2>
+            <p class="helper mt-2">
+              Os dados do horário atual acima foram consultados novamente.
+              Confira antes de escolher outro horário.
+            </p>
+          </div>
+          <div class="task-actions">
+            <button hlmBtn type="button" (click)="acceptUpdated()">
+              Conferi a consulta, escolher horário
+            </button>
+          </div>
+        </section>
+      } @else if (review() && selected(); as next) {
+        <section class="task-panel">
+          <div class="panel-body">
+            <h2
+              class="step-heading step-focus"
+              id="reschedule-review-title"
+              tabindex="-1"
+            >
+              Revise a alteração
+            </h2>
+            <p class="helper mt-2">
+              Confira o que será alterado antes de confirmar.
+            </p>
+            <div class="reschedule-comparison">
+              <section>
+                <p class="comparison-label">Horário atual</p>
+                <app-patient-visit-details [visit]="current" />
+              </section>
+              <section class="new-visit">
+                <p class="comparison-label">Novo horário</p>
+                <app-patient-visit-details [visit]="next" />
+              </section>
+            </div>
+          </div>
+          <div class="task-actions">
+            <button
+              hlmBtn
+              variant="outline"
+              type="button"
+              [disabled]="saving()"
+              (click)="backToTimes()"
+            >
+              Alterar horário</button
+            ><button
+              hlmBtn
+              type="button"
+              [disabled]="saving()"
+              (click)="confirm(current, next)"
+            >
+              @if (saving()) {
+                <hlm-spinner aria-hidden="true" />
+              }
+              Confirmar reagendamento
+            </button>
+          </div>
+        </section>
+      } @else {
+        <section class="task-panel">
+          <div class="calendar-layout">
+            <section class="calendar-column">
+              <h2>Nova data</h2>
+              <hlm-calendar
+                [date]="date()"
+                [min]="today"
+                (dateChange)="changeDate($event)"
+              />
+              <p class="calendar-key">
+                A especialidade, o profissional e a unidade são mantidos.
+                Consulte uma data para escolher um novo horário.
+              </p>
+            </section>
+            <section class="slots-column">
+              <div>
+                <h2
+                  id="reschedule-times-title"
+                  class="step-focus"
+                  tabindex="-1"
+                >
+                  Novo horário
+                </h2>
+                <p class="helper">{{ dateLabel() }}</p>
+              </div>
+              @if (availability.isLoading()) {
+                <app-state-panel
+                  state="loading"
+                  title="Buscando horários"
+                  description="Consultando a nova data."
+                />
+              } @else if (availability.error()) {
+                <app-state-panel
+                  state="error"
+                  [title]="issue(availability.error()).title"
+                  [description]="issue(availability.error()).description"
+                /><button
+                  hlmBtn
+                  variant="outline"
+                  type="button"
+                  (click)="availability.reload()"
+                >
+                  Tentar novamente
+                </button>
+              } @else if (!slots().length) {
+                <app-state-panel
+                  state="empty"
+                  title="Sem horários nesta data"
+                  description="Escolha outra data no calendário. Seu horário atual continua reservado."
+                />
+              } @else {
+                <app-patient-slot-options
+                  [slots]="slots()"
+                  [selected]="selected()"
+                  (choose)="choose($event)"
+                />
+              }
+            </section>
+          </div>
+          <div class="task-actions">
+            <span class="helper" role="status">{{
+              selected()
+                ? "Horário selecionado. Revise a alteração para continuar."
+                : "Selecione um novo horário para continuar."
+            }}</span
+            ><button
+              hlmBtn
+              type="button"
+              [disabled]="
+                !selected() ||
+                availability.isLoading() ||
+                !!availability.error()
+              "
+              (click)="showReview()"
+            >
+              Revisar novo horário
+            </button>
+          </div>
+        </section>
+      }
+    }
+  }
+</div>

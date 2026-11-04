@@ -1,0 +1,83 @@
+<div class="patient-page">
+  <header class="page-heading">
+    <div>
+      <p class="eyebrow">Atendimentos anteriores</p>
+      <h1>Histórico</h1>
+      <p class="page-description">
+        Consulte a data, o profissional e o local das suas consultas concluídas.
+      </p>
+    </div>
+    <a hlmBtn variant="outline" routerLink="../consultas"
+      >Ver próximas consultas</a
+    >
+  </header>
+  @if (resource.isLoading()) {
+    <app-state-panel
+      state="loading"
+      title="Carregando histórico"
+      description="Buscando suas consultas concluídas."
+    />
+  } @else if (resource.error()) {
+    <div>
+      <app-state-panel
+        state="error"
+        [title]="issue(resource.error()).title"
+        [description]="issue(resource.error()).description"
+      /><button
+        hlmBtn
+        variant="outline"
+        type="button"
+        class="mt-3"
+        (click)="resource.reload()"
+      >
+        Tentar novamente
+      </button>
+    </div>
+  } @else if (!items().length) {
+    <app-state-panel
+      state="empty"
+      title="Nenhuma consulta concluída"
+      description="Depois do atendimento, a consulta aparecerá aqui."
+    />
+  } @else {
+    <ol class="history-list" aria-label="Consultas concluídas">
+      @for (item of items(); track item.id) {
+        <li>
+          <div class="history-date">
+            <p>{{ dateTime(item.inicio) }}</p>
+            <app-status-badge [status]="item.status" />
+          </div>
+          <div>
+            <h2>{{ item.especialidade.nome }}</h2>
+            <p>{{ item.medico.nome }}</p>
+          </div>
+          <div class="history-place">
+            <span>Local de atendimento</span>
+            <p>{{ item.unidade.nome }}</p>
+            <p>{{ item.consultorio.nome }}</p>
+          </div>
+        </li>
+      }
+    </ol>
+    @if (page() > 0 || hasNext()) {
+      <nav class="pager" aria-label="Páginas do histórico">
+        <button
+          hlmBtn
+          variant="outline"
+          [disabled]="page() === 0"
+          (click)="page.set(page() - 1)"
+        >
+          Mais recentes</button
+        ><span>Página {{ page() + 1 }}</span
+        ><button
+          hlmBtn
+          variant="outline"
+          [disabled]="!hasNext()"
+          (click)="page.set(page() + 1)"
+        >
+          Mais antigas
+        </button>
+      </nav>
+    }
+  }
+</div>

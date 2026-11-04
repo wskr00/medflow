@@ -1,0 +1,105 @@
+:host {
+  display: block;
+  min-height: 100dvh;
+}
+.patient-header {
+  border-top: 3px solid var(--primary);
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+  padding-inline: max(2rem, calc((100vw - 80rem) / 2));
+}
+.header-top {
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+  min-height: 5.5rem;
+}
+.area-label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--muted-foreground);
+}
+app-session-actions {
+  margin-left: auto;
+}
+nav {
+  display: flex;
+  gap: 2rem;
+}
+nav a {
+  min-height: 3.25rem;
+  display: flex;
+  align-items: center;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+  transition:
+    color var(--medflow-duration-fast),
+    border-color var(--medflow-duration-fast);
+}
+nav a:hover {
+  color: var(--primary);
+}
+nav .active {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+main {
+  max-width: 84rem;
+  min-width: 0;
+  margin-inline: auto;
+  padding: 2.5rem 2rem 4rem;
+}
+main:focus {
+  outline: none;
+}
+.skip-link {
+  position: fixed;
+  top: 0.5rem;
+  left: 0.5rem;
+  transform: translateY(-200%);
+  z-index: 50;
+  padding: 1rem;
+  background: var(--card);
+}
+.skip-link:focus {
+  transform: none;
+}
+@media (max-width: 1023px) {
+  .patient-header {
+    padding-inline: 1.5rem;
+  }
+  .header-top {
+    gap: 1rem;
+    min-height: 4.75rem;
+  }
+  .area-label {
+    display: none;
+  }
+  main {
+    padding: 1.75rem 1.5rem 3rem;
+  }
+}
+@media (max-width: 480px) {
+  .patient-header {
+    padding-inline: 1rem;
+  }
+  .header-top {
+    flex-wrap: wrap;
+    padding-block: 1rem;
+  }
+  nav {
+    gap: 0.5rem;
+    justify-content: space-between;
+  }
+  nav a {
+    font-size: 0.8125rem;
+  }
+  main {
+    padding: 1.5rem 1rem 3rem;
+  }
+  app-session-actions {
+    max-width: 100%;
+  }
+}

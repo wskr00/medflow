@@ -1,0 +1,31 @@
+.reschedule-comparison {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.75rem;
+}
+.reschedule-comparison > section {
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.reschedule-comparison .new-visit {
+  border-top: 3px solid var(--primary);
+  background: var(--muted);
+}
+.comparison-label {
+  color: var(--primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+@media (max-width: 600px) {
+  .reschedule-comparison {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .task-actions > span {
+    width: 100%;
+  }
+}

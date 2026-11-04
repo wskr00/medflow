@@ -3,6 +3,7 @@ import {
   HttpTestingController,
   provideHttpClientTesting,
 } from "@angular/common/http/testing";
+import { provideRouter } from "@angular/router";
 import { TestBed } from "@angular/core/testing";
 import { describe, expect, it, vi } from "vitest";
 import { IdentityService } from "../../auth/identity.service";
@@ -13,6 +14,7 @@ describe("PatientBookingComponent", () => {
     TestBed.configureTestingModule({
       imports: [PatientBookingComponent],
       providers: [
+        provideRouter([]),
         provideHttpClient(),
         provideHttpClientTesting(),
         {
@@ -71,6 +73,7 @@ describe("PatientBookingComponent", () => {
     TestBed.configureTestingModule({
       imports: [PatientBookingComponent],
       providers: [
+        provideRouter([]),
         provideHttpClient(),
         provideHttpClientTesting(),
         {
@@ -149,6 +152,7 @@ describe("PatientBookingComponent", () => {
     TestBed.configureTestingModule({
       imports: [PatientBookingComponent],
       providers: [
+        provideRouter([]),
         provideHttpClient(),
         provideHttpClientTesting(),
         {
