@@ -1,0 +1,150 @@
+<section class="admin-page">
+  <header>
+    <p class="text-primary text-xs font-semibold tracking-widest uppercase">
+      Profissionais
+    </p>
+    <h1 class="text-3xl font-semibold tracking-tight">Especialidades</h1>
+    <p class="text-muted-foreground mt-1">
+      Mantenha as especialidades disponíveis para os profissionais.
+    </p>
+  </header>
+  <app-admin-feedback
+    [issue]="notice()"
+    [busy]="saving()"
+    (reload)="reloadCurrent()"
+  />
+  <div class="editor-layout">
+    <section
+      hlmCard
+      class="record-panel"
+      id="admin-list"
+      tabindex="-1"
+      aria-label="Cadastros existentes"
+    >
+      <div hlmCardHeader class="list-header">
+        <div>
+          <h2 hlmCardTitle>Especialidades existentes</h2>
+          <p hlmCardDescription>Inclui registros inativos.</p>
+        </div>
+        <button hlmBtn type="button" class="min-h-11" (click)="newValue()">
+          Nova especialidade
+        </button>
+      </div>
+      <div hlmCardContent>
+        @if (values.error()) {
+          <app-state-panel
+            state="error"
+            [title]="issue(values.error()).title"
+            [description]="issue(values.error()).description"
+          /><button
+            hlmBtn
+            variant="outline"
+            type="button"
+            class="mt-3"
+            (click)="values.reload()"
+          >
+            Tentar novamente
+          </button>
+        } @else if (values.isLoading()) {
+          <app-state-panel
+            state="loading"
+            title="Carregando especialidades"
+            description="Aguarde um momento."
+          />
+        } @else {
+          <div class="grid gap-2 sm:grid-cols-2">
+            @for (value of values.value()?.items ?? []; track value.id) {
+              <button
+                type="button"
+                class="record-option"
+                [attr.aria-pressed]="id() === value.id"
+                (click)="edit(value)"
+              >
+                <span class="block font-medium">{{ value.nome }}</span
+                ><span class="text-muted-foreground text-xs">{{
+                  value.ativo ? "ativa" : "inativa"
+                }}</span>
+              </button>
+            } @empty {
+              <app-state-panel
+                state="empty"
+                title="Nenhuma especialidade"
+                description="Cadastre uma especialidade para associar profissionais."
+              />
+            }
+          </div>
+        }
+      </div>
+    </section>
+    <form hlmCard (submit)="$event.preventDefault(); save()">
+      <div hlmCardHeader>
+        <h2 hlmCardTitle>
+          {{ id() ? "Editar especialidade" : "Nova especialidade" }}
+        </h2>
+        <p hlmCardDescription>
+          O nome é obrigatório. Desativar preserva referências anteriores.
+        </p>
+      </div>
+      <fieldset class="editor-fields" [disabled]="saving()">
+        <div hlmCardContent class="grid gap-5">
+          <div hlmField>
+            <label hlmFieldLabel for="specialty-name">Nome</label
+            ><input
+              hlmInput
+              id="specialty-name"
+              [attr.aria-invalid]="!!field('nome')"
+              [attr.aria-describedby]="
+                field('nome') ? 'specialty-name-error' : null
+              "
+              class="min-h-11"
+              maxlength="200"
+              [value]="name()"
+              (input)="name.set($any($event.target).value); markDirty()"
+            />
+            @if (field("nome")) {
+              <hlm-field-error forceShow id="specialty-name-error">{{
+                field("nome")
+              }}</hlm-field-error>
+            }
+          </div>
+          <div hlmField>
+            <label hlmFieldLabel for="specialty-active">Estado</label
+            ><hlm-native-select
+              selectId="specialty-active"
+              class="min-h-11"
+              [value]="active() ? 'true' : 'false'"
+              (valueChange)="active.set($event === 'true'); markDirty()"
+              ><option hlmNativeSelectOption value="true">Ativa</option>
+              <option hlmNativeSelectOption value="false">
+                Inativa
+              </option></hlm-native-select
+            >
+          </div>
+        </div>
+        <div hlmCardFooter class="editor-actions">
+          <p class="editor-status" role="status">
+            {{
+              saving()
+                ? "Salvando…"
+                : dirty()
+                  ? "Alterações não salvas"
+                  : "Sem alterações pendentes"
+            }}
+          </p>
+          <a href="#admin-list" class="back-to-list">Voltar à lista</a>
+          <button
+            hlmBtn
+            type="submit"
+            class="min-h-11"
+            [disabled]="saving() || notice()?.code === 'VERSAO_DESATUALIZADA'"
+          >
+            @if (saving()) {
+              <hlm-spinner aria-hidden="true" />
+            }
+            Salvar
+          </button>
+        </div>
+      </fieldset>
+    </form>
+  </div>
+</section>

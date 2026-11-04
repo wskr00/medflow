@@ -47,7 +47,7 @@ describe("AdminApi", () => {
   it("traduz conflito de reservas sem sugerir cancelamento automático", () => {
     const issue = adminIssue({
       status: 409,
-      error: { code: "CONFLITO_DE_RESERVAS" },
+      error: { code: "CONFIGURACAO_COM_RESERVAS" },
     });
     expect(issue.conflict).toBe(true);
     expect(issue.description).toContain("reserva");

@@ -115,3 +115,14 @@ usa contexto, campos e ações separadas. O tablet oferece salvamento ao fim do
 formulário, e o histórico permanece em um painel lateral acessível. Conflitos
 exibem comparação explícita sem substituir texto local. Evidências e limites:
 [revisão da #59](../qa/ui59/README.md).
+
+## Administração — #60
+
+Configuração usa navegação lateral com sessão fixa no desktop e as seis rotas
+visíveis no tablet. Cada editor mantém sua composição de domínio; listas e
+formulários ficam lado a lado no desktop e empilhados abaixo de 1024 px.
+Seleção usa borda e estado semântico, especialidades usam toggle group com marca
+visível e teclado. Erros manuais de campos usam `forceShow`; select nativo pode
+receber `describedBy` para ligar sua mensagem ao controle focalizado. A recarga
+após conflito é explícita e confirma a substituição do formulário. Evidências e
+limites: [revisão da #60](../qa/ui60/README.md).

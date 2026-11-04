@@ -12,4 +12,14 @@ describe("HlmNativeSelect", () => {
       "min-h-11",
     );
   });
+  it("associa a descrição de erro ao select que recebe foco", async () => {
+    TestBed.configureTestingModule({ imports: [HlmNativeSelect] });
+    const fixture = TestBed.createComponent(HlmNativeSelect);
+    fixture.componentRef.setInput("describedBy", "period-error");
+    fixture.componentRef.setInput("aria-invalid", true);
+    await fixture.whenStable();
+    const select = fixture.nativeElement.querySelector("select");
+    expect(select.getAttribute("aria-describedby")).toBe("period-error");
+    expect(select.getAttribute("aria-invalid")).toBe("true");
+  });
 });

@@ -1,0 +1,179 @@
+:host {
+  display: block;
+  min-width: 0;
+  animation: medflow-page-enter var(--medflow-duration-standard)
+    var(--medflow-ease-standard);
+}
+.admin-page,
+.clinic-page {
+  display: grid;
+  gap: 1.5rem;
+}
+:host > section > header {
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+h1 {
+  font-size: clamp(1.75rem, 2.2vw, 2.25rem);
+  line-height: 1.15;
+}
+.editor-layout {
+  display: grid;
+  grid-template-columns: 20rem minmax(0, 1fr);
+  align-items: start;
+  gap: 1.5rem;
+}
+.editor-layout > *,
+form,
+fieldset {
+  min-width: 0;
+}
+.record-panel {
+  box-shadow: none;
+  padding-block: 0;
+  gap: 0;
+  overflow: clip;
+}
+.record-panel > [hlmCardHeader] {
+  padding: 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+.record-panel > [hlmCardContent] {
+  padding: 0.5rem;
+  max-height: calc(100dvh - 18rem);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.list-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  gap: 1rem;
+  justify-content: space-between;
+}
+.list-header button {
+  width: 100%;
+}
+.record-option {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 4.25rem;
+  padding: 0.85rem 0.9rem;
+  border: 1px solid transparent;
+  border-bottom-color: var(--border);
+  border-radius: var(--radius);
+  text-align: left;
+  transition:
+    background-color var(--medflow-duration-fast),
+    border-color var(--medflow-duration-fast);
+}
+.record-option:hover {
+  background: var(--muted);
+}
+.record-option[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--primary);
+}
+.record-option span {
+  overflow-wrap: anywhere;
+}
+.room-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 3rem;
+}
+[hlmCard] {
+  box-shadow: none;
+}
+.editor-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--card-spacing, 1.25rem);
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+.editor-fields:disabled {
+  opacity: 0.7;
+}
+.editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  border-top: 1px solid var(--border);
+  padding-top: 1.25rem;
+}
+.editor-actions > button {
+  margin-left: auto;
+}
+.editor-status {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  width: 100%;
+}
+.back-to-list {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  font-size: 0.875rem;
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+[hlmField] {
+  min-width: 0;
+}
+input {
+  min-width: 0;
+}
+[hlmFieldDescription] {
+  line-height: 1.5;
+}
+.clinic-page {
+  max-width: 58rem;
+}
+.form-hint {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+[hlm-field-error],
+hlm-field-error {
+  font-size: 0.875rem;
+}
+@media (max-width: 1199px) {
+  .editor-layout {
+    grid-template-columns: 17rem minmax(0, 1fr);
+    gap: 1rem;
+  }
+}
+@media (max-width: 1023px) {
+  .editor-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .record-panel > [hlmCardContent] {
+    max-height: 20rem;
+  }
+  .list-header {
+    align-items: center;
+  }
+  .list-header button {
+    width: auto;
+  }
+  .record-panel {
+    scroll-margin-top: 1rem;
+  }
+}
+@media (max-width: 480px) {
+  .editor-actions > button {
+    width: 100%;
+  }
+}
+.selection-mark {
+  display: inline-block;
+  width: 0.75rem;
+  text-align: center;
+}

@@ -1,0 +1,132 @@
+<section class="clinic-page">
+  <header>
+    <p class="text-primary text-xs font-semibold tracking-widest uppercase">
+      Configuração
+    </p>
+    <h1 class="text-3xl font-semibold tracking-tight">Clínica</h1>
+    <p class="text-muted-foreground mt-1">
+      Nome, fuso horário e situação da clínica.
+    </p>
+  </header>
+  <app-admin-feedback
+    [issue]="notice()"
+    [busy]="saving()"
+    (reload)="reloadCurrent()"
+  />
+  @if (clinic.error()) {
+    <app-state-panel
+      state="error"
+      [title]="issue(clinic.error()).title"
+      [description]="issue(clinic.error()).description"
+    /><button
+      hlmBtn
+      variant="outline"
+      class="mt-3 min-h-11"
+      (click)="clinic.reload()"
+    >
+      Tentar novamente
+    </button>
+  } @else if (clinic.isLoading()) {
+    <app-state-panel
+      state="loading"
+      title="Carregando clínica"
+      description="Aguarde um momento."
+    />
+  } @else if (clinic.value(); as data) {
+    <form hlmCard (submit)="$event.preventDefault(); save(data)">
+      <div hlmCardHeader>
+        <h2 hlmCardTitle>Dados da clínica</h2>
+        <p hlmCardDescription>
+          Nome e fuso horário são obrigatórios. Agendas e bloqueios usam esse
+          fuso.
+        </p>
+      </div>
+      <fieldset class="editor-fields" [disabled]="saving()">
+        <div hlmCardContent class="grid gap-5">
+          <div hlmField>
+            <label hlmFieldLabel for="clinic-name">Nome</label
+            ><input
+              hlmInput
+              id="clinic-name"
+              [attr.aria-invalid]="!!fieldError('nome')"
+              [attr.aria-describedby]="
+                fieldError('nome') ? 'clinic-name-error' : null
+              "
+              class="min-h-11"
+              maxlength="200"
+              [value]="name()"
+              (input)="name.set($any($event.target).value); clearSaved()"
+            />
+            @if (fieldError("nome")) {
+              <hlm-field-error forceShow id="clinic-name-error">{{
+                fieldError("nome")
+              }}</hlm-field-error>
+            }
+          </div>
+          <div hlmField>
+            <label hlmFieldLabel for="clinic-zone">Fuso horário</label
+            ><input
+              hlmInput
+              id="clinic-zone"
+              [attr.aria-invalid]="!!fieldError('timeZone')"
+              [attr.aria-describedby]="
+                fieldError('timeZone') ? 'clinic-zone-error' : null
+              "
+              class="min-h-11"
+              maxlength="64"
+              [value]="timeZone()"
+              (input)="timeZone.set($any($event.target).value); clearSaved()"
+            />
+            @if (fieldError("timeZone")) {
+              <hlm-field-error forceShow id="clinic-zone-error">{{
+                fieldError("timeZone")
+              }}</hlm-field-error>
+            }
+            <p hlmFieldDescription>
+              Exemplo: America/Belem. Agendas e bloqueios usam esse fuso.
+            </p>
+          </div>
+          <div hlmField>
+            <label hlmFieldLabel for="clinic-active">Estado</label
+            ><hlm-native-select
+              selectId="clinic-active"
+              class="min-h-11"
+              [value]="active() ? 'true' : 'false'"
+              (valueChange)="active.set($event === 'true'); clearSaved()"
+              ><option hlmNativeSelectOption value="true">Ativa</option>
+              <option hlmNativeSelectOption value="false">
+                Inativa
+              </option></hlm-native-select
+            >
+          </div>
+        </div>
+        <div hlmCardFooter class="editor-actions">
+          <p class="editor-status" role="status">
+            {{
+              saving()
+                ? "Salvando…"
+                : dirty()
+                  ? "Alterações não salvas"
+                  : "Sem alterações pendentes"
+            }}
+          </p>
+
+          <p class="text-muted-foreground text-sm">Versão {{ data.version }}</p>
+          <button
+            hlmBtn
+            type="submit"
+            class="min-h-11"
+            [disabled]="
+              saving() || !dirty() || notice()?.code === 'VERSAO_DESATUALIZADA'
+            "
+          >
+            @if (saving()) {
+              <hlm-spinner aria-hidden="true" />
+            }
+            Salvar alterações
+          </button>
+        </div>
+      </fieldset>
+    </form>
+  }
+</section>

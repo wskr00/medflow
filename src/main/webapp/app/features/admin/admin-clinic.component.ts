@@ -7,7 +7,6 @@ import {
   inject,
   signal,
 } from "@angular/core";
-import { HlmAlertImports } from "@spartan-ng/helm/alert";
 import { HlmButtonImports } from "@spartan-ng/helm/button";
 import { HlmCardImports } from "@spartan-ng/helm/card";
 import { HlmFieldImports } from "@spartan-ng/helm/field";
@@ -16,6 +15,16 @@ import { HlmNativeSelectImports } from "@spartan-ng/helm/native-select";
 import { HlmSpinnerImports } from "@spartan-ng/helm/spinner";
 import { finalize } from "rxjs";
 import { StatePanelComponent } from "../../shared/ui/state-panel.component";
+import { AdminFeedbackComponent } from "./admin-feedback.component";
+import {
+  savedConfiguration,
+  invalidConfiguration,
+  discardAdminChanges,
+  confirmDeactivation,
+  confirmReload,
+  focusAdminEditor,
+  failedAdminReload,
+} from "./admin-editor.utils";
 import { AdminApi, adminIssue } from "./admin.api";
 import { AdminIssue, Clinic } from "./admin.models";
 
@@ -24,7 +33,7 @@ import { AdminIssue, Clinic } from "./admin.models";
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [AdminApi],
   imports: [
-    HlmAlertImports,
+    AdminFeedbackComponent,
     HlmButtonImports,
     HlmCardImports,
     HlmFieldImports,
@@ -33,118 +42,8 @@ import { AdminIssue, Clinic } from "./admin.models";
     HlmSpinnerImports,
     StatePanelComponent,
   ],
-  template: ` <section class="mx-auto max-w-3xl">
-    <header class="mb-6">
-      <p class="text-primary text-xs font-semibold tracking-widest uppercase">
-        Configuração
-      </p>
-      <h1 class="text-3xl font-semibold tracking-tight">Clínica</h1>
-      <p class="text-muted-foreground mt-1">
-        Dados da única clínica no seu contexto autorizado.
-      </p>
-    </header>
-    @if (clinic.error()) {
-      <app-state-panel
-        state="error"
-        [title]="issue(clinic.error()).title"
-        [description]="issue(clinic.error()).description"
-      /><button
-        hlmBtn
-        variant="outline"
-        class="mt-3 min-h-11"
-        (click)="clinic.reload()"
-      >
-        Tentar novamente
-      </button>
-    } @else if (clinic.isLoading()) {
-      <app-state-panel
-        state="loading"
-        title="Carregando clínica"
-        description="Aguarde um momento."
-      />
-    } @else if (clinic.value(); as data) {
-      <form hlmCard (submit)="$event.preventDefault(); save(data)">
-        <div hlmCardHeader>
-          <h2 hlmCardTitle>Dados da clínica</h2>
-          <p hlmCardDescription>
-            O fuso é aplicado pelo servidor nos horários de trabalho e
-            bloqueios.
-          </p>
-        </div>
-        <div hlmCardContent class="grid gap-5">
-          <div hlmField>
-            <label hlmFieldLabel for="clinic-name">Nome</label
-            ><input
-              hlmInput
-              id="clinic-name"
-              class="min-h-11"
-              maxlength="200"
-              [value]="name()"
-              (input)="name.set($any($event.target).value)"
-            />
-            @if (fieldError("nome")) {
-              <hlm-field-error>{{ fieldError("nome") }}</hlm-field-error>
-            }
-          </div>
-          <div hlmField>
-            <label hlmFieldLabel for="clinic-zone">Fuso horário IANA</label
-            ><input
-              hlmInput
-              id="clinic-zone"
-              class="min-h-11"
-              maxlength="64"
-              [value]="timeZone()"
-              (input)="timeZone.set($any($event.target).value)"
-            />
-            <p hlmFieldDescription>
-              Não converta horários no navegador; use o fuso configurado pela
-              clínica.
-            </p>
-            @if (fieldError("timeZone")) {
-              <hlm-field-error>{{ fieldError("timeZone") }}</hlm-field-error>
-            }
-          </div>
-          <div hlmField>
-            <label hlmFieldLabel for="clinic-active">Estado</label
-            ><hlm-native-select
-              selectId="clinic-active"
-              class="min-h-11"
-              [value]="active() ? 'true' : 'false'"
-              (valueChange)="active.set($event === 'true')"
-              ><option hlmNativeSelectOption value="true">Ativa</option>
-              <option hlmNativeSelectOption value="false">
-                Inativa
-              </option></hlm-native-select
-            >
-          </div>
-        </div>
-        <div hlmCardFooter class="justify-between">
-          <p class="text-muted-foreground text-sm">Versão {{ data.version }}</p>
-          <button
-            hlmBtn
-            type="submit"
-            class="min-h-11"
-            [disabled]="saving() || !dirty()"
-          >
-            @if (saving()) {
-              <hlm-spinner />
-            }
-            Salvar alterações
-          </button>
-        </div>
-      </form>
-    }
-    @if (notice(); as message) {
-      <section
-        hlmAlert
-        class="mt-4"
-        [variant]="message.conflict ? 'default' : 'destructive'"
-      >
-        <h2 hlmAlertTitle>{{ message.title }}</h2>
-        <p hlmAlertDescription>{{ message.description }}</p>
-      </section>
-    }
-  </section>`,
+  templateUrl: "./admin-clinic.component.html",
+  styleUrl: "./admin-editors.scss",
 })
 export class AdminClinicComponent {
   private readonly api = inject(AdminApi);
@@ -176,6 +75,7 @@ export class AdminClinicComponent {
     });
   }
   protected save(data: Clinic) {
+    if (this.saving() || this.notice()?.code === "VERSAO_DESATUALIZADA") return;
     if (!this.name().trim() || !this.timeZone().trim()) {
       this.notice.set({
         code: "INVALID",
@@ -187,8 +87,10 @@ export class AdminClinicComponent {
           timeZone: !this.timeZone().trim() ? "Informe o fuso IANA." : "",
         },
       });
+      focusAdminEditor(!this.name().trim() ? "clinic-name" : "clinic-zone");
       return;
     }
+    if (!confirmDeactivation(data.ativo, this.active())) return;
     this.saving.set(true);
     this.notice.set(null);
     this.api
@@ -201,11 +103,37 @@ export class AdminClinicComponent {
       .pipe(finalize(() => this.saving.set(false)))
       .subscribe({
         next: (value) => {
-          this.clinic.set(value);
-          this.initialized.set(true);
+          this.applyClinic(value);
+          this.notice.set(
+            savedConfiguration("Os dados da clínica foram salvos."),
+          );
         },
         error: (error) => this.notice.set(adminIssue(error)),
       });
+  }
+  private applyClinic(value: Clinic) {
+    this.clinic.set(value);
+    this.name.set(value.nome);
+    this.timeZone.set(value.timeZone);
+    this.active.set(value.ativo);
+    this.initialized.set(true);
+  }
+  protected reloadCurrent() {
+    if (this.saving() || !confirmReload()) return;
+    this.saving.set(true);
+    this.api
+      .read<Clinic>(this.api.clinic())
+      .pipe(finalize(() => this.saving.set(false)))
+      .subscribe({
+        next: (value) => {
+          this.applyClinic(value);
+          this.notice.set(null);
+        },
+        error: (error) => this.notice.set(failedAdminReload(error)),
+      });
+  }
+  protected clearSaved() {
+    if (this.notice()?.code === "SAVED") this.notice.set(null);
   }
   protected issue(error: unknown) {
     return adminIssue(error);
@@ -215,8 +143,9 @@ export class AdminClinicComponent {
   }
   canLeave() {
     return (
-      !this.dirty() ||
-      window.confirm("Há alterações não salvas na clínica. Sair sem salvar?")
+      !this.saving() &&
+      (!this.dirty() ||
+        window.confirm("Há alterações não salvas na clínica. Sair sem salvar?"))
     );
   }
 }

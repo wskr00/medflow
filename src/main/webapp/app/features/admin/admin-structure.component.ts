@@ -6,7 +6,6 @@ import {
   inject,
   signal,
 } from "@angular/core";
-import { HlmAlertImports } from "@spartan-ng/helm/alert";
 import { HlmButtonImports } from "@spartan-ng/helm/button";
 import { HlmCardImports } from "@spartan-ng/helm/card";
 import { HlmFieldImports } from "@spartan-ng/helm/field";
@@ -15,6 +14,16 @@ import { HlmNativeSelectImports } from "@spartan-ng/helm/native-select";
 import { HlmSpinnerImports } from "@spartan-ng/helm/spinner";
 import { finalize } from "rxjs";
 import { StatePanelComponent } from "../../shared/ui/state-panel.component";
+import { AdminFeedbackComponent } from "./admin-feedback.component";
+import {
+  savedConfiguration,
+  invalidConfiguration,
+  discardAdminChanges,
+  confirmDeactivation,
+  confirmReload,
+  focusAdminEditor,
+  failedAdminReload,
+} from "./admin-editor.utils";
 import { AdminApi, adminIssue } from "./admin.api";
 import { AdminIssue, Page, Room, Unit } from "./admin.models";
 
@@ -23,208 +32,17 @@ import { AdminIssue, Page, Room, Unit } from "./admin.models";
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [AdminApi],
   imports: [
-    HlmAlertImports,
+    AdminFeedbackComponent,
     HlmButtonImports,
     HlmCardImports,
     HlmFieldImports,
     HlmInputImports,
-    HlmNativeSelectImports,
     HlmSpinnerImports,
+    HlmNativeSelectImports,
     StatePanelComponent,
   ],
-  template: ` <section class="space-y-6">
-    <header>
-      <p class="text-primary text-xs font-semibold tracking-widest uppercase">
-        Estrutura
-      </p>
-      <h1 class="text-3xl font-semibold tracking-tight">
-        Unidades e consultórios
-      </h1>
-      <p class="text-muted-foreground mt-1">
-        A clínica é única; cada consultório pertence a uma unidade.
-      </p>
-    </header>
-    @if (notice(); as message) {
-      <section
-        hlmAlert
-        [variant]="message.conflict ? 'default' : 'destructive'"
-      >
-        <h2 hlmAlertTitle>{{ message.title }}</h2>
-        <p hlmAlertDescription>{{ message.description }}</p>
-      </section>
-    }
-    <div class="grid items-start gap-5 lg:grid-cols-[19rem_minmax(0,1fr)]">
-      <section hlmCard>
-        <div hlmCardHeader class="flex-row items-center justify-between">
-          <div>
-            <h2 hlmCardTitle>Unidades</h2>
-            <p hlmCardDescription>Selecione para editar.</p>
-          </div>
-          <button hlmBtn type="button" class="min-h-11" (click)="newUnit()">
-            Nova unidade
-          </button>
-        </div>
-        <div hlmCardContent>
-          @if (units.error()) {
-            <app-state-panel
-              state="error"
-              [title]="issue(units.error()).title"
-              [description]="issue(units.error()).description"
-            />
-          } @else if (units.isLoading()) {
-            <app-state-panel
-              state="loading"
-              title="Carregando unidades"
-              description="Aguarde um momento."
-            />
-          } @else {
-            <div class="flex flex-col gap-2">
-              @for (unit of units.value()?.items ?? []; track unit.id) {
-                <button
-                  type="button"
-                  class="bg-muted hover:bg-accent focus-visible:ring-ring/50 min-h-16 rounded-md p-3 text-left outline-none transition-colors focus-visible:ring-3"
-                  [class.bg-accent]="selectedId() === unit.id"
-                  (click)="selectUnit(unit)"
-                >
-                  <span class="block font-medium">{{ unit.nome }}</span
-                  ><span class="text-muted-foreground text-xs">{{
-                    unit.ativo ? "Ativa" : "Inativa"
-                  }}</span>
-                </button>
-              } @empty {
-                <app-state-panel
-                  state="empty"
-                  title="Nenhuma unidade"
-                  description="Cadastre a primeira unidade da clínica."
-                />
-              }
-            </div>
-          }
-        </div>
-      </section>
-      <section hlmCard>
-        <div hlmCardHeader>
-          <h2 hlmCardTitle>
-            {{ selectedId() ? "Detalhe da unidade" : "Nova unidade" }}
-          </h2>
-          <p hlmCardDescription>
-            Alterar ou desativar preserva as referências históricas.
-          </p>
-        </div>
-        <form
-          hlmCardContent
-          class="grid gap-5"
-          (submit)="$event.preventDefault(); saveUnit()"
-        >
-          <div hlmField>
-            <label hlmFieldLabel for="unit-name">Nome</label
-            ><input
-              hlmInput
-              id="unit-name"
-              class="min-h-11"
-              maxlength="200"
-              [value]="unitName()"
-              (input)="unitName.set($any($event.target).value); markDirty()"
-            />
-            @if (field("nome")) {
-              <hlm-field-error>{{ field("nome") }}</hlm-field-error>
-            }
-          </div>
-          <div hlmField>
-            <label hlmFieldLabel for="unit-address">Endereço</label
-            ><input
-              hlmInput
-              id="unit-address"
-              class="min-h-11"
-              maxlength="500"
-              [value]="address()"
-              (input)="address.set($any($event.target).value); markDirty()"
-            />
-            @if (field("endereco")) {
-              <hlm-field-error>{{ field("endereco") }}</hlm-field-error>
-            }
-          </div>
-          <div hlmField>
-            <label hlmFieldLabel for="unit-active">Estado</label
-            ><hlm-native-select
-              selectId="unit-active"
-              class="min-h-11"
-              [value]="unitActive() ? 'true' : 'false'"
-              (valueChange)="unitActive.set($event === 'true'); markDirty()"
-              ><option hlmNativeSelectOption value="true">Ativa</option>
-              <option hlmNativeSelectOption value="false">
-                Inativa
-              </option></hlm-native-select
-            >
-          </div>
-          <div class="flex justify-end">
-            <button hlmBtn type="submit" class="min-h-11" [disabled]="saving()">
-              @if (saving()) {
-                <hlm-spinner />
-              }
-              Salvar unidade
-            </button>
-          </div>
-        </form>
-        @if (selectedId()) {
-          <div hlmCardContent class="border-border border-t">
-            <div class="mb-3 flex items-center justify-between">
-              <h3 class="font-semibold">Consultórios</h3>
-              <button
-                hlmBtn
-                variant="outline"
-                class="min-h-11"
-                (click)="newRoom()"
-              >
-                Novo consultório
-              </button>
-            </div>
-            <div class="flex flex-col gap-2">
-              @for (room of roomsForUnit(); track room.id) {
-                <button
-                  type="button"
-                  class="bg-muted hover:bg-accent focus-visible:ring-ring/50 flex min-h-11 items-center justify-between rounded-md px-3 text-left outline-none transition-colors focus-visible:ring-3"
-                  (click)="editRoom(room)"
-                >
-                  <span>{{ room.nome }}</span
-                  ><span class="text-muted-foreground text-xs">{{
-                    room.ativo ? "ativo" : "inativo"
-                  }}</span>
-                </button>
-              } @empty {
-                <p class="text-muted-foreground text-sm">
-                  Ainda não há consultórios nesta unidade.
-                </p>
-              }
-            </div>
-            @if (roomEditing()) {
-              <form
-                class="mt-4 grid gap-3"
-                (submit)="$event.preventDefault(); saveRoom()"
-              >
-                <div hlmField>
-                  <label hlmFieldLabel for="room-name"
-                    >Nome do consultório</label
-                  ><input
-                    hlmInput
-                    id="room-name"
-                    class="min-h-11"
-                    [value]="roomName()"
-                    (input)="
-                      roomName.set($any($event.target).value); markDirty()
-                    "
-                  />
-                </div>
-                <button hlmBtn type="submit" class="min-h-11">
-                  Salvar consultório
-                </button>
-              </form>
-            }
-          </div>
-        }
-      </section>
-    </div>
-  </section>`,
+  templateUrl: "./admin-structure.component.html",
+  styleUrl: "./admin-editors.scss",
 })
 export class AdminStructureComponent {
   private readonly api = inject(AdminApi);
@@ -234,63 +52,82 @@ export class AdminStructureComponent {
   protected readonly rooms = httpResource<Page<Room>>(() =>
     this.api.list("consultorios"),
   );
-  protected readonly selectedId = signal<string | null>(null);
-  protected readonly unitVersion = signal<number | null>(null);
+  private readonly selected = signal<Unit | null>(null);
+  protected readonly selectedId = computed(() => this.selected()?.id ?? null);
   protected readonly unitName = signal("");
   protected readonly address = signal("");
   protected readonly unitActive = signal(true);
   protected readonly roomEditing = signal<Room | null>(null);
   protected readonly roomName = signal("");
+  protected readonly roomActive = signal(true);
   protected readonly notice = signal<AdminIssue | null>(null);
-  protected readonly dirty = signal(false);
-  protected markDirty() {
-    this.dirty.set(true);
-  }
-  canLeave() {
-    return (
-      !this.dirty() ||
-      window.confirm("Há alterações não salvas. Sair sem salvar?")
-    );
-  }
   protected readonly saving = signal(false);
-  protected readonly roomsForUnit = computed(
-    () =>
-      this.rooms
-        .value()
-        ?.items.filter((room) => room.unidadeId === this.selectedId()) ?? [],
+  private readonly conflictTarget = signal<"unit" | "room">("unit");
+  protected readonly unitDirty = computed(() => {
+    const initial = this.selected();
+    return (
+      this.unitName() !== (initial?.nome ?? "") ||
+      this.address() !== (initial?.endereco ?? "") ||
+      this.unitActive() !== (initial?.ativo ?? true)
+    );
+  });
+  protected readonly roomDirty = computed(() => {
+    const initial = this.roomEditing();
+    return (
+      !!initial &&
+      (this.roomName() !== initial.nome || this.roomActive() !== initial.ativo)
+    );
+  });
+  protected readonly dirty = computed(
+    () => this.unitDirty() || this.roomDirty(),
   );
+  protected readonly roomsForUnit = computed(() =>
+    this.rooms.hasValue()
+      ? this.rooms
+          .value()
+          .items.filter((room) => room.unidadeId === this.selectedId())
+      : [],
+  );
+  canLeave() {
+    return !this.saving() && discardAdminChanges(this.dirty());
+  }
   protected selectUnit(unit: Unit) {
-    this.selectedId.set(unit.id);
-    this.unitVersion.set(unit.version);
-    this.unitName.set(unit.nome);
-    this.address.set(unit.endereco);
-    this.unitActive.set(unit.ativo);
+    if (this.saving() || !discardAdminChanges(this.dirty())) return;
+    this.applyUnit(unit);
+    this.notice.set(null);
+    focusAdminEditor("unit-name");
+  }
+  private applyUnit(unit: Unit | null) {
+    this.selected.set(unit);
+    this.unitName.set(unit?.nome ?? "");
+    this.address.set(unit?.endereco ?? "");
+    this.unitActive.set(unit?.ativo ?? true);
     this.roomEditing.set(null);
   }
   protected newUnit() {
-    this.dirty.set(false);
-    this.selectedId.set(null);
-    this.unitVersion.set(null);
-    this.unitName.set("");
-    this.address.set("");
-    this.unitActive.set(true);
-    this.roomEditing.set(null);
+    if (this.saving() || !discardAdminChanges(this.dirty())) return;
+    this.applyUnit(null);
+    this.notice.set(null);
+    focusAdminEditor("unit-name");
   }
   protected saveUnit() {
-    if (!this.unitName().trim() || !this.address().trim()) {
-      this.notice.set({
-        code: "INVALID",
-        title: "Revise os campos obrigatórios",
-        description: "Informe nome e endereço da unidade.",
-        conflict: false,
-        fields: {
-          nome: !this.unitName().trim() ? "Informe o nome." : "",
-          endereco: !this.address().trim() ? "Informe o endereço." : "",
-        },
-      });
+    if (this.saving() || this.notice()?.code === "VERSAO_DESATUALIZADA") return;
+    const fields: Record<string, string> = {};
+    if (!this.unitName().trim()) fields["nome"] = "Informe o nome da unidade.";
+    if (!this.address().trim())
+      fields["endereco"] = "Informe o endereço da unidade.";
+    if (Object.keys(fields).length) {
+      this.conflictTarget.set("unit");
+      this.notice.set(invalidConfiguration(fields));
+      focusAdminEditor(fields["nome"] ? "unit-name" : "unit-address");
       return;
     }
+    if (
+      !confirmDeactivation(this.selected()?.ativo ?? false, this.unitActive())
+    )
+      return;
     this.saving.set(true);
+    this.notice.set(null);
     const payload = {
       nome: this.unitName().trim(),
       endereco: this.address().trim(),
@@ -299,20 +136,33 @@ export class AdminStructureComponent {
     const request = this.selectedId()
       ? this.api.update<Unit>("unidades", this.selectedId()!, {
           ...payload,
-          expectedVersion: this.unitVersion(),
+          expectedVersion: this.selected()!.version,
         })
       : this.api.create<Unit>("unidades", payload);
     request.pipe(finalize(() => this.saving.set(false))).subscribe({
       next: (unit) => {
-        this.dirty.set(false);
-        this.selectUnit(unit);
+        this.selected.set(unit);
+        this.unitName.set(unit.nome);
+        this.address.set(unit.endereco);
+        this.unitActive.set(unit.ativo);
         this.units.reload();
+        this.notice.set(
+          savedConfiguration("Os dados da unidade foram salvos."),
+        );
       },
-      error: (error) => this.notice.set(adminIssue(error)),
+      error: (error) => {
+        this.conflictTarget.set("unit");
+        this.notice.set(adminIssue(error));
+      },
     });
   }
   protected newRoom() {
-    this.dirty.set(false);
+    if (
+      !this.selectedId() ||
+      this.saving() ||
+      !discardAdminChanges(this.roomDirty())
+    )
+      return;
     this.roomEditing.set({
       id: "",
       unidadeId: this.selectedId()!,
@@ -321,39 +171,113 @@ export class AdminStructureComponent {
       version: 0,
     });
     this.roomName.set("");
+    this.roomActive.set(true);
+    this.notice.set(null);
+    focusAdminEditor("room-name");
   }
   protected editRoom(room: Room) {
-    this.dirty.set(false);
+    if (this.saving() || !discardAdminChanges(this.roomDirty())) return;
+    this.applyRoom(room);
+    this.notice.set(null);
+    focusAdminEditor("room-name");
+  }
+  private applyRoom(room: Room) {
     this.roomEditing.set(room);
     this.roomName.set(room.nome);
+    this.roomActive.set(room.ativo);
+  }
+  protected cancelRoom() {
+    if (this.saving() || !discardAdminChanges(this.roomDirty())) return;
+    this.roomEditing.set(null);
+    this.notice.set(null);
   }
   protected saveRoom() {
     const room = this.roomEditing();
-    if (!room || !this.roomName().trim()) return;
+    if (
+      !room ||
+      this.saving() ||
+      this.notice()?.code === "VERSAO_DESATUALIZADA"
+    )
+      return;
+    if (!this.roomName().trim()) {
+      this.conflictTarget.set("room");
+      this.notice.set(
+        invalidConfiguration({ nome: "Informe o nome do consultório." }),
+      );
+      focusAdminEditor("room-name");
+      return;
+    }
+    if (!confirmDeactivation(room.ativo, this.roomActive())) return;
     const payload = {
       unidadeId: this.selectedId(),
       nome: this.roomName().trim(),
-      ativo: room.ativo,
+      ativo: this.roomActive(),
     };
+    this.saving.set(true);
+    this.notice.set(null);
     const request = room.id
       ? this.api.update<Room>("consultorios", room.id, {
           ...payload,
           expectedVersion: room.version,
         })
       : this.api.create<Room>("consultorios", payload);
-    request.subscribe({
-      next: () => {
-        this.dirty.set(false);
+    request.pipe(finalize(() => this.saving.set(false))).subscribe({
+      next: (value) => {
         this.rooms.reload();
-        this.roomEditing.set(null);
+        this.applyRoom(value);
+        this.notice.set(
+          savedConfiguration("Os dados do consultório foram salvos."),
+        );
       },
-      error: (error) => this.notice.set(adminIssue(error)),
+      error: (error) => {
+        this.conflictTarget.set("room");
+        this.notice.set(adminIssue(error));
+      },
     });
+  }
+  protected reloadCurrent() {
+    if (this.saving() || !confirmReload()) return;
+    const roomId = this.roomEditing()?.id;
+    if (this.conflictTarget() === "room" && roomId) {
+      this.saving.set(true);
+      this.api
+        .read<Room>(this.api.room(roomId))
+        .pipe(finalize(() => this.saving.set(false)))
+        .subscribe({
+          next: (value) => {
+            this.applyRoom(value);
+            this.rooms.reload();
+            this.notice.set(null);
+          },
+          error: (error) => this.notice.set(failedAdminReload(error)),
+        });
+    } else if (this.selectedId()) {
+      this.saving.set(true);
+      this.api
+        .read<Unit>(this.api.unit(this.selectedId()!))
+        .pipe(finalize(() => this.saving.set(false)))
+        .subscribe({
+          next: (value) => {
+            this.selected.set(value);
+            this.unitName.set(value.nome);
+            this.address.set(value.endereco);
+            this.unitActive.set(value.ativo);
+            this.units.reload();
+            this.notice.set(null);
+          },
+          error: (error) => this.notice.set(failedAdminReload(error)),
+        });
+    }
+  }
+  protected clearSaved() {
+    if (this.notice()?.code === "SAVED") this.notice.set(null);
   }
   protected issue(error: unknown) {
     return adminIssue(error);
   }
-  protected field(name: string) {
-    return this.notice()?.fields[name];
+  protected field(name: string, target: "unit" | "room" = "unit") {
+    return this.conflictTarget() === target
+      ? this.notice()?.fields[name]
+      : undefined;
   }
 }

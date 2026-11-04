@@ -5,7 +5,6 @@ import {
   inject,
   signal,
 } from "@angular/core";
-import { HlmAlertImports } from "@spartan-ng/helm/alert";
 import { HlmButtonImports } from "@spartan-ng/helm/button";
 import { HlmCardImports } from "@spartan-ng/helm/card";
 import { HlmFieldImports } from "@spartan-ng/helm/field";
@@ -15,6 +14,16 @@ import { HlmSpinnerImports } from "@spartan-ng/helm/spinner";
 import { HlmToggleGroupImports } from "@spartan-ng/helm/toggle-group";
 import { finalize } from "rxjs";
 import { StatePanelComponent } from "../../shared/ui/state-panel.component";
+import { AdminFeedbackComponent } from "./admin-feedback.component";
+import {
+  savedConfiguration,
+  invalidConfiguration,
+  discardAdminChanges,
+  confirmDeactivation,
+  confirmReload,
+  focusAdminEditor,
+  failedAdminReload,
+} from "./admin-editor.utils";
 import { AdminApi, adminIssue } from "./admin.api";
 import { AdminIssue, Page, Professional, Specialty } from "./admin.models";
 @Component({
@@ -22,7 +31,7 @@ import { AdminIssue, Page, Professional, Specialty } from "./admin.models";
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [AdminApi],
   imports: [
-    HlmAlertImports,
+    AdminFeedbackComponent,
     HlmButtonImports,
     HlmCardImports,
     HlmFieldImports,
@@ -32,169 +41,8 @@ import { AdminIssue, Page, Professional, Specialty } from "./admin.models";
     HlmToggleGroupImports,
     StatePanelComponent,
   ],
-  template: `<section class="space-y-6">
-    <header>
-      <p class="text-primary text-xs font-semibold tracking-widest uppercase">
-        Profissionais
-      </p>
-      <h1 class="text-3xl font-semibold tracking-tight">
-        Profissionais da clínica
-      </h1>
-      <p class="text-muted-foreground mt-1">
-        O vínculo de identidade é provisionado e não é editável nesta tela.
-      </p>
-    </header>
-    @if (notice(); as message) {
-      <section
-        hlmAlert
-        [variant]="message.conflict ? 'default' : 'destructive'"
-      >
-        <h2 hlmAlertTitle>{{ message.title }}</h2>
-        <p hlmAlertDescription>{{ message.description }}</p>
-      </section>
-    }
-    <div class="grid items-start gap-5 lg:grid-cols-[19rem_minmax(0,1fr)]">
-      <section hlmCard>
-        <div hlmCardHeader class="flex-row items-center justify-between">
-          <h2 hlmCardTitle>Médicos</h2>
-          <button hlmBtn class="min-h-11" type="button" (click)="newValue()">
-            Novo médico
-          </button>
-        </div>
-        <div hlmCardContent>
-          @if (values.error()) {
-            <app-state-panel
-              state="error"
-              [title]="issue(values.error()).title"
-              [description]="issue(values.error()).description"
-            />
-          } @else if (values.isLoading()) {
-            <app-state-panel
-              state="loading"
-              title="Carregando profissionais"
-              description="Aguarde um momento."
-            />
-          } @else {
-            <div class="flex flex-col gap-2">
-              @for (value of values.value()?.items ?? []; track value.id) {
-                <button
-                  type="button"
-                  class="bg-muted hover:bg-accent focus-visible:ring-ring/50 min-h-16 rounded-md p-3 text-left outline-none transition-colors focus-visible:ring-3"
-                  (click)="edit(value)"
-                >
-                  <span class="block font-medium">{{ value.nome }}</span
-                  ><span class="text-muted-foreground text-xs"
-                    >CRM {{ value.crmNumero }}-{{ value.crmUf }} ·
-                    {{ value.ativo ? "ativo" : "inativo" }}</span
-                  >
-                </button>
-              } @empty {
-                <app-state-panel
-                  state="empty"
-                  title="Nenhum profissional"
-                  description="Cadastre um profissional com CRM e especialidade."
-                />
-              }
-            </div>
-          }
-        </div>
-      </section>
-      <form hlmCard (submit)="$event.preventDefault(); save()">
-        <div hlmCardHeader>
-          <h2 hlmCardTitle>
-            {{ id() ? "Editar profissional" : "Novo profissional" }}
-          </h2>
-          <p hlmCardDescription>
-            Este formulário não cria contas, não atribui roles e não troca
-            subject.
-          </p>
-        </div>
-        <div hlmCardContent class="grid gap-5 md:grid-cols-2">
-          <div hlmField class="md:col-span-2">
-            <label hlmFieldLabel for="doctor-name">Nome</label
-            ><input
-              hlmInput
-              id="doctor-name"
-              class="min-h-11"
-              [value]="name()"
-              (input)="name.set($any($event.target).value); markDirty()"
-            />
-          </div>
-          <div hlmField>
-            <label hlmFieldLabel for="crm-number">CRM</label
-            ><input
-              hlmInput
-              id="crm-number"
-              class="min-h-11"
-              maxlength="30"
-              [value]="crmNumber()"
-              (input)="crmNumber.set($any($event.target).value); markDirty()"
-            />
-          </div>
-          <div hlmField>
-            <label hlmFieldLabel for="crm-uf">UF</label
-            ><input
-              hlmInput
-              id="crm-uf"
-              class="min-h-11"
-              maxlength="2"
-              [value]="crmUf()"
-              (input)="
-                crmUf.set($any($event.target).value.toUpperCase()); markDirty()
-              "
-            />
-          </div>
-          <div hlmField class="md:col-span-2">
-            <label hlmFieldLabel for="doctor-specialties">Especialidades</label
-            ><hlm-toggle-group
-              id="doctor-specialties"
-              type="multiple"
-              variant="outline"
-              [spacing]="2"
-              class="flex w-full flex-wrap justify-start"
-              [value]="specialties()"
-              (valueChange)="changeSpecialties($event)"
-            >
-              @for (item of catalog.value()?.items ?? []; track item.id) {
-                <button
-                  hlmToggleGroupItem
-                  type="button"
-                  [value]="item.id"
-                  class="min-h-11"
-                >
-                  {{ item.nome }}
-                </button>
-              }
-            </hlm-toggle-group>
-            <p hlmFieldDescription>
-              Escolha uma ou mais especialidades. Clique novamente para remover.
-            </p>
-          </div>
-          <div hlmField class="md:col-span-2">
-            <label hlmFieldLabel for="doctor-active">Estado</label
-            ><hlm-native-select
-              selectId="doctor-active"
-              class="min-h-11"
-              [value]="active() ? 'true' : 'false'"
-              (valueChange)="active.set($event === 'true'); markDirty()"
-              ><option hlmNativeSelectOption value="true">Ativo</option>
-              <option hlmNativeSelectOption value="false">
-                Inativo
-              </option></hlm-native-select
-            >
-          </div>
-        </div>
-        <div hlmCardFooter class="justify-end">
-          <button hlmBtn type="submit" class="min-h-11" [disabled]="saving()">
-            @if (saving()) {
-              <hlm-spinner />
-            }
-            Salvar alterações
-          </button>
-        </div>
-      </form>
-    </div>
-  </section>`,
+  templateUrl: "./admin-professionals.component.html",
+  styleUrl: "./admin-editors.scss",
 })
 export class AdminProfessionalsComponent {
   private readonly api = inject(AdminApi);
@@ -213,17 +61,23 @@ export class AdminProfessionalsComponent {
   protected readonly active = signal(true);
   protected readonly saving = signal(false);
   protected readonly notice = signal<AdminIssue | null>(null);
+  private readonly wasActive = signal(false);
   protected readonly dirty = signal(false);
   protected markDirty() {
+    if (this.notice()?.code === "SAVED") this.notice.set(null);
     this.dirty.set(true);
   }
   canLeave() {
     return (
-      !this.dirty() ||
-      window.confirm("Há alterações não salvas. Sair sem salvar?")
+      !this.saving() &&
+      (!this.dirty() ||
+        window.confirm("Há alterações não salvas. Sair sem salvar?"))
     );
   }
   protected newValue() {
+    if (this.saving() || !discardAdminChanges(this.dirty())) return;
+    this.notice.set(null);
+    this.wasActive.set(false);
     this.dirty.set(false);
     this.id.set(null);
     this.version.set(null);
@@ -232,8 +86,13 @@ export class AdminProfessionalsComponent {
     this.crmUf.set("");
     this.specialties.set([]);
     this.active.set(true);
+    focusAdminEditor("doctor-name");
   }
-  protected edit(value: Professional) {
+  protected edit(value: Professional, persisted = false) {
+    if (!persisted && (this.saving() || !discardAdminChanges(this.dirty())))
+      return;
+    this.notice.set(null);
+    this.wasActive.set(value.ativo);
     this.dirty.set(false);
     this.id.set(value.id);
     this.version.set(value.version);
@@ -242,6 +101,7 @@ export class AdminProfessionalsComponent {
     this.crmUf.set(value.crmUf);
     this.specialties.set([...value.especialidadeIds]);
     this.active.set(value.ativo);
+    if (!persisted) focusAdminEditor("doctor-name");
   }
   protected changeSpecialties(value: unknown) {
     this.specialties.set(
@@ -254,22 +114,29 @@ export class AdminProfessionalsComponent {
     this.markDirty();
   }
   protected save() {
-    if (
-      !this.name().trim() ||
-      !this.crmNumber().trim() ||
-      this.crmUf().length !== 2 ||
-      !this.specialties().length
-    ) {
-      this.notice.set({
-        code: "INVALID",
-        title: "Revise os dados do profissional",
-        description:
-          "Nome, CRM, UF e ao menos uma especialidade são obrigatórios.",
-        conflict: false,
-        fields: {},
-      });
+    if (this.saving() || this.notice()?.code === "VERSAO_DESATUALIZADA") return;
+    const fields: Record<string, string> = {};
+    if (!this.name().trim()) fields["nome"] = "Informe o nome do profissional.";
+    if (!this.crmNumber().trim()) fields["crmNumero"] = "Informe o CRM.";
+    if (!/^[A-Z]{2}$/.test(this.crmUf()))
+      fields["crmUf"] = "Informe a UF com duas letras.";
+    if (!this.specialties().length)
+      fields["especialidadeIds"] = "Escolha ao menos uma especialidade.";
+    if (Object.keys(fields).length) {
+      this.notice.set(invalidConfiguration(fields));
+      focusAdminEditor(
+        fields["nome"]
+          ? "doctor-name"
+          : fields["crmNumero"]
+            ? "crm-number"
+            : fields["crmUf"]
+              ? "crm-uf"
+              : "doctor-specialties",
+      );
       return;
     }
+    if (!confirmDeactivation(this.wasActive(), this.active())) return;
+    this.notice.set(null);
     this.saving.set(true);
     const payload = {
       nome: this.name().trim(),
@@ -287,11 +154,35 @@ export class AdminProfessionalsComponent {
     request.pipe(finalize(() => this.saving.set(false))).subscribe({
       next: (value) => {
         this.dirty.set(false);
-        this.edit(value);
+        this.edit(value, true);
+        this.notice.set(
+          savedConfiguration(
+            "O cadastro foi atualizado. As referências anteriores foram preservadas.",
+          ),
+        );
         this.values.reload();
       },
       error: (error) => this.notice.set(adminIssue(error)),
     });
+  }
+  protected reloadCurrent() {
+    const id = this.id();
+    if (!id || this.saving() || !confirmReload()) return;
+    this.saving.set(true);
+    this.api
+      .read<Professional>(this.api.professional(id))
+      .pipe(finalize(() => this.saving.set(false)))
+      .subscribe({
+        next: (value) => {
+          this.edit(value, true);
+          this.notice.set(null);
+          this.values.reload();
+        },
+        error: (error) => this.notice.set(failedAdminReload(error)),
+      });
+  }
+  protected field(name: string) {
+    return this.notice()?.fields[name];
   }
   protected issue(error: unknown) {
     return adminIssue(error);
