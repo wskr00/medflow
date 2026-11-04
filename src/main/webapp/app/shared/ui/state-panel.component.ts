@@ -24,8 +24,8 @@ export type ViewState = "loading" | "empty" | "error" | "conflict" | "success";
         </section>
       }
       @case ("empty") {
-        <section hlmEmpty>
-          <div hlmEmptyHeader>
+        <section hlmEmpty class="items-start text-left">
+          <div hlmEmptyHeader class="items-start text-left">
             <h2 hlmEmptyTitle>{{ title() }}</h2>
             <p hlmEmptyDescription>{{ description() }}</p>
           </div>

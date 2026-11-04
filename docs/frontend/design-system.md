@@ -15,10 +15,10 @@ O frontend usa Spartan em duas camadas: Brain é dependência npm e fornece comp
 | Superfícies | `background`, `card`, `popover`, `muted` criam contraste calmo para operação clínica.                                                              |
 | Ação e foco | `primary` identifica a ação principal; `ring` é o foco visível de 3 px.                                                                            |
 | Status      | `success`, `warning`, `info` e `destructive` existem para conteúdo de domínio; variantes Helm continuam sendo a primeira escolha para componentes. |
-| Tipografia  | Pilha sem serifa do sistema, títulos 24–30 px e texto operacional 14–16 px.                                                                        |
+| Tipografia  | IBM Plex Sans Variable auto-hospedada via Fontsource; títulos 24–44 px conforme a tarefa, texto operacional 14–16 px e números tabulares em horários.                                                                        |
 | Espaçamento | Escala do Tailwind, com `gap-*` em grupos e densidade moderada.                                                                                    |
-| Movimento   | `--medflow-duration-fast` (120 ms), `--medflow-duration-standard` (180 ms) e easing padrão; sem animação decorativa.                               |
-| Raio        | `--radius: 0.625rem`, aplicado pelos componentes Helm.                                                                                             |
+| Movimento   | `--medflow-duration-fast` (120 ms), `--medflow-duration-standard` (180 ms) e easing padrão; entradas breves de linhas e feedback; respeita `prefers-reduced-motion`.                               |
+| Raio        | `--radius: 0.375rem`, aplicado pelos componentes Helm.                                                                                             |
 
 O MVP é somente claro. Não há seletor, persistência ou promessa de suporte a modo escuro.
 
@@ -79,4 +79,30 @@ duplicação visual é preferível ao acoplamento entre jornadas.
 
 O shell contém skip link, `<nav>` nomeado, `<main>` focalizável e foco no conteúdo após a ativação de rota. A `sheet` fornece navegação móvel com título; não são usados `z-index` manuais. Estados carregando usam `aria-busy`; erros usam alertas semânticos.
 
-Em 1366×768, a navegação ocupa coluna lateral de 17 rem e o conteúdo conserva largura máxima legível. Em 768×1024, a coluna lateral desaparece, o botão Menu abre a sheet e o conteúdo permanece em uma coluna sem rolagem horizontal. Cada jornada deve manter filtros e ação principal visíveis, empilhar tabelas/painéis quando necessário e não exigir arrastar para descobrir conteúdo.
+Os shells têm composições próprias. Na Recepção (#58), desktop a partir de
+1024 px usa uma faixa lateral de 12,5 rem; em 1366×768 a agenda e a fila ficam
+lado a lado. Abaixo de 1280 px, agenda e fila se empilham, com atalhos para as
+regiões. Em 768×1024, o cabeçalho é horizontal, a agenda usa cartões e filtros
+em duas colunas. As demais jornadas conservam seus shells e recebem os tokens,
+a marca e os estados compartilhados.
+
+## Direção visual aplicada na #58
+
+Fundo de papel quente, tinta petróleo e superfícies brancas, com linhas e
+proximidade organizando a leitura. A marca usa um M contínuo em lugar da cruz
+médica genérica. Status usam rótulo, ponto e cores semânticas; cancelamento,
+espera, atendimento e finalização têm tratamentos distintos. A fonte é servida
+pelo próprio app, sem chamadas a provedores de fontes em tempo de execução.
+
+A Recepção prioriza horário e paciente, com especialidade, profissional e local
+agrupados; a ação de chegada tem maior peso que reagendamento e cancelamento.
+A fila mantém a ordem do backend e não apresenta prioridade clínica ou tempo
+de espera inferidos. Não há KPIs decorativos nem um shell universal.
+
+Evidências e limites: [revisão da #58](../qa/ui58/README.md).
+
+Na revisão da #58, o painel lateral passou a manter sessão e saída fora da região
+rolável. O fundo preenche toda a coluna. A fila possui lista rolável e altura
+limitada à janela apenas no desktop; o tablet usa a rolagem da página. Entradas
+de rota usam 180 ms e 6 px, com foco/topo restaurados na ativação. Os extremos
+1024×500 e 320 px foram acrescentados às evidências e aos testes de painéis.
