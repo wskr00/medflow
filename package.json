@@ -25,6 +25,7 @@
     "@ng-icons/lucide": "^32.2.0",
     "@spartan-ng/brain": "^1.4.1",
     "@tailwindcss/postcss": "^4.3.3",
+    "chart.js": "4.6.1",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "keycloak-angular": "22.0.0",

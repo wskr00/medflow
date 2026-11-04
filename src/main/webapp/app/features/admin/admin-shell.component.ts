@@ -8,7 +8,8 @@ import {
   inject,
   viewChild,
 } from "@angular/core";
-import { RouterLink, RouterOutlet } from "@angular/router";
+import { Router, RouterLink, RouterOutlet } from "@angular/router";
+import { toSignal } from "@angular/core/rxjs-interop";
 import { AdminNavComponent } from "./admin-nav.component";
 import { SessionActionsComponent } from "../../shared/ui/session-actions.component";
 import { MedflowBrandComponent } from "../../shared/ui/medflow-brand.component";
@@ -30,14 +31,16 @@ import { MedflowBrandComponent } from "../../shared/ui/medflow-brand.component";
       <header class="admin-rail">
         <a routerLink="estrutura" class="brand"><app-medflow-brand /></a>
         <div class="admin-navigation">
-          <p class="rail-label">ADMINISTRAÇÃO</p>
           <app-admin-nav />
         </div>
         <div class="admin-session"><app-session-actions /></div>
       </header>
       <div class="admin-content">
         <div class="workspace-context">
-          <span>Configuração da clínica</span><span>Administração</span>
+          <span>{{
+            operationView() ? "Leitura da operação" : "Configuração da clínica"
+          }}</span
+          ><span>Administração</span>
         </div>
         <main id="admin-main" #content tabindex="-1">
           <router-outlet (activate)="activate()" />
@@ -47,6 +50,12 @@ import { MedflowBrandComponent } from "../../shared/ui/medflow-brand.component";
   `,
 })
 export class AdminShellComponent {
+  private readonly router = inject(Router);
+  private readonly navigation = toSignal(this.router.events);
+  protected operationView() {
+    this.navigation();
+    return this.router.url.split("?")[0] === "/workspace/admin/indicadores";
+  }
   private readonly content = viewChild<ElementRef<HTMLElement>>("content");
   private readonly injector = inject(Injector);
   private readonly document = inject(DOCUMENT);

@@ -9,6 +9,10 @@ import {
   input,
   linkedSignal,
   output,
+  afterNextRender,
+  DestroyRef,
+  ElementRef,
+  viewChild,
 } from "@angular/core";
 import { NG_VALUE_ACCESSOR, type ControlValueAccessor } from "@angular/forms";
 import { NgIcon, provideIcons } from "@ng-icons/core";
@@ -40,6 +44,7 @@ export const HLM_NATIVE_SELECT_VALUE_ACCESSOR = {
   },
   template: `
     <select
+      #nativeSelect
       data-slot="native-select"
       [id]="selectId()"
       [attr.aria-describedby]="describedBy()"
@@ -67,6 +72,9 @@ export const HLM_NATIVE_SELECT_VALUE_ACCESSOR = {
   `,
 })
 export class HlmNativeSelect implements ControlValueAccessor {
+  private readonly _nativeSelect =
+    viewChild<ElementRef<HTMLSelectElement>>("nativeSelect");
+  private readonly _destroyRef = inject(DestroyRef);
   private readonly _fieldControl = inject(BrnFieldControl, { optional: true });
 
   private static _id = 0;
@@ -142,6 +150,25 @@ export class HlmNativeSelect implements ControlValueAccessor {
   );
 
   constructor() {
+    afterNextRender(() => {
+      const select = this._nativeSelect()?.nativeElement;
+      if (!select) return;
+      // Projected options can arrive after the CVA value. Restore the committed
+      // value when options change, just as Angular's native Signal Forms select does.
+      const restoreValue = () => {
+        select.value = this.value() ?? "";
+      };
+      restoreValue();
+      const observer = new MutationObserver(restoreValue);
+      observer.observe(select, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+        attributes: true,
+        attributeFilter: ["value"],
+      });
+      this._destroyRef.onDestroy(() => observer.disconnect());
+    });
     classes(
       () =>
         "group/native-select relative w-fit has-[select:disabled]:opacity-50",

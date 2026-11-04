@@ -1,0 +1,98 @@
+<section class="surface" [attr.aria-labelledby]="distributionId() + '-title'">
+  <div class="surface-head">
+    <h3 [id]="distributionId() + '-title'">{{title()}}</h3>
+    @if(rows().length && hasStates()){<button
+      hlmBtn
+      variant="ghost"
+      type="button"
+      class="text-action"
+      [attr.aria-expanded]="detail()"
+      [attr.aria-controls]="distributionId() + '-detail'"
+      [attr.aria-label]="'Ver detalhamento: ' + title()"
+      (click)="detail.set(!detail())"
+    >
+      {{detail() ? 'Ocultar detalhamento' : 'Ver detalhamento'}}</button
+    >}
+  </div>
+  <p class="chart-note">
+    {{unit()}} · {{hasStates() ? 'pela data agendada' : 'pela data real de término'}}
+  </p>
+  @if(!rows().length){
+  <p class="empty-message">Nenhum registro neste recorte.</p>
+  }@else{
+  <table class="distribution-table" [id]="distributionId() + '-rows'">
+    <caption class="sr-only">
+      {{title()}} — {{unit()}}, ordem por volume
+    </caption>
+    <thead class="sr-only">
+      <tr>
+        <th scope="col">Cadastro</th>
+        <th scope="col">Quantidade de {{unit()}}</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for(row of shown(); track row.id){
+      <tr>
+        <th scope="row">
+          {{row.nome}}@if(rows().length > 1){<span
+            class="track"
+            aria-hidden="true"
+            ><span [style.width.%]="width(row)"></span></span
+          >}
+        </th>
+        <td>{{row.quantidade}}</td>
+      </tr>
+      }
+    </tbody>
+  </table>
+  <p class="dimension-foot">{{rows().length}} {{noun()}} · ordem por volume</p>
+  @if(rows().length > 6){<button
+    hlmBtn
+    variant="ghost"
+    type="button"
+    class="text-action"
+    [attr.aria-expanded]="all()"
+    [attr.aria-controls]="distributionId() + '-rows'"
+    (click)="all.set(!all())"
+  >
+    {{all() ? 'Mostrar menos ' : 'Ver todas as '}}{{noun()}}</button
+  >} @if(hasStates()){
+  <div
+    [id]="distributionId() + '-detail'"
+    [hidden]="!detail()"
+    class="table-wrap"
+    tabindex="0"
+    [attr.aria-label]="'Tabela detalhada: ' + title()"
+  >
+    <table>
+      <caption>
+        {{title()}} · situação atual das consultas com data agendada no período
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">Cadastro</th>
+          <th scope="col">Total</th>
+          <th scope="col">Agendadas</th>
+          <th scope="col">Em espera</th>
+          <th scope="col">Em atendimento</th>
+          <th scope="col">Finalizadas</th>
+          <th scope="col">Canceladas</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for(row of ordered(); track row.id){
+        <tr>
+          <th scope="row">{{row.nome}}</th>
+          <td>{{row.quantidade}}</td>
+          <td>{{row.estados?.agendadas}}</td>
+          <td>{{row.estados?.emEspera}}</td>
+          <td>{{row.estados?.emAtendimento}}</td>
+          <td>{{row.estados?.finalizadas}}</td>
+          <td>{{row.estados?.canceladas}}</td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  } }
+</section>

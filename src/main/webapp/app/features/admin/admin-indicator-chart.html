@@ -1,0 +1,62 @@
+<section class="surface" [attr.aria-labelledby]="chartId() + '-title'">
+  <div class="surface-head">
+    <h3 [id]="chartId() + '-title'">{{title()}}</h3>
+    @if(points().length && !failed()){<button
+      hlmBtn
+      variant="ghost"
+      type="button"
+      class="text-action"
+      [attr.aria-expanded]="showTable()"
+      [attr.aria-controls]="chartId() + '-table'"
+      [attr.aria-label]="(showTable() ? 'Ocultar dados: ' : 'Ver dados: ') + title()"
+      (click)="expanded.set(!expanded())"
+    >
+      {{showTable() ? 'Ocultar dados' : 'Ver dados'}}</button
+    >}
+  </div>
+  <p class="chart-note" [id]="chartId() + '-description'">{{description()}}</p>
+  @if(!points().length){
+  <p class="empty-message">{{emptyText()}}</p>
+  } @if(points().length > 1){
+  <div class="plot" [hidden]="failed()">
+    <canvas
+      #canvas
+      role="img"
+      [attr.aria-label]="title() + ': ' + dateLabel(inicio()) + ' a ' + dateLabel(fim()) + '. Consulte os valores na tabela de dados.'"
+      [attr.aria-describedby]="chartId() + '-description'"
+      [attr.data-chart-kind]="kind()"
+    ></canvas>
+  </div>
+  } @if(failed()){
+  <p class="empty-message" role="status">
+    O gráfico não pôde ser desenhado. Os valores estão disponíveis na tabela.
+  </p>
+  } @if(points().length){
+  <div [id]="chartId() + '-table'" [hidden]="!showTable()" class="table-wrap">
+    <table>
+      <caption>
+        {{title()}} · {{dateLabel(inicio())}} a {{dateLabel(fim())}} ·
+        {{unit()}}
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">Data</th>
+          <th scope="col">Quantidade</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for(point of ordered(); track point.data){
+        <tr>
+          <th scope="row">{{dateLabel(point.data)}}</th>
+          <td>{{point.quantidade}}</td>
+        </tr>
+        }
+      </tbody>
+    </table>
+    <p class="chart-note coverage">
+      A tabela lista os dias retornados pelo serviço. Dias sem registro não são
+      pontos medidos nem valores interpolados.
+    </p>
+  </div>
+  }
+</section>

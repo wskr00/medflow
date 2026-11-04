@@ -6,10 +6,23 @@ import { RouterLink, RouterLinkActive } from "@angular/router";
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, RouterLinkActive],
   styles: `
-    nav {
+    nav,
+    .configuration {
       display: flex;
       flex-direction: column;
       gap: 0.25rem;
+    }
+    .nav-label {
+      color: var(--rail-muted);
+      font-size: 0.625rem;
+      letter-spacing: 0.12em;
+      font-weight: 600;
+      padding: 0 0.75rem 0.75rem;
+    }
+    .configuration {
+      display: flex;
+      flex-direction: column;
+      margin-top: 1.5rem;
     }
     .admin-nav-link {
       display: flex;
@@ -31,10 +44,21 @@ import { RouterLink, RouterLinkActive } from "@angular/router";
       font-weight: 600;
     }
     @media (max-width: 1023px) {
-      nav {
+      .configuration {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 0;
+        margin-top: 0.25rem;
+      }
+      .nav-label {
+        display: none;
+      }
+      .operation-link {
+        justify-content: flex-start;
+        width: fit-content;
+      }
+      .configuration-label {
+        display: none;
       }
       .admin-nav-link {
         border-left: 0;
@@ -53,53 +77,62 @@ import { RouterLink, RouterLinkActive } from "@angular/router";
       }
     }
   `,
-  template: `<nav
-    class="flex flex-col gap-1"
-    aria-label="Configuração administrativa"
-  >
+  template: `<nav aria-label="Administração">
+    <p class="nav-label">OPERAÇÃO</p>
     <a
-      routerLink="/workspace/admin/clinica"
+      routerLink="/workspace/admin/indicadores"
       routerLinkActive="is-active"
       ariaCurrentWhenActive="page"
-      class="admin-nav-link"
+      class="admin-nav-link operation-link"
       (click)="navigated.emit()"
-      >Clínica</a
-    ><a
-      routerLink="/workspace/admin/estrutura"
-      routerLinkActive="is-active"
-      ariaCurrentWhenActive="page"
-      class="admin-nav-link"
-      (click)="navigated.emit()"
-      >Estrutura</a
-    ><a
-      routerLink="/workspace/admin/profissionais"
-      routerLinkActive="is-active"
-      ariaCurrentWhenActive="page"
-      class="admin-nav-link"
-      (click)="navigated.emit()"
-      >Profissionais</a
-    ><a
-      routerLink="/workspace/admin/especialidades"
-      routerLinkActive="is-active"
-      ariaCurrentWhenActive="page"
-      class="admin-nav-link"
-      (click)="navigated.emit()"
-      >Especialidades</a
-    ><a
-      routerLink="/workspace/admin/agenda"
-      routerLinkActive="is-active"
-      ariaCurrentWhenActive="page"
-      class="admin-nav-link"
-      (click)="navigated.emit()"
-      >Horários de trabalho</a
-    ><a
-      routerLink="/workspace/admin/bloqueios"
-      routerLinkActive="is-active"
-      ariaCurrentWhenActive="page"
-      class="admin-nav-link"
-      (click)="navigated.emit()"
-      >Bloqueios</a
+      >Indicadores</a
     >
+    <div class="configuration">
+      <p class="nav-label configuration-label">CONFIGURAÇÃO</p>
+      <a
+        routerLink="/workspace/admin/clinica"
+        routerLinkActive="is-active"
+        ariaCurrentWhenActive="page"
+        class="admin-nav-link"
+        (click)="navigated.emit()"
+        >Clínica</a
+      ><a
+        routerLink="/workspace/admin/estrutura"
+        routerLinkActive="is-active"
+        ariaCurrentWhenActive="page"
+        class="admin-nav-link"
+        (click)="navigated.emit()"
+        >Estrutura</a
+      ><a
+        routerLink="/workspace/admin/profissionais"
+        routerLinkActive="is-active"
+        ariaCurrentWhenActive="page"
+        class="admin-nav-link"
+        (click)="navigated.emit()"
+        >Profissionais</a
+      ><a
+        routerLink="/workspace/admin/especialidades"
+        routerLinkActive="is-active"
+        ariaCurrentWhenActive="page"
+        class="admin-nav-link"
+        (click)="navigated.emit()"
+        >Especialidades</a
+      ><a
+        routerLink="/workspace/admin/agenda"
+        routerLinkActive="is-active"
+        ariaCurrentWhenActive="page"
+        class="admin-nav-link"
+        (click)="navigated.emit()"
+        >Horários de trabalho</a
+      ><a
+        routerLink="/workspace/admin/bloqueios"
+        routerLinkActive="is-active"
+        ariaCurrentWhenActive="page"
+        class="admin-nav-link"
+        (click)="navigated.emit()"
+        >Bloqueios</a
+      >
+    </div>
   </nav>`,
 })
 export class AdminNavComponent {

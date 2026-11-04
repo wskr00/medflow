@@ -117,6 +117,14 @@ export const routes: Routes = [
     children: [
       { path: "", pathMatch: "full", redirectTo: "estrutura" },
       {
+        path: "indicadores",
+        title: "Indicadores da operação | MedFlow",
+        loadComponent: () =>
+          import("./features/admin/admin-indicators").then(
+            (m) => m.AdminIndicators,
+          ),
+      },
+      {
         path: "clinica",
         title: "Clínica | MedFlow",
         canDeactivate: [preventAdminConfigurationLoss],

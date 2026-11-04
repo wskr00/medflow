@@ -1,0 +1,363 @@
+<div class="indicators-page">
+  <header class="title-row">
+    <div>
+      <p class="eyebrow">Administração / Indicadores</p>
+      <h1>Indicadores da operação</h1>
+      <p class="muted">Consultas e conclusões no período selecionado.</p>
+    </div>
+    <button
+      hlmBtn
+      variant="outline"
+      type="button"
+      [disabled]="!applied() || result.isLoading()"
+      (click)="result.reload()"
+    >
+      Atualizar
+    </button>
+  </header>
+  @if (clinic.isLoading()) {
+  <app-state-panel
+    state="loading"
+    title="Carregando contexto da clínica"
+    description="Aguarde o fuso da clínica para consultar o período correto."
+  />
+  } @else if (!zone()) {
+  <app-state-panel
+    state="error"
+    title="Não foi possível carregar o contexto da clínica"
+    description="O fuso da clínica é necessário para consultar as datas corretas."
+  /><button hlmBtn variant="outline" type="button" (click)="clinic.reload()">
+    Tentar carregar a clínica novamente
+  </button>
+  } @else {
+  <form
+    class="filters"
+    [formRoot]="filtersForm"
+    (submit)="onInvalidSubmit()"
+    aria-label="Filtros dos indicadores"
+  >
+    <div class="filter-fields">
+      <div hlmField>
+        <label hlmFieldLabel for="indicators-period">Período</label
+        ><hlm-native-select
+          selectId="indicators-period"
+          [value]="period()"
+          (valueChange)="choosePeriod($event)"
+          ><option value="1">Hoje</option>
+          <option value="7">Últimos 7 dias</option>
+          <option value="30">Últimos 30 dias</option>
+          <option value="custom">Personalizado</option></hlm-native-select
+        >
+      </div>
+      <div hlmField>
+        <label hlmFieldLabel for="indicators-unidadeId">Unidade</label
+        ><hlm-native-select
+          selectId="indicators-unidadeId"
+          [formField]="filtersForm.unidadeId"
+          [describedBy]="fieldError('unidadeId') ? 'indicators-unit-error' : null"
+          ><option value="">Todas as unidades</option>
+          @if(missingUnit()){
+          <option [value]="model().unidadeId">
+            Unidade selecionada — recarregue os cadastros
+          </option>
+          }@for(item of unitOptions(); track item.id){
+          <option [value]="item.id">
+            {{item.nome}}{{item.ativo ? '' : ' (inativa)'}}
+          </option>
+          }</hlm-native-select
+        >@if(fieldError('unidadeId')){<hlm-field-error
+          forceShow
+          id="indicators-unit-error"
+          >{{fieldError('unidadeId')}}</hlm-field-error
+        >}
+      </div>
+      <div hlmField>
+        <label hlmFieldLabel for="indicators-especialidadeId"
+          >Especialidade</label
+        ><hlm-native-select
+          selectId="indicators-especialidadeId"
+          [formField]="filtersForm.especialidadeId"
+          [describedBy]="fieldError('especialidadeId') ? 'indicators-specialty-error' : null"
+          ><option value="">Todas as especialidades</option>
+          @if(missingSpecialty()){
+          <option [value]="model().especialidadeId">
+            Especialidade selecionada — recarregue os cadastros
+          </option>
+          }@for(item of specialtyOptions(); track item.id){
+          <option [value]="item.id">
+            {{item.nome}}{{item.ativo ? '' : ' (inativa)'}}
+          </option>
+          }</hlm-native-select
+        >@if(fieldError('especialidadeId')){<hlm-field-error
+          forceShow
+          id="indicators-specialty-error"
+          >{{fieldError('especialidadeId')}}</hlm-field-error
+        >}
+      </div>
+      <button hlmBtn type="submit">Aplicar filtros</button>
+    </div>
+    @if(period() === 'custom' || invalidUrl()) {
+    <div class="custom-period">
+      <div hlmField>
+        <label hlmFieldLabel for="indicators-inicio">Data inicial</label
+        ><input
+          hlmInput
+          id="indicators-inicio"
+          type="date"
+          [formField]="filtersForm.inicio"
+          [attr.aria-describedby]="fieldError('inicio') ? 'indicators-start-error' : 'indicators-date-help'"
+        />@if(fieldError('inicio')){<hlm-field-error
+          forceShow
+          id="indicators-start-error"
+          >{{fieldError('inicio')}}</hlm-field-error
+        >}
+      </div>
+      <div hlmField>
+        <label hlmFieldLabel for="indicators-fim">Data final</label
+        ><input
+          hlmInput
+          id="indicators-fim"
+          type="date"
+          [formField]="filtersForm.fim"
+          [attr.aria-describedby]="fieldError('fim') ? 'indicators-end-error' : 'indicators-date-help'"
+        />@if(fieldError('fim')){<hlm-field-error
+          forceShow
+          id="indicators-end-error"
+          >{{fieldError('fim')}}</hlm-field-error
+        >}
+      </div>
+      <p id="indicators-date-help" class="muted">
+        Inclui início e fim, no fuso da clínica. Até 366 dias.
+      </p>
+    </div>
+    }
+    <div class="filter-actions">
+      <button hlmBtn variant="ghost" type="button" (click)="clearFilters()">
+        Limpar filtros</button
+      >@if(pendingFilters()){
+      <p class="draft-notice" role="status">
+        Alterações de filtro ainda não aplicadas.
+      </p>
+      }
+    </div>
+    @if(units.isLoading() || specialties.isLoading()){
+    <p class="catalog-note" role="status">
+      Carregando opções de unidades e especialidades…
+    </p>
+    } @if(units.error() || specialties.error()){
+    <div class="catalog-note">
+      <p role="alert">
+        Não foi possível carregar todos os cadastros. O recorte selecionado foi
+        preservado.
+      </p>
+      <button hlmBtn variant="outline" type="button" (click)="reloadCatalogs()">
+        Tentar carregar os cadastros novamente
+      </button>
+    </div>
+    }
+  </form>
+  @if(applied(); as filters){
+  <div class="applied-context" aria-label="Recorte aplicado">
+    <strong>{{label(filters.inicio)}} — {{label(filters.fim)}}</strong
+    ><span>{{dimensionName('unit')}} · {{dimensionName('specialty')}}</span
+    ><span>Fuso {{data()?.timeZone ?? zone()}}</span>
+  </div>
+  }
+  <section
+    class="results"
+    [attr.aria-busy]="result.isLoading()"
+    aria-label="Resultado dos indicadores"
+  >
+    @if(invalidUrl()){
+    <app-state-panel
+      state="error"
+      title="Revise os filtros do endereço"
+      description="O recorte não foi consultado. Corrija os campos indicados ou limpe os filtros e aplique novamente."
+    />
+    } @else if(result.isLoading()){
+    <app-state-panel
+      state="loading"
+      title="Carregando indicadores"
+      description="Consultando o recorte aplicado."
+    />
+    } @else if(result.error(); as error){
+    <app-state-panel
+      state="error"
+      [title]="issue(error).title"
+      [description]="issue(error).description"
+    />
+    <div class="recovery-actions">
+      @if(issue(error).denied){<a
+        hlmBtn
+        variant="outline"
+        routerLink="/workspace"
+        >Voltar à minha área</a
+      ><button hlmBtn type="button" (click)="loginAgain()">
+        Entrar novamente</button
+      >}@else{<button
+        hlmBtn
+        variant="outline"
+        type="button"
+        (click)="result.reload()"
+      >
+        Tentar novamente</button
+      >}
+    </div>
+    } @else if(data(); as report){
+    <p class="sr-only" role="status">
+      Indicadores carregados de {{label(report.inicio)}} a
+      {{label(report.fim)}}. {{dimensionName('unit')}}.
+      {{dimensionName('specialty')}}.
+    </p>
+    @if(report.consultasPorDataAgendada.totalConsultas === 0 &&
+    report.finalizacoesPorDataReal.totalFinalizadas === 0){<app-state-panel
+      state="empty"
+      title="Nenhuma consulta ou conclusão neste recorte"
+      description="As contagens são zero para os filtros aplicados. Você pode consultar outro período, unidade ou especialidade."
+    />}
+    <section aria-labelledby="scheduled-cohort-title" class="scheduled-section">
+      <div class="section-intro">
+        <h2 id="scheduled-cohort-title">Por data agendada</h2>
+        <p class="muted">Consultas marcadas para este intervalo</p>
+      </div>
+      <dl class="summary">
+        <div class="stat">
+          <dt>Consultas no período</dt>
+          <dd data-testid="scheduled-total">
+            {{report.consultasPorDataAgendada.totalConsultas}}
+          </dd>
+          <dd class="stat-help">
+            <p>Inclui todos os estados, também canceladas.</p>
+          </dd>
+        </div>
+        <div class="stat">
+          <dt>Finalizadas</dt>
+          <dd data-testid="scheduled-finalized">
+            {{report.consultasPorDataAgendada.finalizadas}}
+          </dd>
+          <dd class="stat-help">
+            <p>Dentre as consultas agendadas neste período.</p>
+          </dd>
+        </div>
+        <div class="stat">
+          <dt>Canceladas</dt>
+          <dd data-testid="scheduled-cancelled">
+            {{report.consultasPorDataAgendada.canceladas}}
+          </dd>
+          <dd class="stat-help">
+            <p>Situação atual das consultas deste recorte.</p>
+          </dd>
+        </div>
+      </dl>
+      <div class="overview">
+        <app-admin-indicator-chart
+          chartId="scheduled"
+          title="Consultas por dia"
+          description="Pela data agendada · quantidade de consultas"
+          [inicio]="report.inicio"
+          [fim]="report.fim"
+          [points]="scheduledPoints()"
+          unit="consultas"
+          emptyText="Nenhuma consulta agendada neste recorte."
+        />
+        <section class="surface">
+          <h3>Situação das consultas</h3>
+          <p class="chart-note">
+            Estado atual das {{report.consultasPorDataAgendada.totalConsultas}}
+            consultas
+          </p>
+          <dl class="states">
+            @for(state of states(); track state.kind){
+            <div>
+              <dt>
+                <span [class]="'dot ' + state.kind" aria-hidden="true"></span
+                >{{state.label}}
+              </dt>
+              <dd>{{state.value}}</dd>
+            </div>
+            }
+          </dl>
+          <p class="state-foot">
+            Fotografia da leitura, sem histórico de mudanças de estado.
+          </p>
+        </section>
+      </div>
+      <div class="dimensions">
+        <app-admin-indicator-distribution
+          distributionId="units"
+          title="Por unidade"
+          noun="unidades"
+          [rows]="byUnit()"
+        /><app-admin-indicator-distribution
+          distributionId="specialties"
+          title="Por especialidade"
+          noun="especialidades"
+          [rows]="bySpecialty()"
+        />
+      </div>
+    </section>
+    <section class="real" aria-labelledby="real-title">
+      <h2 id="real-title">Conclusões por data real</h2>
+      <p class="muted">
+        Atendimentos cujo término ocorreu entre {{label(report.inicio)}} e
+        {{label(report.fim)}}.
+      </p>
+      <div class="real-grid">
+        <div class="real-count">
+          <strong data-testid="completed-total"
+            >{{report.finalizacoesPorDataReal.totalFinalizadas}}</strong
+          ><span>atendimentos concluídos</span>
+          <p>
+            A data de término pode diferir da data agendada. Este total não deve
+            ser somado às consultas acima.
+          </p>
+        </div>
+        <app-admin-indicator-chart
+          chartId="completed"
+          title="Conclusões por dia"
+          description="Pela data real de término · atendimentos concluídos"
+          [inicio]="report.inicio"
+          [fim]="report.fim"
+          [points]="finalizationPoints()"
+          unit="atendimentos concluídos"
+          emptyText="Nenhum atendimento concluído neste recorte."
+          tone="info"
+        />
+      </div>
+      <details class="completion-details">
+        <summary>Ver distribuição das conclusões</summary>
+        <div class="dimensions">
+          <app-admin-indicator-distribution
+            distributionId="completed-units"
+            title="Conclusões por unidade"
+            noun="unidades"
+            unit="atendimentos concluídos"
+            [rows]="completedUnits()"
+          /><app-admin-indicator-distribution
+            distributionId="completed-specialties"
+            title="Conclusões por especialidade"
+            noun="especialidades"
+            unit="atendimentos concluídos"
+            [rows]="completedSpecialties()"
+          />
+        </div>
+      </details>
+    </section>
+    <footer>
+      <span
+        >Leitura agregada da clínica · nomes atuais de unidades e
+        especialidades</span
+      ><span>Consulta recebida às {{receivedTime()}}</span>
+    </footer>
+    } @else if(applied()){
+    <app-state-panel
+      state="error"
+      title="Resposta incompatível com o período solicitado"
+      description="Não foi possível apresentar uma leitura confiável deste recorte."
+    /><button hlmBtn variant="outline" type="button" (click)="result.reload()">
+      Tentar novamente
+    </button>
+    }
+  </section>
+  }
+</div>
