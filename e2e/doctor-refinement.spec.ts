@@ -133,6 +133,14 @@ for (const width of [1366, 768])
     await expect(page.locator("#complaint")).toHaveValue(
       "Texto local sintético",
     );
+    page.once("dialog", (dialog) => dialog.dismiss());
+    await page
+      .getByRole("link", { name: "Minha atividade", exact: true })
+      .click();
+    await expect(page.locator("#complaint")).toHaveValue(
+      "Texto local sintético",
+    );
+    await expect(page).toHaveURL(/atendimentos\/care59/);
     await page.locator("#history").fill("Resumo sintético");
     await page.locator("#plan").fill("Conduta sintética");
     await page

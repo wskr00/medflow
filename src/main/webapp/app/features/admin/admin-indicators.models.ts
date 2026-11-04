@@ -44,10 +44,6 @@ export interface AdminIndicatorsResponse {
     readonly porEspecialidade: readonly FinalizationDimension[];
   };
 }
-export interface IndicatorPoint {
-  readonly data: string;
-  readonly quantidade: number;
-}
 export interface IndicatorDimension {
   readonly id: string;
   readonly nome: string;

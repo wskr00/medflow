@@ -35,6 +35,12 @@ import { MedflowBrandComponent } from "../../shared/ui/medflow-brand.component";
           ariaCurrentWhenActive="page"
           >Minha agenda</a
         >
+        <a
+          routerLink="indicadores"
+          routerLinkActive="active"
+          ariaCurrentWhenActive="page"
+          >Minha atividade</a
+        >
       </nav>
       <app-session-actions />
     </header>

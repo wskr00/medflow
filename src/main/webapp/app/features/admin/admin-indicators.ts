@@ -32,7 +32,7 @@ import {
   presetFilters,
   sameFilters,
 } from "./admin-indicators.utils";
-import { AdminIndicatorChart } from "./admin-indicator-chart";
+import { DailyCountChart } from "../../shared/ui/daily-count-chart";
 import { AdminIndicatorDistribution } from "./admin-indicator-distribution";
 
 @Component({
@@ -47,7 +47,7 @@ import { AdminIndicatorDistribution } from "./admin-indicator-distribution";
     HlmInputImports,
     HlmNativeSelectImports,
     StatePanelComponent,
-    AdminIndicatorChart,
+    DailyCountChart,
     AdminIndicatorDistribution,
   ],
   selector: "app-admin-indicators",

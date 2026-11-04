@@ -1,0 +1,209 @@
+{
+  "period": {
+    "inicio": "2031-05-01",
+    "fim": "2031-05-07",
+    "timeZone": "America/Belem"
+  },
+  "main": {
+    "inicio": "2031-05-01",
+    "fim": "2031-05-07",
+    "timeZone": "America/Belem",
+    "consultasPorDataAgendada": {
+      "totalConsultas": 7,
+      "agendadas": 2,
+      "emEspera": 1,
+      "emAtendimento": 1,
+      "finalizadas": 2,
+      "canceladas": 1,
+      "porDia": [
+        {
+          "data": "2031-05-01",
+          "totalConsultas": 1,
+          "agendadas": 1,
+          "emEspera": 0,
+          "emAtendimento": 0,
+          "finalizadas": 0,
+          "canceladas": 0
+        },
+        {
+          "data": "2031-05-02",
+          "totalConsultas": 1,
+          "agendadas": 0,
+          "emEspera": 1,
+          "emAtendimento": 0,
+          "finalizadas": 0,
+          "canceladas": 0
+        },
+        {
+          "data": "2031-05-03",
+          "totalConsultas": 1,
+          "agendadas": 0,
+          "emEspera": 0,
+          "emAtendimento": 1,
+          "finalizadas": 0,
+          "canceladas": 0
+        },
+        {
+          "data": "2031-05-04",
+          "totalConsultas": 1,
+          "agendadas": 0,
+          "emEspera": 0,
+          "emAtendimento": 0,
+          "finalizadas": 1,
+          "canceladas": 0
+        },
+        {
+          "data": "2031-05-05",
+          "totalConsultas": 1,
+          "agendadas": 0,
+          "emEspera": 0,
+          "emAtendimento": 0,
+          "finalizadas": 0,
+          "canceladas": 1
+        },
+        {
+          "data": "2031-05-06",
+          "totalConsultas": 1,
+          "agendadas": 1,
+          "emEspera": 0,
+          "emAtendimento": 0,
+          "finalizadas": 0,
+          "canceladas": 0
+        },
+        {
+          "data": "2031-05-07",
+          "totalConsultas": 1,
+          "agendadas": 0,
+          "emEspera": 0,
+          "emAtendimento": 0,
+          "finalizadas": 1,
+          "canceladas": 0
+        }
+      ]
+    },
+    "finalizacoesPorDataReal": {
+      "totalFinalizadas": 3,
+      "duracaoMediaSegundos": 1800,
+      "porDia": [
+        {
+          "data": "2031-05-01",
+          "totalFinalizadas": 2,
+          "duracaoMediaSegundos": 1200
+        },
+        {
+          "data": "2031-05-05",
+          "totalFinalizadas": 1,
+          "duracaoMediaSegundos": 3000
+        }
+      ]
+    }
+  },
+  "secondDoctor": {
+    "inicio": "2031-05-01",
+    "fim": "2031-05-07",
+    "timeZone": "America/Belem",
+    "consultasPorDataAgendada": {
+      "totalConsultas": 3,
+      "agendadas": 1,
+      "emEspera": 0,
+      "emAtendimento": 0,
+      "finalizadas": 1,
+      "canceladas": 1,
+      "porDia": [
+        {
+          "data": "2031-05-01",
+          "totalConsultas": 1,
+          "agendadas": 0,
+          "emEspera": 0,
+          "emAtendimento": 0,
+          "finalizadas": 1,
+          "canceladas": 0
+        },
+        {
+          "data": "2031-05-02",
+          "totalConsultas": 1,
+          "agendadas": 1,
+          "emEspera": 0,
+          "emAtendimento": 0,
+          "finalizadas": 0,
+          "canceladas": 0
+        },
+        {
+          "data": "2031-05-03",
+          "totalConsultas": 1,
+          "agendadas": 0,
+          "emEspera": 0,
+          "emAtendimento": 0,
+          "finalizadas": 0,
+          "canceladas": 1
+        }
+      ]
+    },
+    "finalizacoesPorDataReal": {
+      "totalFinalizadas": 1,
+      "duracaoMediaSegundos": 600,
+      "porDia": [
+        {
+          "data": "2031-05-01",
+          "totalFinalizadas": 1,
+          "duracaoMediaSegundos": 600
+        }
+      ]
+    }
+  },
+  "oneDay": {
+    "inicio": "2031-05-01",
+    "fim": "2031-05-01",
+    "timeZone": "America/Belem",
+    "consultasPorDataAgendada": {
+      "totalConsultas": 1,
+      "agendadas": 1,
+      "emEspera": 0,
+      "emAtendimento": 0,
+      "finalizadas": 0,
+      "canceladas": 0,
+      "porDia": [
+        {
+          "data": "2031-05-01",
+          "totalConsultas": 1,
+          "agendadas": 1,
+          "emEspera": 0,
+          "emAtendimento": 0,
+          "finalizadas": 0,
+          "canceladas": 0
+        }
+      ]
+    },
+    "finalizacoesPorDataReal": {
+      "totalFinalizadas": 2,
+      "duracaoMediaSegundos": 1200,
+      "porDia": [
+        {
+          "data": "2031-05-01",
+          "totalFinalizadas": 2,
+          "duracaoMediaSegundos": 1200
+        }
+      ]
+    }
+  },
+  "negatives": [
+    {
+      "profile": "paciente",
+      "apiStatus": 403,
+      "routeDenied": true
+    },
+    {
+      "profile": "recepcionista",
+      "apiStatus": 403,
+      "routeDenied": true
+    },
+    {
+      "profile": "administrador",
+      "apiStatus": 403,
+      "routeDenied": true
+    }
+  ],
+  "otherDoctorParameterIgnored": true,
+  "consoleErrors": [],
+  "forbiddenRequests": []
+}

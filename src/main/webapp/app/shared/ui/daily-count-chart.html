@@ -33,26 +33,28 @@
   </p>
   } @if(points().length){
   <div [id]="chartId() + '-table'" [hidden]="!showTable()" class="table-wrap">
-    <table>
-      <caption>
-        {{title()}} · {{dateLabel(inicio())}} a {{dateLabel(fim())}} ·
-        {{unit()}}
-      </caption>
-      <thead>
-        <tr>
-          <th scope="col">Data</th>
-          <th scope="col">Quantidade</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for(point of ordered(); track point.data){
-        <tr>
-          <th scope="row">{{dateLabel(point.data)}}</th>
-          <td>{{point.quantidade}}</td>
-        </tr>
-        }
-      </tbody>
-    </table>
+    <ng-content select="[countChartDetails]">
+      <table>
+        <caption>
+          {{title()}} · {{dateLabel(inicio())}} a {{dateLabel(fim())}} ·
+          {{unit()}}
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">Data</th>
+            <th scope="col">Quantidade</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for(point of ordered(); track point.data){
+          <tr>
+            <th scope="row">{{dateLabel(point.data)}}</th>
+            <td>{{point.quantidade}}</td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </ng-content>
     <p class="chart-note coverage">
       A tabela lista os dias retornados pelo serviço. Dias sem registro não são
       pontos medidos nem valores interpolados.

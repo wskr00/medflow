@@ -1,0 +1,35 @@
+{
+  "chartFiles": [
+    {
+      "file": "chunk-KgmaVSgZ.js",
+      "bytes": 162876
+    }
+  ],
+  "cases": [
+    {
+      "name": "initial",
+      "entryChunk": "main-56BDUO3Y.js",
+      "staticChartDependency": false
+    },
+    {
+      "name": "triage",
+      "entryChunk": "chunk-sFDTicI-.js",
+      "staticChartDependency": false
+    },
+    {
+      "name": "care",
+      "entryChunk": "chunk-BprJ915P.js",
+      "staticChartDependency": false
+    },
+    {
+      "name": "doctorIndicators",
+      "entryChunk": "chunk-CCs6jcim.js",
+      "staticChartDependency": true
+    },
+    {
+      "name": "adminIndicators",
+      "entryChunk": "chunk-0SH-JCh2.js",
+      "staticChartDependency": true
+    }
+  ]
+}

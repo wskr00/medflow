@@ -89,6 +89,14 @@ export const routes: Routes = [
     children: [
       { path: "", pathMatch: "full", redirectTo: "triagem" },
       {
+        path: "indicadores",
+        title: "Minha atividade | MedFlow",
+        loadComponent: () =>
+          import("./features/doctor/doctor-indicators").then(
+            (m) => m.DoctorIndicators,
+          ),
+      },
+      {
         path: "triagem",
         title: "Minha agenda | MedFlow",
         loadComponent: () =>
